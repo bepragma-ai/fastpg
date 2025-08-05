@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastpg"
+dynamic = ["version"]
 description = "A light wieght ORM for FastAPI projects and Postgresql"
 readme = "README.md"
 license = {text = "MIT"}
