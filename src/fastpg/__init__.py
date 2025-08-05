@@ -33,6 +33,7 @@ def get_package_info() -> dict:
 
 
 __all__ = [
+    "get_package_info",
     "OrderBy",
     "OnConflict",
     "ReturnTypes",
@@ -47,5 +48,4 @@ __all__ = [
     "DoesNotExist",
     "MulipleRecordsFound",
     "UnsupportedOperatorError",
-    "get_package_info",
 ]

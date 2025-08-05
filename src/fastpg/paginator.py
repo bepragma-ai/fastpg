@@ -5,7 +5,7 @@ from .core import AsyncQuerySet
 from .core import AsyncRawQuery
 from .errors import InvalidPageError
 
-from app.utils.color_print import print_green, print_yellow, print_red
+from .print import print_green, print_yellow, print_red
 
 
 class AsyncPaginator:

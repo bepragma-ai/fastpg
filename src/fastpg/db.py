@@ -8,7 +8,7 @@ from databases import Database
 from .utils import async_sql_logger
 from .utils import sync_sql_logger
 
-from app.utils.color_print import print_green, print_red, print_yellow
+from .print import print_green, print_red, print_yellow
 
 
 # MAIN DB POSTGRES READ SYNC

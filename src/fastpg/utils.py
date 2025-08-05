@@ -11,8 +11,6 @@ from .errors import (
 )
 
 
-from app.utils.color_print import print_yellow
-
 import logging
 logger = logging.getLogger(__name__)
 

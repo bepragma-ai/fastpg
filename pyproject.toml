@@ -22,7 +22,10 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 requires-python = ">=3.8"
-dependencies = []
+dependencies = [
+    "psycopg2>=2.9.10",
+    "databases[postgresql]>=0.7.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/bepragma-ai/fastpg"
