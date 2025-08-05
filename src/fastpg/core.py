@@ -8,7 +8,7 @@ Decorate a Pydantic `BaseModel` class using `@db_model` to turn it into a fully 
 - Models can be directly used as FastAPI input/output.
 - Both synchronous and asynchronous APIs are supported.
 ```python
-from app.orm import db_model
+from fastpg import db_model
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -99,7 +99,7 @@ The ORM supports expressive filtering using field-based keyword arguments, inspi
     ```
 5. Additional filter options:
     - `columns={'id', 'first_name'}` — Select specific columns by providing them as a set of string
-    - `order_by={'created_at': OrderBy.DESCENDING}` — Order data by providing dict of column names. `OrderBy` can be imported from `from app.orm import OrderBy`
+    - `order_by={'created_at': OrderBy.DESCENDING}` — Order data by providing dict of column names. `OrderBy` can be imported from `from fastpg import OrderBy`
     - `self.fetch_limit=10`
     - `self.fetch_offset=20`
 
