@@ -134,28 +134,3 @@ def async_sql_logger(func):
         return await func(*args, **kwargs)
 
     return wrapper
-
-
-def sync_sql_logger(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if LOG_DB_QUERIES:
-            start_time = time.perf_counter()
-            result = func(*args, **kwargs)
-            end_time = time.perf_counter()
-            elapsed_time = end_time - start_time
-
-            if elapsed_time < 1.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_LT_1_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
-            elif elapsed_time < 5.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_1_5_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
-            elif elapsed_time < 10.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_5_10_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
-            else:
-                logger.info(f"{PROJECT_NAME}_QUERY_GT_10_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
-
-            return result
-        
-        return func(*args, **kwargs)
-
-    return wrapper

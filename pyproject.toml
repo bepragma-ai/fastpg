@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastpg"
-version = "0.1.0"
 description = "A light wieght ORM for FastAPI projects and Postgresql"
 readme = "README.md"
 license = {text = "MIT"}
@@ -23,7 +22,6 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "psycopg2>=2.9.10",
     "databases[postgresql]>=0.7.0",
 ]
 
@@ -45,3 +43,7 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools_scm]
+# Automatically use Git tags for versioning
+write_to = "src/fastpg/_version.py"

@@ -1,3 +1,17 @@
+"""
+FastPG - Lightweight async ORM for PostgreSQL and FastAPI
+"""
+
+try:
+    from ._version import __version__
+except ImportError:
+    # Fallback for development
+    __version__ = "0.0.0.dev0"
+
+__author__ = "Eshan Das"
+__email__ = "eshan@logisy.tech"
+
+
 from .constants import OrderBy
 from .constants import OnConflict
 from .constants import ReturnTypes
@@ -18,22 +32,7 @@ from .errors import MulipleRecordsFound
 from .errors import UnsupportedOperatorError
 
 
-def get_package_info() -> dict:
-    """
-    Get package information
-    
-    Returns:
-        dict: Package information
-    """
-    return {
-        "name": "fastpg",
-        "version": "0.1.0",
-        "description": "A light wieght ORM for FastAPI projects and Postgresql"
-    }
-
-
 __all__ = [
-    "get_package_info",
     "OrderBy",
     "OnConflict",
     "ReturnTypes",

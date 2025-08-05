@@ -34,11 +34,6 @@ class Customer(BaseModel):
 customer = await Customer.async_queryset.get(id=10)
 customer.first_name = 'Jane'
 await customer.async_save()
-
-# Sync example
-customer = Customer.sync_query_set.get(id=10)
-customer.first_name = 'Jane'
-customer.sync_save()
 ```
 
 #### Usage in FastAPI
@@ -46,12 +41,7 @@ customer.sync_save()
 # Async example
 customer = await Customer.async_queryset.get(id=10)
 customer.first_name = 'Jane'
-await customer.async_save()
-
-# Sync example
-customer = Customer.sync_query_set.get(id=10)
-customer.first_name = 'Jane'
-customer.sync_save()
+await customer.async_save()s
 ```
 
 
@@ -122,7 +112,7 @@ Common exceptions:
 
 
 ## Notes
-- `async_save()` and `sync_save()` methods update the row based on the primary key.
+- `async_save()` method updates the row based on the primary key.
 - During insertions, fields listed in `BaseModel.Meta.auto_generated_fields` are excluded.
 - `model_construct(**record)` is used for faster instantiation without validation during reads.
 """
@@ -170,68 +160,6 @@ from .errors import (
 )
 
 from .print import print_green, print_red, print_yellow
-
-
-def sync_save(self):
-    return
-    # PreSaveProcessors.model_obj_populate_auto_now_fields(self)
-
-    # values = {}
-    # model_dict = self.dict()
-
-    # if columns:
-    #     col_names = [c for c in columns]
-    # else:
-    #     col_names = model_dict.keys()
-
-    # for col in col_names:
-    #     values[col] = model_dict[col]
-
-    # set_clause = ', '.join(f'{key}=%({key})s' for key in col_names)
-    # where_clause = f'{self.Meta.primary_key} = %({self.Meta.primary_key})s'
-    # values[self.Meta.primary_key] = model_dict[self.Meta.primary_key]
-
-    # query = f'UPDATE {self.Meta.db_table} SET {set_clause} WHERE {where_clause} RETURNING 1 AS updated'
-    
-    # try:
-    #     real_dict_row = SYNC_SEGMENTS_DB_WRITE.execute(
-    #         query=query, values=values)
-    # except Exception as e:
-    #     raise DatabaseError(
-    #         name=type(e).__name__,
-    #         sqlstate=e.sqlstate,
-    #         message=str(e))
-
-    # bool(real_dict_row[0]['updated'])
-
-
-def sync_delete(self):
-    return
-    # model_dict = self.dict()
-    # values = {}
-    # for key in model_dict.keys():
-    #     if key == self.Meta.primary_key:
-    #         values[key] = model_dict[key]
-    #         break
-
-    # where_clause = f'{self.Meta.primary_key} = %({self.Meta.primary_key})s'
-    # query = f'''
-    #     WITH deleted AS (
-    #         DELETE FROM {self.Meta.db_table}
-    #         WHERE {where_clause}
-    #         RETURNING {self.Meta.primary_key} AS deleted_id
-    #     ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
-
-    # try:
-    #     real_dict_row = SYNC_SEGMENTS_DB_WRITE.execute(
-    #         query=query, values=values)
-    # except Exception as e:
-    #     raise DatabaseError(
-    #         name=type(e).__name__,
-    #         sqlstate=e.sqlstate,
-    #         message=str(e))
-    
-    # return bool(real_dict_row[0]['deleted_count'])
 
 
 class AsyncQuerySet:
@@ -816,59 +744,3 @@ class DatabaseModel(BaseModel):
                 message=str(e))
         
         return bool(deleted_count)
-
-    def sync_save(self, columns:list[str]=None) -> bool:
-        PreSaveProcessors.model_obj_populate_auto_now_fields(self)
-
-        values = {}
-        model_dict = self.dict()
-
-        if columns is None:
-            columns = model_dict.keys()
-
-        for col in columns:
-            values[col] = model_dict[col]
-
-        set_clause = ', '.join(f'{key}=%({key})s' for key in columns)
-        where_clause = f'{self.Meta.primary_key} = %({self.Meta.primary_key})s'
-        values[self.Meta.primary_key] = model_dict[self.Meta.primary_key]
-
-        query = f'UPDATE {self.Meta.db_table} SET {set_clause} WHERE {where_clause} RETURNING 1 AS updated'
-        
-        try:
-            real_dict_row = SYNC_SEGMENTS_DB_WRITE.execute(
-                query=query, values=values)
-        except Exception as e:
-            raise DatabaseError(
-                name=type(e).__name__,
-                sqlstate=e.sqlstate,
-                message=str(e))
-
-        bool(real_dict_row[0]['updated'])
-
-    def sync_delete(self):
-        model_dict = self.dict()
-        values = {}
-        for key in model_dict.keys():
-            if key == self.Meta.primary_key:
-                values[key] = model_dict[key]
-                break
-
-        where_clause = f'{self.Meta.primary_key} = %({self.Meta.primary_key})s'
-        query = f'''
-            WITH deleted AS (
-                DELETE FROM {self.Meta.db_table}
-                WHERE {where_clause}
-                RETURNING {self.Meta.primary_key} AS deleted_id
-            ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
-
-        try:
-            real_dict_row = SYNC_SEGMENTS_DB_WRITE.execute(
-                query=query, values=values)
-        except Exception as e:
-            raise DatabaseError(
-                name=type(e).__name__,
-                sqlstate=e.sqlstate,
-                message=str(e))
-        
-        return bool(real_dict_row[0]['deleted_count'])
