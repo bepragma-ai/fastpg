@@ -151,16 +151,17 @@ from .errors import (
     DuplicateKeyDatabaseError,
     UnsupportedOperatorError,
     DoesNotExist,
-    MulipleRecordsFound,
+    MultipleRecordsFound,
     NothingToCreateError,
     UnrestrictedUpdateError,
     UnrestrictedDeleteError,
 )
 
-from .print import print_green, print_red, print_yellow
+from .print import print_red
 
 
 class AsyncQuerySet:
+    """Build and execute database queries for a model."""
 
     def __init__(self, model) -> None:
         self.Model = model
@@ -319,6 +320,7 @@ class AsyncQuerySet:
         return self
 
     def get(self, *args, **kwargs) -> Self:
+        """Fetch a single record matching the given conditions."""
         self.action = 'get'
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
@@ -337,9 +339,10 @@ class AsyncQuerySet:
         elif record_count == 0:
             raise DoesNotExist(model_name=self.Model.__name__, query=self.query)
         else:
-            raise MulipleRecordsFound(model_name=self.Model.__name__, query=self.query)
+            raise MultipleRecordsFound(model_name=self.Model.__name__, query=self.query)
 
     def filter(self, *args, **kwargs) -> Self:
+        """Filter records based on provided conditions."""
         self.action = 'filter'
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
@@ -355,6 +358,7 @@ class AsyncQuerySet:
         return self.records
 
     def all(self) -> Self:
+        """Select all records for the model."""
         self.action = 'all'
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
@@ -368,6 +372,7 @@ class AsyncQuerySet:
         return self.records
 
     def count(self) -> Self:
+        """Count the number of records matching the query."""
         self.action = 'count'
         self.fetch_related = False
         self.base_query = f'SELECT count({self.ModelMeta.primary_key}) FROM {self.table}'
@@ -547,6 +552,7 @@ class AsyncQuerySet:
         return obj, created
 
     def update(self, **kwargs) -> Self:
+        """Update records matching the query with provided values."""
         if self.where_conditions is None:
             raise UnrestrictedUpdateError()
         
@@ -598,6 +604,7 @@ class AsyncQuerySet:
         return self.records
 
     def delete(self) -> Self:
+        """Delete records matching the query."""
         if self.where_conditions is None:
             raise UnrestrictedDeleteError()
 

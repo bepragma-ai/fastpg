@@ -25,11 +25,14 @@ from .core import AsyncRawQuery
 from .paginator import AsyncPaginator
 from .paginator import RawQueryAsyncPaginator
 
-from .errors import DatabaseError
-from .errors import DuplicateKeyDatabaseError
-from .errors import DoesNotExist
-from .errors import MulipleRecordsFound
-from .errors import UnsupportedOperatorError
+from .errors import (
+    DatabaseError,
+    DuplicateKeyDatabaseError,
+    DoesNotExist,
+    MultipleRecordsFound,
+    UnsupportedOperatorError,
+    MulipleRecordsFound,
+)
 
 
 __all__ = [
@@ -45,6 +48,7 @@ __all__ = [
     "DatabaseError",
     "DuplicateKeyDatabaseError",
     "DoesNotExist",
+    "MultipleRecordsFound",
     "MulipleRecordsFound",
     "UnsupportedOperatorError",
 ]
