@@ -140,8 +140,6 @@ from .preprocessors import (
 )
 
 from .db import (
-    SYNC_SEGMENTS_DB_READ,
-    SYNC_SEGMENTS_DB_WRITE,
     ASYNC_CUSTOMERS_DB_READ,
     ASYNC_CUSTOMERS_DB_WRITE,
 )
