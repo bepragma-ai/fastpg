@@ -34,7 +34,7 @@ plugins:
 
 extra:
   social:
-    - icon: fontawesome/brands/whatsapp-alt
+    - icon: fontawesome/brands/whatsapp
       link: https://api.whatsapp.com/send?phone=918971023162&
     - icon: fontawesome/brands/facebook
       link: https://www.facebook.com/pragmadotai/
