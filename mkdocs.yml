@@ -27,6 +27,12 @@ theme:
         name: Switch to light mode    
       primary: teal
       accent: lime
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Start: quickstart.md
+  - API Reference: api.md
+  - Examples: examples.md
 plugins:
   - search
 markdown_extensions:
