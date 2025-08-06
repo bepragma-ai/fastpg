@@ -14,7 +14,7 @@ __email__ = "eshan@logisy.tech"
 
 from .constants import OrderBy
 from .constants import OnConflict
-from .constants import ReturnTypes
+from .constants import ReturnType
 
 from .utils import Relation
 from .utils import Q
@@ -38,7 +38,7 @@ from .errors import (
 __all__ = [
     "OrderBy",
     "OnConflict",
-    "ReturnTypes",
+    "ReturnType",
     "Relation",
     "Q",
     "DatabaseModel",

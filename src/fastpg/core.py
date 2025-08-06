@@ -33,7 +33,7 @@ class Customer(BaseModel):
 # Async example
 customer = await Customer.async_queryset.get(id=10)
 customer.first_name = 'Jane'
-await customer.async_save()
+await customer.save()
 ```
 
 #### Usage in FastAPI
@@ -41,7 +41,7 @@ await customer.async_save()
 # Async example
 customer = await Customer.async_queryset.get(id=10)
 customer.first_name = 'Jane'
-await customer.async_save()s
+await customer.save()
 ```
 
 
@@ -112,20 +112,20 @@ Common exceptions:
 
 
 ## Notes
-- `async_save()` method updates the row based on the primary key.
+- `save()` method updates the row based on the primary key.
 - During insertions, fields listed in `BaseModel.Meta.auto_generated_fields` are excluded.
 - `model_construct(**record)` is used for faster instantiation without validation during reads.
 """
 
 from functools import reduce
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar, Dict, List
 from typing_extensions import Self
 from pydantic import BaseModel
 
 from databases.backends.common.records import Record
 
 from .constants import (
-    ReturnTypes,
+    ReturnType,
     OnConflict,
 )
 
@@ -191,7 +191,7 @@ class AsyncQuerySet:
 
         self.update_clause = None
 
-        self.return_type = ReturnTypes.MODEL_INSTANCE
+        self.return_type = ReturnType.MODEL_INSTANCE
 
     def _reduce_conditions(self, *args, **kwargs) -> Q:
         conditions = []
@@ -219,7 +219,7 @@ class AsyncQuerySet:
         if self.action == 'count':
             return
 
-        if self.return_type == ReturnTypes.MODEL_INSTANCE:
+        if self.return_type == ReturnType.MODEL_INSTANCE:
             self.records = [self.Model.model_construct(**record) for record in self.records]
 
     async def _execute_query(self, func) -> None:
@@ -293,7 +293,7 @@ class AsyncQuerySet:
 
         self.records = [record._mapping for record in self.records]
         self.records = self._denormalize_data()
-        self.return_type = ReturnTypes.DICT
+        self.return_type = ReturnType.DICT
         self._serialize_data()
         return func()
 
@@ -662,13 +662,37 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, values:dict[str, Any]):
+    def __init__(self, query:str):
         self.query = query
-        self.values = values
 
-    async def fetch(self) -> list[Record]:
+    async def fetch(self, values:dict[str, Any]) -> List[Record]:
+        self.values = values
         try:
             records = await ASYNC_CUSTOMERS_DB_READ.fetch_all(
+                query=self.query, values=self.values)
+        except Exception as e:
+            raise DatabaseError(
+                name=type(e).__name__,
+                sqlstate=e.sqlstate,
+                message=str(e))
+        return [dict(record) for record in records]
+    
+    async def execute(self, values:dict[str, Any]) -> List[Record]:
+        self.values = values
+        try:
+            records = await ASYNC_CUSTOMERS_DB_WRITE.execute(
+                query=self.query, values=self.values)
+        except Exception as e:
+            raise DatabaseError(
+                name=type(e).__name__,
+                sqlstate=e.sqlstate,
+                message=str(e))
+        return [dict(record) for record in records]
+    
+    async def execute_many(self, list_of_values: List[Dict]) -> list[Record]:
+        self.values = list_of_values
+        try:
+            records = await ASYNC_CUSTOMERS_DB_WRITE.execute_many(
                 query=self.query, values=self.values)
         except Exception as e:
             raise DatabaseError(
@@ -694,7 +718,7 @@ class DatabaseModel(BaseModel):
     def async_queryset(cls):
         return AsyncQuerySet(model=cls)
     
-    async def async_save(self, columns:list[str]=None) -> bool:
+    async def save(self, columns:list[str]=None) -> bool:
         PreSaveProcessors.model_obj_populate_auto_now_fields(self)
 
         values = {}
@@ -723,7 +747,7 @@ class DatabaseModel(BaseModel):
 
         return bool(updated)
 
-    async def async_delete(self) -> bool:
+    async def delete(self) -> bool:
         model_dict = self.dict()
         values = {}
         for key in model_dict.keys():

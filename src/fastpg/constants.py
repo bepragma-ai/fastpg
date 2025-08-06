@@ -25,6 +25,6 @@ class OnConflict:
     UPDATE = 'UPDATE'
 
 
-class ReturnTypes:
+class ReturnType:
     MODEL_INSTANCE = 'MODEL_INSTANCE'
     DICT = 'DICT'

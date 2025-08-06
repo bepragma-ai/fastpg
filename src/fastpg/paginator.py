@@ -1,6 +1,6 @@
 from typing import Any, Optional, Callable, Dict
 
-from .constants import ReturnTypes
+from .constants import ReturnType
 from .core import AsyncQuerySet, AsyncRawQuery
 from .errors import InvalidPageError
 
@@ -72,7 +72,7 @@ class AsyncPaginator(BasePaginator):
         self.queryset.limit(self.page_size).offset((self.page - 1) * self.page_size)
 
         if isinstance(self.queryset, AsyncQuerySet):
-            data = await self.queryset.return_as(return_type=ReturnTypes.DICT)
+            data = await self.queryset.return_as(return_type=ReturnType.DICT)
         else:
             data = await self.queryset
 
