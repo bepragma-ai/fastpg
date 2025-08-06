@@ -28,16 +28,7 @@ theme:
       primary: teal
       accent: lime
 plugins:
-  - social
   - search
-extra:
-  social:
-    - icon: fontawesome/brands/whatsapp
-      link: https://api.whatsapp.com/send?phone=918971023162&
-    - icon: fontawesome/brands/facebook
-      link: https://www.facebook.com/pragmadotai/
-    - icon: fontawesome/brands/instagram
-      link: https://www.instagram.com/bepragma.ai/
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
