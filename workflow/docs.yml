@@ -1,14 +1,35 @@
 name: Deploy Documentation
 on:
   push:
-    branches: [main]
+    branches: [ docs ]  # Change to your default branch if different
+  pull_request:
+    branches: [ docs ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          python-version: 3.x
-      - run: pip install mkdocs-material mkdocstrings[python]
-      - run: mkdocs gh-deploy --force
+          fetch-depth: 0  # Fetch full history for setuptools-scm
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      
+      - name: Install dependencies
+        run: |
+          pip install mkdocs mkdocs-material mkdocstrings[python]
+      
+      - name: Build docs
+        run: mkdocs build
+      
+      - name: Deploy to GitHub Pages
+        run: mkdocs gh-deploy --force
