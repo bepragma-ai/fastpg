@@ -1,0 +1,173 @@
+/* Hacker Theme CSS */
+:root {
+  --md-primary-fg-color: #00ff41;
+  --md-primary-fg-color--light: #00ff41;
+  --md-primary-fg-color--dark: #00cc33;
+  --md-accent-fg-color: #00ff41;
+  --md-accent-fg-color--transparent: rgba(0, 255, 65, 0.1);
+}
+
+/* Dark background like terminal */
+.md-main {
+  background-color: #0d1117 !important;
+}
+
+.md-content {
+  background-color: #0d1117 !important;
+}
+
+/* Green text for headings */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  color: #00ff41 !important;
+  font-family: 'Source Code Pro', 'Courier New', monospace;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+/* Terminal-like code blocks */
+.md-typeset pre {
+  background-color: #161b22 !important;
+  border: 1px solid #00ff41;
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+}
+
+.md-typeset code {
+  background-color: #161b22 !important;
+  color: #00ff41 !important;
+  border: 1px solid #00ff41;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+/* Navigation styling */
+.md-nav__title {
+  color: #00ff41 !important;
+  font-family: 'Source Code Pro', monospace;
+}
+
+.md-nav__link {
+  color: #c9d1d9 !important;
+}
+
+.md-nav__link:hover {
+  color: #00ff41 !important;
+  text-shadow: 0 0 3px rgba(0, 255, 65, 0.5);
+}
+
+/* Header styling */
+.md-header {
+  background-color: #161b22 !important;
+  border-bottom: 1px solid #00ff41;
+}
+
+.md-header__title {
+  color: #00ff41 !important;
+  font-family: 'Source Code Pro', monospace;
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+/* Links with green glow */
+.md-typeset a {
+  color: #00ff41 !important;
+  text-decoration: none;
+}
+
+.md-typeset a:hover {
+  text-shadow: 0 0 5px rgba(0, 255, 65, 0.7);
+  text-decoration: underline;
+}
+
+/* Table styling */
+.md-typeset table {
+  border: 1px solid #00ff41;
+}
+
+.md-typeset th {
+  background-color: #161b22 !important;
+  color: #00ff41 !important;
+  border-bottom: 1px solid #00ff41;
+}
+
+.md-typeset td {
+  border-bottom: 1px solid #30363d;
+}
+
+/* Admonitions (notes, warnings) */
+.md-typeset .admonition {
+  border-left: 4px solid #00ff41;
+  background-color: rgba(0, 255, 65, 0.1);
+}
+
+.md-typeset .admonition-title {
+  color: #00ff41 !important;
+}
+
+/* Search box */
+.md-search__input {
+  background-color: #161b22 !important;
+  border: 1px solid #00ff41;
+  color: #c9d1d9 !important;
+}
+
+.md-search__input:focus {
+  border-color: #00ff41;
+  box-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+}
+
+/* Footer */
+.md-footer {
+  background-color: #161b22 !important;
+  border-top: 1px solid #00ff41;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00ff41;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00cc33;
+}
+
+/* Typewriter effect for main title */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.md-typeset h1:first-of-type {
+  overflow: hidden;
+  border-right: 2px solid #00ff41;
+  white-space: nowrap;
+  animation: typing 2s steps(40, end);
+}
+
+/* Matrix-like background effect (optional) */
+.md-main::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
