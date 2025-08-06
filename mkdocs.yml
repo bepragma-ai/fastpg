@@ -29,10 +29,12 @@ theme:
       accent: lime
 nav:
   - Home: index.md
-  - Installation: installation.md
-  - Quick Start: quickstart.md
-  - API Reference: api.md
-  - Examples: examples.md
+  - API Reference:
+    - Database Models: api/database-models.md
+    - Queries: api/queries.md
+  - Examples:
+    - Basic Usage: examples/basic-usage.md
+    - Advanced Usage: examples/advanced-usage.md
 plugins:
   - search
 markdown_extensions:
