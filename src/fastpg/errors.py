@@ -51,11 +51,16 @@ class DoesNotExist(Exception):
         super().__init__(self.message)
 
 
-class MulipleRecordsFound(Exception):
-    
-    def __init__(self, model_name:str, query:str) -> None:
-        self.message = f'Multiple {model_name} objects for query: {query}'
+class MultipleRecordsFound(Exception):
+    """Raised when a query expecting a single record returns multiple results."""
+
+    def __init__(self, model_name: str, query: str) -> None:
+        self.message = f"Multiple {model_name} objects for query: {query}"
         super().__init__(self.message)
+
+
+# Backwards compatibility alias
+MulipleRecordsFound = MultipleRecordsFound
 
 
 class NothingToCreateError(Exception):
