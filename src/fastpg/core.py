@@ -687,7 +687,7 @@ class AsyncRawQuery:
                 name=type(e).__name__,
                 sqlstate=e.sqlstate,
                 message=str(e))
-        return [dict(record) for record in records]
+        return records
     
     async def execute_many(self, list_of_values: List[Dict]) -> list[Record]:
         self.values = list_of_values
@@ -699,7 +699,7 @@ class AsyncRawQuery:
                 name=type(e).__name__,
                 sqlstate=e.sqlstate,
                 message=str(e))
-        return [dict(record) for record in records]
+        return records
 
 
 class classproperty:
