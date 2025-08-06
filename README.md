@@ -28,8 +28,16 @@ fastpg @ git+https://github.com/bepragma-ai/fastpg.git
 Optional environment variables:
 
 - ``FASTPG_TZ`` – timezone used for auto timestamp fields (default: ``UTC``)
-- ``POSTGRES_READ_*`` / ``POSTGRES_WRITE_*`` – credentials for read and write
-  database connections
+- ``POSTGRES_READ_USER`` - Postgresql read DB user
+- ``POSTGRES_READ_PASSWORD`` - Postgresql read DB password
+- ``POSTGRES_READ_DB`` - Postgresql read DB name
+- ``POSTGRES_READ_HOST`` - Postgresql read DB host
+- ``POSTGRES_READ_PORT`` - Postgresql read DB port
+- ``POSTGRES_WRITE_USER`` - Postgresql write DB user
+- ``POSTGRES_WRITE_PASSWORD`` - Postgresql write DB password
+- ``POSTGRES_WRITE_DB`` - Postgresql write DB name
+- ``POSTGRES_WRITE_HOST`` - Postgresql write DB host
+- ``POSTGRES_WRITE_PORT`` - Postgresql write DB port
 
 ## Quick Example
 
@@ -48,5 +56,4 @@ async def list_users():
     return await User.async_queryset.all()
 ```
 
-More examples and API documentation are available in the [docs](docs/).
-
+More examples and API documentation are available in the [docs](https://bepragma-ai.github.io/fastpg/).
