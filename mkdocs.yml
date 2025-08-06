@@ -1,6 +1,6 @@
 site_name: FastPG Documentation
 site_description: Lightweight async ORM for PostgreSQL
-
+site_url: https://bepragma.ai/
 theme:
   name: material
   features:
@@ -27,13 +27,6 @@ theme:
         name: Switch to light mode    
       primary: teal
       accent: lime
-
-nav:
-  - Home: index.md
-  - Installation: installation.md
-  - Quick Start: quickstart.md
-  - API Reference: api.md
-  - Examples: examples.md
 
 plugins:
   - social
@@ -66,4 +59,4 @@ markdown_extensions:
       emoji_generator: !!python/name:materialx.emoji.to_svg
 
 copyright: |
-  &copy; 2025 <a href="https://www.bepragma.ai/"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+  &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
