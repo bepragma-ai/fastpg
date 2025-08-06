@@ -19,6 +19,9 @@ def _get_timezone():
         return pytz.UTC
 
 
+TZ = _get_timezone()
+
+
 class PreCreateProcessors:
     """Pre-save hooks applied before creating a model instance."""
 
@@ -27,7 +30,7 @@ class PreCreateProcessors:
         """Populate ``auto_now_add`` fields on the given model instance."""
         try:
             for field_name in model_obj.Meta.auto_now_add_fields:
-                setattr(model_obj, field_name, datetime.now(_get_timezone()))
+                setattr(model_obj, field_name, datetime.now(TZ))
         except AttributeError:
             pass
 
@@ -49,6 +52,6 @@ class PreSaveProcessors:
         """Populate ``auto_now`` fields on the given model instance."""
         try:
             for field_name in model_obj.Meta.auto_now_fields:
-                setattr(model_obj, field_name, datetime.now(_get_timezone()))
+                setattr(model_obj, field_name, datetime.now(TZ))
         except AttributeError:
             pass

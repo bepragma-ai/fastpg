@@ -45,7 +45,7 @@ class User(DatabaseModel):
 
 
 async def list_users():
-    return await User.objects.all().fetch()
+    return await User.async_queryset.all()
 ```
 
 More examples and API documentation are available in the [docs](docs/).

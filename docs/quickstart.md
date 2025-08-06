@@ -21,7 +21,7 @@ async def main():
     )
 
     # Query records
-    results = await Item.objects.all().fetch()
+    results = await Item.async_queryset.all()
     print(results)
 ```
 
