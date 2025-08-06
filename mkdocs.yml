@@ -1,3 +1,4 @@
 site_name: FastPG Documentation
+site_description: Lightweight async ORM for PostgreSQL
 theme:
   name: mkdocs
