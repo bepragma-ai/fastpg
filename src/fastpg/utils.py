@@ -11,9 +11,9 @@ from .errors import (
     MalformedMetaError,
 )
 
-
 import logging
 logger = logging.getLogger(__name__)
+
 
 PROJECT_NAME = os.environ.get('PROJECT_NAME', 'UNNAMED').upper()
 LOG_DB_QUERIES = os.environ.get('LOG_DB_QUERIES', 'false').upper() == 'TRUE'
@@ -50,35 +50,54 @@ class Relation:
     def render_on_clause(self) -> str:
         """Return the SQL ON clause for the relation."""
 
-        return f"t.{self.base_field} = r.{self.foreign_field}"
+        return f"m.{self.base_field} = r.{self.foreign_field}"
 
 
 class Q:
     """Convenience object for constructing SQL WHERE clauses."""
 
-    def __init__(self, query=None, params=None, **kwargs):
-        self.secret = random.randint(0, 9999)
-        if query:
-            self.where_clause = query
+    def __init__(self, where_clause=None, params=None, relation:Relation=None, **kwargs):
+        self.relation = relation
+        self.relation_key = relation.related_data_set_name + '__' if relation else None
+
+        if where_clause:
+            self.where_clause = where_clause
             self.params = params or {}
         else:
+            self.secret = random.randint(0, 9999)
             conditions, self.params = [], {}
+            field_idx = 0
             for key, value in kwargs.items():
+                field_idx += 1
+                if self.relation:
+                    if self.relation_key in key:
+                        key = key.replace(self.relation_key, 'r.')
+                    else:
+                        key = 't.' + key
+                else:
+                    key = 't.' + key
+
                 if "__" in key:
                     field, op = key.split("__", 1)
-                    field_name = f"{field}_{self.secret}"
+                    field_name = f"{field}_{field_idx}_{self.secret}"
+                    field_name = field_name.replace('.', '_')
 
                     try:
                         operator = OPERATORS[op]
                     except KeyError:
                         raise UnsupportedOperatorError(
-                            f"Unsupported operator: {op}. Options are: {', '.join(OPERATORS.keys())}"
+                            f'Unsupported operator: "{op}". Options are: {", ".join(OPERATORS.keys())}. '
+                            f'If "{field}" is a related field, use `filter_related()` to add where clauses for the related field.'
                         )
 
                     if operator == "IN":
                         if not isinstance(value, list):
                             raise InvalidINClauseValueError(
-                                f'IN clause value for "{field}" must be supplied with a "list" type and not "{type(value).__name__}" type'
+                                f'IN clause value for "{field}" must be supplied with a "list" type and not "{type(value).__name__}" type.'
+                            )
+                        if len(value) == 0:
+                            raise InvalidINClauseValueError(
+                                f'IN clause value for "{field}" must be supplied with a non-empty "list".'
                             )
 
                         sub_fields = []
@@ -109,7 +128,8 @@ class Q:
                         self.params[f"{field_name}"] = value
 
                 else:
-                    field_name = f"{key}_{self.secret}"
+                    field_name = f"{key}_{field_idx}_{self.secret}"
+                    field_name = field_name.replace('.', '_')
                     conditions.append(f"{key} = :{field_name}")
                     self.params[f"{field_name}"] = value
 
@@ -118,12 +138,12 @@ class Q:
     def __or__(self, other):
         combined_query = f"({self.where_clause} OR {other.where_clause})"
         combined_params = {**self.params, **other.params}
-        return Q(query=combined_query, params=combined_params)
+        return Q(where_clause=combined_query, params=combined_params, relation=self.relation)
 
     def __and__(self, other):
         combined_query = f"({self.where_clause} AND {other.where_clause})"
         combined_params = {**self.params, **other.params}
-        return Q(query=combined_query, params=combined_params)
+        return Q(where_clause=combined_query, params=combined_params, relation=self.relation)
 
     def __repr__(self):
         return f"{self.where_clause} {self.params}"

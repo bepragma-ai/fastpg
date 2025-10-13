@@ -120,7 +120,8 @@ Common exceptions:
 from functools import reduce
 from typing import Any, ClassVar, Dict, List
 from typing_extensions import Self
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+import json
 
 from databases.backends.common.records import Record
 
@@ -139,9 +140,11 @@ from .preprocessors import (
     PreSaveProcessors,
 )
 
+from .fields import CustomJsonEncoder
+
 from .db import (
-    ASYNC_CUSTOMERS_DB_READ,
-    ASYNC_CUSTOMERS_DB_WRITE,
+    ASYNC_DB_READ,
+    ASYNC_DB_WRITE,
 )
 
 from .errors import (
@@ -157,8 +160,6 @@ from .errors import (
     UnrestrictedDeleteError,
 )
 
-from .print import print_red
-
 
 class AsyncQuerySet:
     """Build and execute database queries for a model."""
@@ -172,18 +173,24 @@ class AsyncQuerySet:
             if str(e) == 'Meta':
                 raise MalformedMetaError(self.Model.__name__)
         self.model_fields = self.Model.__fields__.keys()
-
         self.columns_to_fetch = self.model_fields
-        self.where_conditions = None
-        self.fetch_limit = None
-        self.fetch_offset = None
-        self.order_by_fields = None
 
         self.action = None
         self.base_query = None
         self.query = None
-        self.query_param_values = {}
         self.query_executed = False
+
+        self.conditions = []
+        self.where_conditions = ''
+        self.query_param_values = {}
+        self.related_conditions = []
+        self.related_where_conditions = ''
+        self.related_query_param_values = {}
+
+        self.fetch_limit = None
+        self.fetch_offset = None
+        self.order_by_fields = None
+
         self.records = None
 
         self.fetch_related = False
@@ -194,14 +201,20 @@ class AsyncQuerySet:
         self.return_type = ReturnType.MODEL_INSTANCE
 
     def _reduce_conditions(self, *args, **kwargs) -> Q:
-        conditions = []
         if kwargs:
-            conditions.append(Q(**kwargs))
+            self.conditions.append(Q(**kwargs))
         if args:
-            conditions.extend(args)
-        return reduce(lambda x, y: x & y, conditions)
+            self.conditions.extend(args)
+        return reduce(lambda x, y: x & y, self.conditions)
+    
+    def _reduce_related_conditions(self, *args, **kwargs) -> Q:
+        if kwargs:
+            self.related_conditions.append(Q(relation=self.relation, **kwargs))
+        if args:
+            self.related_conditions.extend(args)
+        return reduce(lambda x, y: x & y, self.related_conditions)
 
-    def _denormalize_data(self) -> list[dict]:
+    def _normalize_records(self) -> list[dict]:
         items = {}
         for record in self.records:
             left_id_val = record[f't_{self.relation.base_field}']
@@ -220,7 +233,21 @@ class AsyncQuerySet:
             return
 
         if self.return_type == ReturnType.MODEL_INSTANCE:
-            self.records = [self.Model.model_construct(**record) for record in self.records]
+            if self.fetch_related:
+                model_objs = []
+                for record in self.records:
+                    related_objs = []
+                    for related_record in record[self.relation.related_data_set_name]:
+                        related_objs.append(self.relation.RelatedModel(**related_record))
+                    model_obj = self.Model(**record)
+                    setattr(model_obj, self.relation.related_data_set_name, related_objs)
+                    model_objs.append(model_obj)
+                self.records = model_objs
+            else:
+                self.records = [self.Model(**record) for record in self.records]
+        else:
+            # Return as list of dict
+            self.records = [{**record} for record in self.records]
 
     async def _execute_query(self, func) -> None:
         self.query = f'{self.base_query} WHERE {self.where_conditions}' if self.where_conditions else self.base_query
@@ -231,9 +258,9 @@ class AsyncQuerySet:
             self.query += f' LIMIT {self.fetch_limit}'
         if self.fetch_offset:
             self.query += f' OFFSET {self.fetch_offset}'
-        
+
         try:
-            self.records = await ASYNC_CUSTOMERS_DB_READ.fetch_all(
+            self.records = await ASYNC_DB_READ.fetch_all(
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
@@ -242,48 +269,46 @@ class AsyncQuerySet:
                 sqlstate=e.sqlstate,
                 message=str(e))
         
-        self.records = [record._mapping for record in self.records]
         self._serialize_data()
         return func()
 
     async def _execute_query_with_select_related(self, func) -> None:
-        main_table_fields = ','.join(f't.{f} AS t_{f}' for f in self.columns_to_fetch)
+        main_table_fields = ','.join(f'm.{f} AS t_{f}' for f in self.columns_to_fetch)
         related_table_fields = ','.join(f'r.{f} AS r_{f}' for f in self.relation.model_fields)
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
+        inner_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
+
         if self.where_conditions:
-            inner_query = f'SELECT {columns_to_fetch} FROM {self.table} WHERE {self.where_conditions}'
-        else:
-            inner_query = f'SELECT {columns_to_fetch} FROM {self.table}'
+            inner_query += f' WHERE {self.where_conditions}'
+        if self.order_by_fields:
+            _clauses = []
+            for k, v in self.order_by_fields.items():
+                _clauses.append(f'{k} {v}')
+            inner_query += ' ORDER BY ' + ','.join(_clauses)
+        if self.fetch_limit:
+            inner_query += f' LIMIT {self.fetch_limit}'
+        if self.fetch_offset:
+            inner_query += f' OFFSET {self.fetch_offset}'
 
         self.query = f"""
             WITH main_table AS (
                 {inner_query}
             )
             SELECT {main_table_fields}, {related_table_fields}
-            FROM main_table t
-            LEFT JOIN {self.relation.table} r ON {self.relation.render_on_clause()}"""
+            FROM main_table m
+            LEFT JOIN {self.relation.table} r
+            ON {self.relation.render_on_clause()}
+        """
 
-        if self.order_by_fields:
-            # self.query += ' ORDER BY ' + ','.join(f't.{k} {v}' for k, v in self.order_by_fields.items())
-
-            _related_name = self.relation.related_data_set_name
-            _clauses = []
-            for k, v in self.order_by_fields.items():
-                if f'{_related_name}__' in k:
-                    k = k.replace(f'{_related_name}__', '')
-                    _clauses.append(f'r.{k} {v}')
-                else:
-                    _clauses.append(f't.{k} {v}')
-            self.query += ' ORDER BY ' + ','.join(_clauses)
-        if self.fetch_limit:
-            self.query += f' LIMIT {self.fetch_limit}'
-        if self.fetch_offset:
-            self.query += f' OFFSET {self.fetch_offset}'
+        if self.related_where_conditions:
+            self.query += f' WHERE {self.related_where_conditions}'
 
         try:
-            self.records = await ASYNC_CUSTOMERS_DB_READ.fetch_all(
-                query=self.query, values=self.query_param_values)
+            self.records = await ASYNC_DB_READ.fetch_all(
+                query=self.query, values={
+                    **self.query_param_values,
+                    **self.related_query_param_values})
             self.query_executed = True
         except Exception as e:
             raise DatabaseError(
@@ -291,9 +316,7 @@ class AsyncQuerySet:
                 sqlstate=e.sqlstate,
                 message=str(e))
 
-        self.records = [record._mapping for record in self.records]
-        self.records = self._denormalize_data()
-        self.return_type = ReturnType.DICT
+        self.records = self._normalize_records()
         self._serialize_data()
         return func()
 
@@ -302,7 +325,7 @@ class AsyncQuerySet:
         self.query_param_values = values
         
         try:
-            self.records = await ASYNC_CUSTOMERS_DB_READ.fetch_all(
+            self.records = await ASYNC_DB_READ.fetch_all(
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
@@ -311,7 +334,6 @@ class AsyncQuerySet:
                 sqlstate=e.sqlstate,
                 message=str(e))
         
-        self.records = [record._mapping for record in self.records]
         self._serialize_data()
         return self.records
 
@@ -324,11 +346,11 @@ class AsyncQuerySet:
         self.action = 'get'
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
-        self.base_query = f'SELECT {columns_to_fetch} FROM {self.table}'
+        self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
 
-        conditions = self._reduce_conditions(*args, **kwargs)
-        self.where_conditions = conditions.where_clause
-        self.query_param_values = conditions.params
+        all_conditions = self._reduce_conditions(*args, **kwargs)
+        self.where_conditions = all_conditions.where_clause
+        self.query_param_values = all_conditions.params
 
         return self
 
@@ -341,16 +363,23 @@ class AsyncQuerySet:
         else:
             raise MultipleRecordsFound(model_name=self.Model.__name__, query=self.query)
 
+    def filter_related(self, *args, **kwargs) -> Self:
+        all_conditions = self._reduce_related_conditions(*args, **kwargs)
+        self.related_where_conditions = all_conditions.where_clause
+        self.related_query_param_values = all_conditions.params
+
+        return self
+
     def filter(self, *args, **kwargs) -> Self:
         """Filter records based on provided conditions."""
         self.action = 'filter'
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
-        self.base_query = f'SELECT {columns_to_fetch} FROM {self.table}'
+        self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
 
-        conditions = self._reduce_conditions(*args, **kwargs)
-        self.where_conditions = conditions.where_clause
-        self.query_param_values = conditions.params
+        all_conditions = self._reduce_conditions(*args, **kwargs)
+        self.where_conditions = all_conditions.where_clause
+        self.query_param_values = all_conditions.params
 
         return self
 
@@ -362,7 +391,7 @@ class AsyncQuerySet:
         self.action = 'all'
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
-        self.base_query = f'SELECT {columns_to_fetch} FROM {self.table}'
+        self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
 
         self.where_conditions = None
         self.query_param_values = None
@@ -375,7 +404,7 @@ class AsyncQuerySet:
         """Count the number of records matching the query."""
         self.action = 'count'
         self.fetch_related = False
-        self.base_query = f'SELECT count({self.ModelMeta.primary_key}) FROM {self.table}'
+        self.base_query = f'SELECT count({self.ModelMeta.primary_key}) FROM {self.table} t'
         return self
 
     def _count(self) -> int:
@@ -403,9 +432,9 @@ class AsyncQuerySet:
 
     async def create(
         self,
-        # on_conflict:str=None,  # Options: None | "ignore" | "update"
-        # conflict_target:list[str]=None,  # Required for "update"
-        # update_fields:list[str]=None,    # Required for "update"
+        on_conflict:str=None,  # Options: None | "ignore" | "update"
+        conflict_target:list[str]=None,  # Required for "update"
+        update_fields:list[str]=None,    # Required for "update"
         **kwargs
     ):
         """
@@ -419,10 +448,11 @@ class AsyncQuerySet:
         """
         self.fetch_related = False
         primary_key_field = self.ModelMeta.primary_key
+
         model_obj = self.Model(**kwargs)
         PreCreateProcessors.model_obj_populate_auto_now_add_fields(model_obj)
 
-        model_dict = model_obj.dict()
+        model_dict = model_obj.model_dump(context={'db_write': True})
         PreCreateProcessors.model_dict_populate_auto_generated_fields(model_dict, self.Model)
 
         col_names = model_dict.keys()
@@ -445,7 +475,7 @@ class AsyncQuerySet:
         query += f" RETURNING {primary_key_field} AS new_id"
 
         try:
-            new_id = await ASYNC_CUSTOMERS_DB_WRITE.execute(
+            new_id = await ASYNC_DB_WRITE.execute(
                 query=query, values=model_dict)
         except Exception as e:
             try:
@@ -501,7 +531,7 @@ class AsyncQuerySet:
                 model_objs.append(model_obj)
 
         for model_obj in model_objs:
-            model_dict = model_obj.dict()
+            model_dict = model_obj.model_dump(context={'db_write': True})
             PreCreateProcessors.model_dict_populate_auto_generated_fields(model_dict, self.Model)
             model_dicts.append(model_dict)
 
@@ -523,7 +553,7 @@ class AsyncQuerySet:
             query += f" ON CONFLICT ({target}) DO UPDATE SET {updates}"
 
         try:
-            await ASYNC_CUSTOMERS_DB_WRITE.execute_many(
+            await ASYNC_DB_WRITE.execute_many(
                 query=query, list_of_values=model_dicts)
         except Exception as e:
             try:
@@ -570,8 +600,27 @@ class AsyncQuerySet:
                     _update_clause.append(f'{field}={field} * {kwargs[key]}')
                 elif op == 'div':
                     _update_clause.append(f'{field}={field} / {kwargs[key]}')
+                elif op == 'jsonb':
+                    _update_clause.append(f'{field}=:set_{field}')
+                    self.query_param_values[f'set_{field}'] = json.dumps(kwargs[key], cls=CustomJsonEncoder)
                 else:
-                    raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
+                    op_pieces = op.split("__")
+                    if op_pieces[0] == 'jsonb_set':
+                        try:
+                            op = op_pieces[0]
+                            field_to_update = op_pieces[1]
+                            try:
+                                data_type = op_pieces[2]
+                            except IndexError:
+                                data_type = 'json'
+                        except KeyError:
+                            raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
+                        if data_type == 'str':
+                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', '\"{kwargs[key]}\"', true)")
+                        else:
+                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', '{kwargs[key]}', true)")
+                    else:
+                        raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
             else:
                 _update_clause.append(f'{key}=:set_{key}')
                 self.query_param_values[f'set_{key}'] = kwargs[key]
@@ -584,18 +633,17 @@ class AsyncQuerySet:
         if not self.query_executed:
             self.query = f'''
                 WITH updated AS (
-                    UPDATE {self.table}
+                    UPDATE {self.table} t
                     SET {self.update_clause}
                     WHERE {self.where_conditions}
                     RETURNING {self.ModelMeta.primary_key} AS updated_id
                 ) SELECT COUNT(*) AS updated_count FROM updated;'''
             
             try:
-                self.records = await ASYNC_CUSTOMERS_DB_READ.execute(
+                self.records = await ASYNC_DB_READ.execute(
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
-                print_red(e)
                 raise DatabaseError(
                     name=type(e).__name__,
                     sqlstate=e.sqlstate,
@@ -616,13 +664,13 @@ class AsyncQuerySet:
         if not self.query_executed:
             self.query = f'''
                 WITH deleted AS (
-                    DELETE FROM {self.table}
+                    DELETE FROM {self.table} t
                     WHERE {self.where_conditions}
                     RETURNING {self.ModelMeta.primary_key} AS deleted_id
                 ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
 
             try:
-                self.records = await ASYNC_CUSTOMERS_DB_READ.execute(
+                self.records = await ASYNC_DB_READ.execute(
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
@@ -668,7 +716,7 @@ class AsyncRawQuery:
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
         try:
-            records = await ASYNC_CUSTOMERS_DB_READ.fetch_all(
+            records = await ASYNC_DB_READ.fetch_all(
                 query=self.query, values=self.values)
         except Exception as e:
             raise DatabaseError(
@@ -680,29 +728,49 @@ class AsyncRawQuery:
     async def execute(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
         try:
-            records = await ASYNC_CUSTOMERS_DB_WRITE.execute(
+            return await ASYNC_DB_WRITE.execute(
                 query=self.query, values=self.values)
+        except TypeError as e:
+            raise e
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
+            if sqlstate == '23505':
+                raise DuplicateKeyDatabaseError(
+                    table_name=self.table,
+                    sqlstate=sqlstate,
+                    message=str(e))
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
-        return records
     
     async def execute_many(self, list_of_values: List[Dict]) -> list[Record]:
         self.values = list_of_values
         try:
-            records = await ASYNC_CUSTOMERS_DB_WRITE.execute_many(
-                query=self.query, values=self.values)
+            return await ASYNC_DB_WRITE.execute_many(
+                query=self.query, list_of_values=self.values)
+        except TypeError as e:
+            raise e
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
+            if sqlstate == '23505':
+                raise DuplicateKeyDatabaseError(
+                    table_name=self.table,
+                    sqlstate=sqlstate,
+                    message=str(e))
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
-        return records
 
 
-class classproperty:
+class queryset_property:
     """Descriptor that works like @property but for classes."""
     def __init__(self, func):
         self.func = func
@@ -713,16 +781,18 @@ class classproperty:
 
 class DatabaseModel(BaseModel):
     async_queryset:ClassVar[AsyncQuerySet]
+
+    model_config = ConfigDict(extra='allow')
     
-    @classproperty
+    @queryset_property
     def async_queryset(cls):
         return AsyncQuerySet(model=cls)
     
-    async def save(self, columns:list[str]=None) -> bool:
+    async def save(self, columns:List[str]=None) -> bool:
         PreSaveProcessors.model_obj_populate_auto_now_fields(self)
 
         values = {}
-        model_dict = self.dict()
+        model_dict = self.model_dump(context={'db_write': True})
 
         if columns is None:
             columns = model_dict.keys()
@@ -734,10 +804,16 @@ class DatabaseModel(BaseModel):
         where_clause = f'{self.Meta.primary_key} = :{self.Meta.primary_key}'
         values[self.Meta.primary_key] = model_dict[self.Meta.primary_key]
 
-        query = f'UPDATE {self.Meta.db_table} SET {set_clause} WHERE {where_clause} RETURNING 1'
+        query = f'''
+            WITH updated AS (
+                UPDATE {self.Meta.db_table} t
+                SET {set_clause}
+                WHERE {where_clause}
+                RETURNING {self.Meta.primary_key} AS updated_id
+            ) SELECT COUNT(*) AS updated_count FROM updated;'''
 
         try:
-            updated = await ASYNC_CUSTOMERS_DB_WRITE.execute(
+            updated_count = await ASYNC_DB_WRITE.execute(
                 query=query, values=values)
         except Exception as e:
             raise DatabaseError(
@@ -745,10 +821,10 @@ class DatabaseModel(BaseModel):
                 sqlstate=e.sqlstate,
                 message=str(e))
 
-        return bool(updated)
+        return bool(updated_count)
 
     async def delete(self) -> bool:
-        model_dict = self.dict()
+        model_dict = self.model_dump(context={'db_write': True})
         values = {}
         for key in model_dict.keys():
             if key == self.Meta.primary_key:
@@ -758,13 +834,13 @@ class DatabaseModel(BaseModel):
         where_clause = f'{self.Meta.primary_key} = :{self.Meta.primary_key}'
         query = f'''
             WITH deleted AS (
-                DELETE FROM {self.Meta.db_table}
+                DELETE FROM {self.Meta.db_table} t
                 WHERE {where_clause}
                 RETURNING {self.Meta.primary_key} AS deleted_id
             ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
 
         try:
-            deleted_count = await ASYNC_CUSTOMERS_DB_WRITE.execute(
+            deleted_count = await ASYNC_DB_WRITE.execute(
                 query=query, values=values)
         except Exception as e:
             raise DatabaseError(

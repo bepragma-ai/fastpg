@@ -21,13 +21,13 @@ class DatabaseError(Exception):
         super().__init__(self.message)
 
 
-class DuplicateKeyDatabaseError(Exception):
+class DuplicateKeyDatabaseError(DatabaseError):
 
     def __init__(self, table_name:str, sqlstate:int, message:str) -> None:
         self.table_name = table_name
         self.sqlstate = sqlstate
         self.message = f'(SQLSTATE {sqlstate}): {message} of table "{table_name}"'
-        super().__init__(self.message)
+        super().__init__(self.table_name, self.sqlstate, self.message)
 
 
 class InvalidINClauseValueError(Exception):
@@ -57,10 +57,6 @@ class MultipleRecordsFound(Exception):
     def __init__(self, model_name: str, query: str) -> None:
         self.message = f"Multiple {model_name} objects for query: {query}"
         super().__init__(self.message)
-
-
-# Backwards compatibility alias
-MulipleRecordsFound = MultipleRecordsFound
 
 
 class NothingToCreateError(Exception):

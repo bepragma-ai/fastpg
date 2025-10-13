@@ -119,5 +119,5 @@ class AsyncPostgresDB:
             await self.database.disconnect()
 
 
-ASYNC_CUSTOMERS_DB_READ = AsyncPostgresDB(conn_type='READ')
-ASYNC_CUSTOMERS_DB_WRITE = AsyncPostgresDB(conn_type='WRITE')
+ASYNC_DB_READ = AsyncPostgresDB(conn_type='READ')
+ASYNC_DB_WRITE = AsyncPostgresDB(conn_type='WRITE')

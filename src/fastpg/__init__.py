@@ -20,7 +20,16 @@ from .utils import Relation
 from .utils import Q
 
 from .core import DatabaseModel
+from .core import AsyncQuerySet
 from .core import AsyncRawQuery
+from .core import queryset_property
+
+from .fields import (
+    JsonData,
+    json_str_to_dict,
+    serialize_json_data,
+    validate_json_data,
+)
 
 from .paginator import AsyncPaginator
 from .paginator import RawQueryAsyncPaginator
@@ -31,7 +40,7 @@ from .errors import (
     DoesNotExist,
     MultipleRecordsFound,
     UnsupportedOperatorError,
-    MulipleRecordsFound,
+    MultipleRecordsFound,
 )
 
 
@@ -42,13 +51,19 @@ __all__ = [
     "Relation",
     "Q",
     "DatabaseModel",
+    "AsyncQuerySet",
     "AsyncRawQuery",
+    "queryset_property",
+    "JsonData",
+    "json_str_to_dict",
+    "serialize_json_data",
+    "validate_json_data",
     "AsyncPaginator",
     "RawQueryAsyncPaginator",
     "DatabaseError",
     "DuplicateKeyDatabaseError",
     "DoesNotExist",
     "MultipleRecordsFound",
-    "MulipleRecordsFound",
+    "MultipleRecordsFound",
     "UnsupportedOperatorError",
 ]

@@ -71,10 +71,11 @@ class AsyncPaginator(BasePaginator):
 
         self.queryset.limit(self.page_size).offset((self.page - 1) * self.page_size)
 
-        if isinstance(self.queryset, AsyncQuerySet):
-            data = await self.queryset.return_as(return_type=ReturnType.DICT)
-        else:
-            data = await self.queryset
+        data = await self.queryset
+        # if isinstance(self.queryset, AsyncQuerySet):
+        #     data = await self.queryset.return_as(return_type=ReturnType.DICT)
+        # else:
+        #     data = await self.queryset
 
         return self.get_response(data=data, context=context)
 
