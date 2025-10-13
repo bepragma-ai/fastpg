@@ -29,9 +29,20 @@ theme:
       accent: lime
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
+  - Guides:
+    - Models: guides/models.md
+    - Querysets: guides/querysets.md
+    - Relationships: guides/relationships.md
+    - Pagination: guides/pagination.md
+  - Reference:
+    - JSON Fields: reference/json-fields.md
+    - Preprocessors: reference/preprocessors.md
+    - Errors: reference/errors.md
+    - Settings & Logging: reference/settings.md
   - API Reference:
     - Database Models: api/database-models.md
-    - Queries: api/queries.md
+    - Query API: api/queries.md
   - Examples:
     - Basic Usage: examples/basic-usage.md
     - Advanced Usage: examples/advanced-usage.md

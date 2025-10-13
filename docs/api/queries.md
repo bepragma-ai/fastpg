@@ -1,34 +1,53 @@
-# Queries
+# Query API
 
-`AsyncQuerySet` provides a chainable API for building SQL queries.
+The query API comprises `AsyncQuerySet` for model-bound operations and
+`AsyncRawQuery` for ad-hoc SQL.
 
-## Retrieving records
+## AsyncQuerySet
 
-```python
-# Get a single record
-await User.async_queryset.get(id=1)
+### Creation helpers
 
-# Filter multiple records
-users = await User.async_queryset.filter(age__gte=18)
-```
+| Method | Purpose |
+|--------|---------|
+| `create(**kwargs)` | Insert a single row and return the model instance. |
+| `bulk_create(values, skip_validations=False, on_conflict=None, ...)` | Batch insert. Supports `OnConflict.DO_NOTHING` and `OnConflict.UPDATE`. |
+| `get_or_create(defaults=None, **lookup)` | Return an existing row or create one from `defaults`. |
 
-- `__gt`, `__gte`, `__lt`, `__lte` – comparison operators
-- `__in` – membership, expects a list
-- `__or` – combine conditions with OR using `Q` objects
+### Retrieval helpers
 
-## Aggregation
+| Method | Purpose |
+|--------|---------|
+| `get(**filters)` | Fetch a single row. |
+| `filter(*conditions, **filters)` | Fetch multiple rows using keyword lookups or `Q` objects. |
+| `all()` | Return every row. |
+| `count()` | Return the number of matching rows. |
+| `columns(*names)` | Select a subset of columns. |
+| `order_by(**clauses)` | Accepts a mapping of column → `"ASC"`/`"DESC"`. |
+| `limit(n)` / `offset(n)` | Apply pagination clauses. |
+| `return_as(ReturnType)` | Switch between model instances and dictionaries. |
+| `select_related(*relation_names)` | Join related tables defined in `Meta.relations`. |
+| `filter_related(*conditions, **filters)` | Apply filters to the joined tables. |
 
-```python
-count = await User.async_queryset.filter(active=True).count()
-```
+### Mutation helpers
 
-## Updating and deleting
+| Method | Purpose |
+|--------|---------|
+| `update(**values)` | Update rows matching the current filters. Supports arithmetic and JSON operators via suffixes. |
+| `delete()` | Delete rows matching the filters. |
 
-```python
-# Update
-await User.async_queryset.filter(id=1).update(name="New")
+Awaiting a queryset triggers execution. If no terminal method has been called,
+`MalformedQuerysetError` is raised.
 
-# Delete
-await User.async_queryset.filter(id=1).delete()
-```
+## AsyncRawQuery
 
+`AsyncRawQuery` wraps raw SQL statements while still providing consistent error
+handling.
+
+| Method | Purpose |
+|--------|---------|
+| `fetch(values)` | Execute a SELECT-like statement and return dictionaries. |
+| `execute(values)` | Execute a modifying statement inside a transaction. |
+| `execute_many(list_of_values)` | Execute the same statement with multiple sets of parameters. |
+
+Use raw queries when you need window functions, CTEs, or other constructs that
+are easier to express directly in SQL.
