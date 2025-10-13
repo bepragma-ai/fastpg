@@ -2,22 +2,58 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://bepragma.ai/</loc>
-         <lastmod>2025-08-06</lastmod>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/getting-started/</loc>
+         <lastmod>2025-10-13</lastmod>
     </url>
     <url>
          <loc>https://bepragma.ai/api/database-models/</loc>
-         <lastmod>2025-08-06</lastmod>
+         <lastmod>2025-10-13</lastmod>
     </url>
     <url>
          <loc>https://bepragma.ai/api/queries/</loc>
-         <lastmod>2025-08-06</lastmod>
+         <lastmod>2025-10-13</lastmod>
     </url>
     <url>
          <loc>https://bepragma.ai/examples/advanced-usage/</loc>
-         <lastmod>2025-08-06</lastmod>
+         <lastmod>2025-10-13</lastmod>
     </url>
     <url>
          <loc>https://bepragma.ai/examples/basic-usage/</loc>
-         <lastmod>2025-08-06</lastmod>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/guides/models/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/guides/pagination/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/guides/querysets/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/guides/relationships/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/reference/errors/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/reference/json-fields/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/reference/preprocessors/</loc>
+         <lastmod>2025-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://bepragma.ai/reference/settings/</loc>
+         <lastmod>2025-10-13</lastmod>
     </url>
 </urlset>
