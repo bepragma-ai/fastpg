@@ -102,8 +102,8 @@ class RawQueryAsyncPaginator(BasePaginator):
 
         _query = self.query.format(limit=self.page_size, offset=(self.page - 1) * self.page_size)
 
-        raw_query = AsyncRawQuery(query=_query, values=self.values)
-        records = await raw_query.fetch()
+        raw_query = AsyncRawQuery(query=_query)
+        records = await raw_query.fetch(values=self.values)
         if self.serializer:
             records = self.serializer(records)
 
