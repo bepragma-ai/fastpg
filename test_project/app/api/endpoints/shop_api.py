@@ -21,14 +21,12 @@ async def modules(
     department:str|None = None,
     salary:float|None = None,
 ):
-    employees = Employee.async_queryset.select_related('department')
+    employees = Employee.async_queryset.select_related('department').all()
     if salary or department:
         if salary:
             employees = employees.filter(salary__gte=salary)
         if department:
-            employees = employees.filter_related(department=department).filter(salary__gte=0)
-    else:
-        employees = employees.all()
+            employees = employees.filter_related(department__name=department)
     return await employees.order_by(salary=OrderBy.DESCENDING)
 
 

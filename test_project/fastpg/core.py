@@ -158,6 +158,7 @@ from .errors import (
     NothingToCreateError,
     UnrestrictedUpdateError,
     UnrestrictedDeleteError,
+    InvalidRelatedFieldError,
 )
 
 
@@ -281,6 +282,11 @@ class AsyncQuerySet:
         """
         if self.where_conditions:
             self.query += f'WHERE {self.where_conditions}'
+            if self.related_where_conditions:
+                self.query += f' AND {self.related_where_conditions}'
+        else:
+            if self.related_where_conditions:
+                self.query += f' WHERE {self.related_where_conditions}'
         if self.order_by_fields:
             _clauses = []
             for k, v in self.order_by_fields.items():
@@ -401,7 +407,11 @@ class AsyncQuerySet:
 
     def select_related(self, *relation_names:list[str]) -> Self:
         self.fetch_related = True
-        self.relation = self.ModelMeta.relations[relation_names[0]]
+        relation_name = relation_names[0]
+        try:
+            self.relation = self.ModelMeta.relations[relation_name]
+        except KeyError:
+            raise InvalidRelatedFieldError(self.Model.__name__, relation_name, self.ModelMeta.relations.keys())
         return self
 
     def limit(self, fetch_limit:int) -> Self:
