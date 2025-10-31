@@ -1,0 +1,38 @@
+version: '3.3'
+
+x-logging: &default-logging
+  options:
+    max-size: "10M"
+    max-file: "10" 
+  driver: json-file
+
+services:
+  app:
+    hostname: fastpg_app
+    build:
+      context: .
+      dockerfile: ./dockerify/Dockerfile
+    ports:
+      - '18092:8092'
+    env_file: secrets.env
+    volumes:
+      - .:/app/code
+    depends_on:
+      - db
+    logging: *default-logging
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8092 --reload --log-level info
+
+  db:
+    build:
+      context: .
+      dockerfile: ./dockerify/db/pg13/Dockerfile
+    volumes:
+      - fastpg_db:/var/lib/postgresql/data
+    ports:
+      - '0.0.0.0:17432:5432'
+    env_file:
+      - secrets.env
+
+volumes:
+  fastpg_db:
+    driver: local
