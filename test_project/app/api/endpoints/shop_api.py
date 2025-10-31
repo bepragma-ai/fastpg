@@ -22,9 +22,10 @@ async def modules(
 ):
     employees = Employee.async_queryset.select_related('department')
     if salary:
-        return await employees.filter(salary__gte=salary).order_by(salary=OrderBy.DESCENDING)
+        employees = await employees.filter(salary__gte=salary).order_by(salary=OrderBy.DESCENDING)
     else:
-        return await employees.all().order_by(salary=OrderBy.DESCENDING)
+        employees = await employees.all().order_by(salary=OrderBy.DESCENDING)
+    return employees
 
 
 @router.get('/products', status_code=200)
