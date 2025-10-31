@@ -30,6 +30,14 @@ async def modules(
     return await employees.order_by(salary=OrderBy.DESCENDING)
 
 
+@router.get('/employee', status_code=200)
+async def modules(
+    response:Response,
+    id:int,
+):
+    return await Employee.async_queryset.select_related('department').get(id=id)
+
+
 @router.get('/products', status_code=200)
 async def modules(
     response:Response,
