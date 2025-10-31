@@ -46,4 +46,4 @@ async def modules(
 async def modules(
     response:Response,
 ):
-    return await Order.async_queryset.all()
+    return await OrderItem.async_queryset.select_related('order', 'product').all()
