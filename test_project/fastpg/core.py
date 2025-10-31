@@ -214,49 +214,18 @@ class AsyncQuerySet:
             self.related_conditions.extend(args)
         return reduce(lambda x, y: x & y, self.related_conditions)
 
-    def _normalize_records(self) -> list[dict]:
-        items = {}
+    def _denormalize_related_data(self) -> list[dict]:
+        items = []
         for record in self.records:
-            left_id_val = record[f't_{self.relation.foreign_field}']
-            right_id_val = record[f'r_{self.relation.related_id_field}']
+            related_id_field_val = record[f'r_{self.relation.related_id_field}']
 
-            if left_id_val not in items:
-                items[left_id_val] = {f: record[f't_{f}'] for f in self.columns_to_fetch}
-                items[left_id_val][self.relation.related_data_set_name] = []
-                # Create set of right IDs so that same data is not added to the relation multiple times
-                items[left_id_val]['right_id_vals'] = set()
+            item = {f: record[f't_{f}'] for f in self.columns_to_fetch}
+            item[self.relation.related_data_set_name] = {}
+            if related_id_field_val:
+                item[self.relation.related_data_set_name] = {f: record[f'r_{f}'] for f in self.relation.model_fields}
             
-            if right_id_val and right_id_val not in items[left_id_val]['right_id_vals']:
-                items[left_id_val]['right_id_vals'].add(right_id_val)
-                items[left_id_val][self.relation.related_data_set_name].append(
-                    {f: record[f'r_{f}'] for f in self.relation.model_fields})
-
-        items = [items[key] for key in items.keys()]
-
-        # Clear right IDs
-        for item in items:
-            del item['right_id_vals']
-        
-        if self.relation.fetch_one:
-            for item in items:
-                if len(item[self.relation.related_data_set_name]):
-                    item[self.relation.related_data_set_name] = item[self.relation.related_data_set_name][0]
-        
+            items.append(item)
         return items
-
-    # def _normalize_records(self) -> list[dict]:
-    #     items = {}
-    #     for record in self.records:
-    #         left_id_val = record[f't_{self.relation.foreign_field}']
-    #         if left_id_val not in items:
-    #             items[left_id_val] = {f: record[f't_{f}'] for f in self.columns_to_fetch}
-    #             items[left_id_val][self.relation.related_data_set_name] = []
-            
-    #         if record[f'r_{self.relation.related_id_field}']:
-    #             items[left_id_val][self.relation.related_data_set_name].append(
-    #                 {f: record[f'r_{f}'] for f in self.relation.model_fields})
-
-    #     return [items[key] for key in items.keys()]
 
     def _serialize_data(self) -> None:
         if self.action == 'count':
@@ -350,7 +319,7 @@ class AsyncQuerySet:
                 sqlstate=e.sqlstate,
                 message=str(e))
 
-        self.records = self._normalize_records()
+        self.records = self._denormalize_related_data()
         self._serialize_data()
         return func()
 

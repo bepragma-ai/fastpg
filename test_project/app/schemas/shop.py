@@ -13,6 +13,17 @@ IST_TZ = pytz.timezone("Asia/Kolkata")
 class Category(DatabaseModel):
     id:int|None = None
     name:str
+    description:str
+
+    class Meta:
+        db_table = 'categories'
+        primary_key = 'id'
+        auto_generated_fields = ['id']
+
+
+class Product(DatabaseModel):
+    id:int|None = None
+    name:str
     category_id:int|None = None
     price:float
     stock_quantity:int
@@ -21,17 +32,9 @@ class Category(DatabaseModel):
         db_table = 'products'
         primary_key = 'id'
         auto_generated_fields = ['id']
-
-
-class Product(DatabaseModel):
-    id:int|None = None
-    name:str
-    description:str
-
-    class Meta:
-        db_table = 'categories'
-        primary_key = 'id'
-        auto_generated_fields = ['id']
+        relations = {
+            'category': Relation(Category, foreign_field='order_id'),
+        }
 
 
 class Customer(DatabaseModel):
@@ -73,6 +76,10 @@ class OrderItem(DatabaseModel):
         db_table = 'order_items'
         primary_key = 'id'
         auto_generated_fields = ['id']
+        relations = {
+            'order': Relation(Order, foreign_field='order_id'),
+            'product': Relation(Product, foreign_field='product_id'),
+        }
 
 
 class Department(DatabaseModel):
