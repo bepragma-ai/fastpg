@@ -106,5 +106,5 @@ class Employee(DatabaseModel):
         primary_key = 'id'
         auto_generated_fields = ['id']
         relations = {
-            'department': Relation(Department, foreign_field='department_id', fetch_one=True),
+            'department': Relation(Department, foreign_field='department_id'),
         }

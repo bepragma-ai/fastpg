@@ -220,9 +220,9 @@ class AsyncQuerySet:
             related_id_field_val = record[f'r_{self.relation.related_id_field}']
 
             item = {f: record[f't_{f}'] for f in self.columns_to_fetch}
-            item[self.relation.related_data_set_name] = {}
+            item[self.relation.related_name] = {}
             if related_id_field_val:
-                item[self.relation.related_data_set_name] = {f: record[f'r_{f}'] for f in self.relation.model_fields}
+                item[self.relation.related_name] = {f: record[f'r_{f}'] for f in self.relation.model_fields}
             
             items.append(item)
         return items
@@ -235,15 +235,10 @@ class AsyncQuerySet:
             if self.fetch_related:
                 model_objs = []
                 for record in self.records:
-                    related_objs = []
-                    if self.relation.fetch_one:
-                        related_record = record[self.relation.related_data_set_name]
-                        related_objs = self.relation.RelatedModel(**related_record) if related_record else {}
-                    else:
-                        for related_record in record[self.relation.related_data_set_name]:
-                            related_objs.append(self.relation.RelatedModel(**related_record))
+                    related_record = record[self.relation.related_name]
+                    related_obj = self.relation.RelatedModel(**related_record) if related_record else {}
                     model_obj = self.Model(**record)
-                    setattr(model_obj, self.relation.related_data_set_name, related_objs)
+                    setattr(model_obj, self.relation.related_name, related_obj)
                     model_objs.append(model_obj)
                 self.records = model_objs
             else:

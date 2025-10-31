@@ -26,8 +26,7 @@ class Relation:
         self,
         related_model,
         foreign_field: str,
-        related_data_set_name: Optional[str] = None,
-        fetch_one: Optional[bool] = False
+        related_name: Optional[str] = None,
     ) -> None:
         self.RelatedModel = related_model
         try:
@@ -38,18 +37,11 @@ class Relation:
         self.model_fields = self.RelatedModel.__fields__.keys()
         self.foreign_field = foreign_field
         self.related_id_field = self.RelatedModel.Meta.primary_key
-        if related_data_set_name:
-            self.related_data_set_name = related_data_set_name
-        else:
-            if fetch_one:
-                self.related_data_set_name = self.RelatedModel.__name__.lower()
-            else:
-                self.related_data_set_name = self.RelatedModel.__name__.lower() + 's'
-        self.fetch_one = fetch_one
+        self.related_name = related_name or self.RelatedModel.__name__.lower()
 
-    def set_related_data_set_name(self, related_data_set_name: str) -> None:
+    def set_related_data_set_name(self, related_name: str) -> None:
         """Set a custom name for the related data set."""
-        self.related_data_set_name = related_data_set_name
+        self.related_name = related_name
 
     def render_on_clause(self) -> str:
         """Return the SQL ON clause for the relation."""
@@ -61,7 +53,7 @@ class Q:
 
     def __init__(self, where_clause=None, params=None, relation:Relation=None, **kwargs):
         self.relation = relation
-        self.relation_key = relation.related_data_set_name + '__' if relation else None
+        self.relation_key = relation.related_name + '__' if relation else None
 
         if where_clause:
             self.where_clause = where_clause
