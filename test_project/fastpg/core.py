@@ -271,37 +271,26 @@ class AsyncQuerySet:
         return func()
 
     async def _execute_query_with_select_related(self, func) -> None:
-        main_table_fields = ','.join(f'm.{f} AS t_{f}' for f in self.columns_to_fetch)
+        main_table_fields = ','.join(f't.{f} AS t_{f}' for f in self.columns_to_fetch)
         related_table_fields = ','.join(f'r.{f} AS r_{f}' for f in self.relation.model_fields)
 
-        columns_to_fetch = ','.join(list(self.columns_to_fetch))
-        inner_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
-
+        self.query = f"""
+            SELECT {main_table_fields}, {related_table_fields}
+            FROM {self.table} t LEFT JOIN {self.relation.table} r
+            ON {self.relation.render_on_clause()}
+        """
         if self.where_conditions:
-            inner_query += f' WHERE {self.where_conditions}'
+            self.query += f'WHERE {self.where_conditions}'
         if self.order_by_fields:
             _clauses = []
             for k, v in self.order_by_fields.items():
-                _clauses.append(f'{k} {v}')
-            inner_query += ' ORDER BY ' + ','.join(_clauses)
+                _clauses.append(f't.{k} {v}')
+            self.query += ' ORDER BY ' + ','.join(_clauses)
         if self.fetch_limit:
-            inner_query += f' LIMIT {self.fetch_limit}'
+            self.query += f' LIMIT {self.fetch_limit}'
         if self.fetch_offset:
-            inner_query += f' OFFSET {self.fetch_offset}'
+            self.query += f' OFFSET {self.fetch_offset}'
 
-        self.query = f"""
-            WITH main_table AS (
-                {inner_query}
-            )
-            SELECT {main_table_fields}, {related_table_fields}
-            FROM main_table m
-            LEFT JOIN {self.relation.table} r
-            ON {self.relation.render_on_clause()}
-        """
-
-        if self.related_where_conditions:
-            self.query += f' WHERE {self.related_where_conditions}'
-        
         try:
             self.records = await ASYNC_DB_READ.fetch_all(
                 query=self.query, values={

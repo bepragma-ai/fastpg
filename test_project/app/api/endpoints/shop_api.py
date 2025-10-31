@@ -18,14 +18,18 @@ router = APIRouter()
 @router.get('/employees', status_code=200)
 async def modules(
     response:Response,
+    department:str|None = None,
     salary:float|None = None,
 ):
     employees = Employee.async_queryset.select_related('department')
-    if salary:
-        employees = await employees.filter(salary__gte=salary).order_by(salary=OrderBy.DESCENDING)
+    if salary or department:
+        if salary:
+            employees = employees.filter(salary__gte=salary)
+        if department:
+            employees = employees.filter_related(department=department).filter(salary__gte=0)
     else:
-        employees = await employees.all().order_by(salary=OrderBy.DESCENDING)
-    return employees
+        employees = employees.all()
+    return await employees.order_by(salary=OrderBy.DESCENDING)
 
 
 @router.get('/products', status_code=200)

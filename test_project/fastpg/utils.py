@@ -45,7 +45,7 @@ class Relation:
 
     def render_on_clause(self) -> str:
         """Return the SQL ON clause for the relation."""
-        return f"m.{self.foreign_field} = r.{self.related_id_field}"
+        return f"t.{self.foreign_field} = r.{self.related_id_field}"
 
 
 class Q:
