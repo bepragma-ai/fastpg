@@ -70,3 +70,14 @@ async def get_orders(
         Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
     ).all()
     return orders
+
+
+@router.get('/order', status_code=200)
+async def get_order(
+    response:Response,
+    id:int,
+):
+    order = await Order.async_queryset.prefetch_related(
+        Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
+    ).get(id=id)
+    return order

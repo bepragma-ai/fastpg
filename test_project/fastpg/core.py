@@ -320,6 +320,8 @@ class AsyncQuerySet:
     
     async def _execute_query_with_prefetch_related(self, func) -> None:
         base_objs = await self._execute_query(func)
+        if not isinstance(base_objs, list):
+            base_objs = [base_objs]
 
         if self.return_type == ReturnType.MODEL_INSTANCE:
             for prefetch in self.prefetches:
