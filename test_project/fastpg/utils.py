@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import random
 import functools
@@ -37,7 +38,10 @@ class Relation:
         self.model_fields = self.RelatedModel.__fields__.keys()
         self.foreign_field = foreign_field
         self.related_id_field = self.RelatedModel.Meta.primary_key
-        self.related_name = related_name or self.RelatedModel.__name__.lower()
+        if related_name:
+            self.related_name = related_name
+        else:
+            self.related_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', self.RelatedModel.__name__).lower()  # Camel case to snake case
 
     def set_related_data_set_name(self, related_name: str) -> None:
         """Set a custom name for the related data set."""
