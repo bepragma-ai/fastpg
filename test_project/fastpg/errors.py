@@ -96,3 +96,10 @@ class InvalidRelatedFieldError(Exception):
         valid_relation_names = ','.join(f'"{name}"' for name in valid_relation_names)
         self.message = f'Model "{model_name}" does not have any related field named "{relation_name}". Options are: {valid_relation_names}'
         super().__init__(self.message)
+
+
+class InvalidPrefetchError(Exception):
+
+    def __init__(self, model_name:str, prefetch_model_name:str) -> None:
+        self.message = f'Model "{model_name}" does not have any relation defined with "{prefetch_model_name}"'
+        super().__init__(self.message)

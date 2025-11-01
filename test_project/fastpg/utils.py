@@ -48,6 +48,21 @@ class Relation:
         return f"t.{self.foreign_field} = r.{self.related_id_field}"
 
 
+class Prefetch:
+    
+    def __init__(self, dataset_name:str, queryset) -> None:
+        self.dataset_name = dataset_name
+        self.queryset = queryset
+        self.foreign_field = None  # Foreign key from the base model
+        self.id_field = None  # Foreign key from the base model
+    
+    def set_foreign_field(self, foreign_field:str) -> None:
+        self.foreign_field = foreign_field
+    
+    def set_id_field(self, id_field:str) -> None:
+        self.id_field = id_field
+
+
 class Q:
     """Convenience object for constructing SQL WHERE clauses."""
 
