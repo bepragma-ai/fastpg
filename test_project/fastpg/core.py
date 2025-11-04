@@ -658,16 +658,10 @@ class AsyncQuerySet:
                         try:
                             op = op_pieces[0]
                             field_to_update = op_pieces[1]
-                            try:
-                                data_type = op_pieces[2]
-                            except IndexError:
-                                data_type = 'json'
                         except KeyError:
                             raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
-                        if data_type == 'str':
-                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', '\"{kwargs[key]}\"', true)")
-                        else:
-                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', '{kwargs[key]}', true)")
+                        _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', :set_{field_to_update}, true)")
+                        self.query_param_values[f'set_{field_to_update}'] = json.dumps(kwargs[key], cls=CustomJsonEncoder)  # Always send JSON string regardless of the data type
                     else:
                         raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
             else:
