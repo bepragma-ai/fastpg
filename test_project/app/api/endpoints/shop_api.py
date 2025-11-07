@@ -54,8 +54,8 @@ async def get_department(
     id:int,
 ):
     departments = await Department.async_queryset.prefetch_related(
-        Prefetch('employees', Employee.async_queryset.all())
-    ).get(id=id).return_as(ReturnType.DICT)
+        Prefetch('employees', Employee.async_queryset.filter(salary__gte=0))
+    ).get(id=id).return_as(ReturnType.MODEL_INSTANCE)
     return departments
 
 
