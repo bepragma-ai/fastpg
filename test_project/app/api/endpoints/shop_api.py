@@ -48,6 +48,17 @@ async def get_departments(
     return departments
 
 
+@router.get('/department', status_code=200)
+async def get_department(
+    response:Response,
+    id:int,
+):
+    departments = await Department.async_queryset.prefetch_related(
+        Prefetch('employees', Employee.async_queryset.all())
+    ).get(id=id).return_as(ReturnType.DICT)
+    return departments
+
+
 @router.get('/products', status_code=200)
 async def get_products(
     response:Response,
