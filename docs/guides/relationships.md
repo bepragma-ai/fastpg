@@ -8,71 +8,89 @@ while still enabling eager loading.
 
 Use the `Relation` helper in a model's `Meta.relations` dictionary. Each entry
 maps an attribute name to a `Relation` describing the related model and the join
-keys.
+keys. The shop demo bundles these patterns together for employees that belong to
+departments.
 
 ```python
 from fastpg import DatabaseModel, Relation
 
-class OrderItem(DatabaseModel):
+
+class Department(DatabaseModel):
     id: int | None = None
-    order_id: int
-    sku: str
+    name: str
+    location: str
 
     class Meta:
-        db_table = "order_items"
+        db_table = "departments"
         primary_key = "id"
+        auto_generated_fields = ["id"]
 
-class Order(DatabaseModel):
+
+class Employee(DatabaseModel):
     id: int | None = None
-    customer_id: int
-    total: float
+    department_id: int | None
+    name: str
+    email: str
+    salary: float
 
     class Meta:
-        db_table = "orders"
+        db_table = "employees"
         primary_key = "id"
+        auto_generated_fields = ["id"]
         relations = {
-            "items": Relation(
-                related_model=OrderItem,
-                base_field="id",
-                foreign_field="order_id",
-                related_data_set_name="items",
+            "department": Relation(
+                Department,
+                base_field="department_id",
+                foreign_field="id",
             )
         }
 ```
 
-The `related_data_set_name` controls which attribute on the parent model will
-store the related records. If omitted, FastPG uses `<model name>_set`.
+The `Relation` definition instructs FastPG how to join the two tables. When the
+relation name matches the attribute you want on the model (`department` in this
+case) you can skip `related_data_set_name`; FastPG uses the relation key by
+default.
 
 ## Fetching related rows
 
 Call `select_related` to join the related table and hydrate the nested models.
+In the FastAPI demo endpoint we retrieve department data alongside employees and
+filter on both the base and related models:
 
 ```python
-order = await (
-    Order.async_queryset
-    .select_related("items")
-    .get(id=1)
-)
+from fastapi import APIRouter
+from fastpg import OrderBy
 
-for item in order.items:
-    print(item.sku)
+
+router = APIRouter()
+
+
+@router.get("/employees")
+async def get_employees(department: str | None = None, salary: float | None = None):
+    employees = Employee.async_queryset.select_related("department").all()
+    if salary:
+        employees = employees.filter(salary__gte=salary)
+    if department:
+        employees = employees.filter_related(department__name=department)
+    return await employees.order_by(salary=OrderBy.DESCENDING)
 ```
 
 `select_related` works with any queryset method (`get`, `filter`, `all`). When
 you need to restrict the related rows, chain `filter_related` after
-`select_related`.
+`select_related`. Related filters use the same lookup expressions as normal
+filters, prefixed with `<relation_name>__`.
 
 ```python
-open_orders = await (
-    Order.async_queryset
-    .select_related("items")
-    .filter(customer_id=customer_id)
-    .filter_related(items__sku__startswith="SKU-")
+sales_team = await (
+    Employee.async_queryset
+    .select_related("department")
+    .filter_related(department__name__icontains="sales")
+    .order_by(name=OrderBy.ASCENDING)
 )
 ```
 
 The related queryset accepts the same lookup expressions as the primary
-queryset. Prefix related fields with `<relation_name>__`.
+queryset, enabling flexible joins without manual SQL.
 
 ## Working with the results
 
@@ -82,3 +100,27 @@ are found on the right side of the join, the list is empty.
 
 Because the models are normal Pydantic instances you can serialise them using
 `.model_dump()` or pass them straight to FastAPI responses.
+
+## Prefetching child collections
+
+When a parent model owns many children (orders with line items, departments with
+employees) prefer `prefetch_related`. It executes the base query first and then
+populates the collections with a second query per relation, keeping the SQL
+readable and avoiding cartesian explosions.
+
+```python
+from fastpg import Prefetch, ReturnType
+
+
+@router.get("/departments")
+async def get_departments():
+    departments = await Department.async_queryset.prefetch_related(
+        Prefetch("employees", Employee.async_queryset.all())
+    ).all().return_as(ReturnType.DICT)
+    return departments
+```
+
+Each `Prefetch` requires the attribute name and a queryset that knows how to
+fetch the related objects. FastPG matches records automatically by comparing the
+primary key of the base objects (`id`) with the foreign key on the related ones
+(`department_id` in this example).

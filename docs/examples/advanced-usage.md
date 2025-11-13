@@ -1,93 +1,153 @@
 # Advanced usage
 
-This example showcases several features working together: relations, complex
-filters, JSON updates, and raw SQL pagination.
+This example mirrors the `shop` API used in the test project and shows multiple
+features working together: joined queries, prefetching, conflict-aware bulk
+writes, and multiple return types that plug straight into FastAPI responses.
 
 ```python
-from datetime import datetime, timedelta
+from datetime import date
 from fastpg import (
     DatabaseModel,
     Relation,
-    Q,
+    Prefetch,
     ReturnType,
-    AsyncPaginator,
-    RawQueryAsyncPaginator,
+    OnConflict,
+    OrderBy,
 )
 
-class LineItem(DatabaseModel):
+
+class Customer(DatabaseModel):
+    id: int | None = None
+    name: str
+    email: str
+    city: str
+
+    class Meta:
+        db_table = "customers"
+        auto_generated_fields = ["id"]
+
+
+class Product(DatabaseModel):
+    id: int | None = None
+    sku: str
+    name: str
+    price: float
+
+    class Meta:
+        db_table = "products"
+        auto_generated_fields = ["id"]
+
+
+class OrderItem(DatabaseModel):
     id: int | None = None
     order_id: int
-    sku: str
+    product_id: int
     quantity: int
+    unit_price: float
 
     class Meta:
         db_table = "order_items"
         auto_generated_fields = ["id"]
+        relations = {
+            "product": Relation(Product, base_field="product_id", foreign_field="id"),
+        }
+
 
 class Order(DatabaseModel):
     id: int | None = None
     customer_id: int
-    total: float
-    metadata: dict | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
+    order_date: date
+    total_amount: float
+    status: str
 
     class Meta:
         db_table = "orders"
         auto_generated_fields = ["id"]
-        auto_now_add_fields = ["created_at"]
-        auto_now_fields = ["updated_at"]
         relations = {
-            "items": Relation(LineItem, base_field="id", foreign_field="order_id")
+            "customer": Relation(Customer, base_field="customer_id", foreign_field="id"),
+            "line_items": Relation(
+                OrderItem,
+                base_field="id",
+                foreign_field="order_id",
+                related_data_set_name="line_items",
+            ),
         }
 
-# Complex filtering with Q objects
-window_start = datetime.utcnow() - timedelta(days=30)
+
+# Shared department lookup used across employee endpoints
+class Department(DatabaseModel):
+    id: int | None = None
+    name: str
+    location: str
+
+    class Meta:
+        db_table = "departments"
+        auto_generated_fields = ["id"]
+
+
+class Employee(DatabaseModel):
+    id: int | None = None
+    department_id: int | None
+    name: str
+    email: str
+    salary: float
+
+    class Meta:
+        db_table = "employees"
+        auto_generated_fields = ["id"]
+        relations = {
+            "department": Relation(Department, base_field="department_id", foreign_field="id"),
+        }
+
+
+# 1. Bulk upsert a batch of products for catalogue maintenance
+await Product.async_queryset.bulk_create(
+    [
+        {"sku": "SKU-100", "name": "Noise Cancelling Headphones", "price": 249.0},
+        {"sku": "SKU-101", "name": "Wireless Mouse", "price": 39.0},
+    ],
+    on_conflict=OnConflict.UPDATE,
+    conflict_target=["sku"],
+    update_fields=["name", "price"],
+)
+
+
+# 2. Serve employees with joined department data for a dashboard
+employees = await Employee.async_queryset.select_related("department").order_by(
+    salary=OrderBy.DESCENDING
+)
+
+
+# 3. Build a nested order payload using select_related and prefetch_related
 orders = await (
     Order.async_queryset
-    .filter(
-        Q(total__gte=100) | Q(metadata__jsonb_set__status__str="priority"),
-        created_at__gte=window_start,
+    .select_related("customer")
+    .prefetch_related(
+        Prefetch(
+            "line_items",
+            OrderItem.async_queryset.select_related("product").all(),
+        )
     )
-    .select_related("items")
+    .filter(status="processing")
 )
 
-# Update JSON metadata
-await (
-    Order.async_queryset
-    .filter(id=orders[0].id)
-    .update(metadata__jsonb={"status": "processed"})
-)
 
-# Return as dictionaries for serialization
-order_dicts = await (
+# 4. Serialise the same query as dictionaries when JSON is preferred
+orders_payload = await (
     Order.async_queryset
-    .filter(id__in=[order.id for order in orders])
+    .prefetch_related(
+        Prefetch(
+            "line_items",
+            OrderItem.async_queryset.select_related("product").all(),
+        )
+    )
+    .filter(status="processing")
     .return_as(ReturnType.DICT)
 )
-
-# Paginate orders for a dashboard
-queryset = Order.async_queryset.order_by(created_at="DESC")
-paginator = AsyncPaginator(page_size=25, queryset=queryset)
-first_page = await paginator.get_page(1)
-
-# Paginate with a raw SQL report
-report_sql = """
-SELECT customer_id, sum(total) AS revenue
-FROM orders
-WHERE created_at >= :start
-GROUP BY customer_id
-ORDER BY revenue DESC
-LIMIT {limit} OFFSET {offset}
-"""
-report = RawQueryAsyncPaginator(
-    page_size=20,
-    query=report_sql,
-    values={"start": window_start},
-)
-page = await report.get_page(1)
 ```
 
-The example combines eager loading, advanced filtering, JSON updates, pagination,
-and raw SQL to illustrate how FastPG supports both high-level and low-level
-workflows.
+The resulting structures can be returned directly from FastAPI endpoints, just
+like the demo routes in `test_project/app/api/endpoints/shop_api.py`. Bulk
+operations keep product data fresh, `select_related` joins customer details to an
+order, and `prefetch_related` assembles a rich response for nested collections
+without hand-written SQL.
