@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Response
+from typing import List
 
-from fastpg import OrderBy, Prefetch, ReturnType
+from fastapi import APIRouter, Request, Response
+
+from fastpg import OrderBy, Prefetch, ReturnType, OnConflict
 
 from app.schemas.shop import (
+    Category,
     Product,
     Customer,
     Order,
@@ -66,6 +69,27 @@ async def get_products(
     return await Product.async_queryset.all()
 
 
+@router.post('/products', status_code=200)
+async def create_products_in_bulk(
+    request:Request,
+    response:Response,
+):
+    products_batch = await request.json()
+    # await Product.async_queryset.bulk_create(
+    #     products_batch, on_conflict=OnConflict.DO_NOTHING)
+    await Product.async_queryset.bulk_create(
+        products_batch, on_conflict=OnConflict.UPDATE,
+        conflict_target=['sku'],
+        update_fields=['name', 'category_id', 'price', 'stock_quantity'])
+    return {}
+
+
+@router.get('/products/categories', status_code=200)
+async def get_categories(
+    response:Response,
+):
+    return await Category.async_queryset.all()
+
 @router.get('/customers', status_code=200)
 async def get_customers(
     response:Response,
@@ -92,3 +116,4 @@ async def get_order(
         Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
     ).get(id=id)
     return order
+

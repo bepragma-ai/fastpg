@@ -16,6 +16,7 @@ from .constants import OrderBy
 from .constants import OnConflict
 from .constants import ReturnType
 
+from .utils import Prefetch
 from .utils import Relation
 from .utils import Q
 

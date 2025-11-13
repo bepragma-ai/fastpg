@@ -23,6 +23,7 @@ class Category(DatabaseModel):
 
 class Product(DatabaseModel):
     id:int|None = None
+    sku:str
     name:str
     category_id:int|None = None
     price:float

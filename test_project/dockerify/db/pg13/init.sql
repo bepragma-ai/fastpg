@@ -37,6 +37,7 @@ CREATE TABLE categories (
 -- Products table (with optional category reference)
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
+    sku VARCHAR(200) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
     category_id INTEGER REFERENCES categories(id),
     price DECIMAL(10, 2),
@@ -96,16 +97,16 @@ INSERT INTO categories (name, description) VALUES
 ('Home & Garden', 'Home improvement and gardening');
 
 -- Insert Products (some without categories, some categories without products)
-INSERT INTO products (name, category_id, price, stock_quantity) VALUES
-('Laptop', 1, 999.99, 50),
-('Smartphone', 1, 699.99, 100),
-('Headphones', 1, 149.99, 200),
-('SQL Mastery Book', 2, 45.99, 30),
-('Python Guide', 2, 39.99, 25),
-('T-Shirt', 3, 19.99, 500),
-('Jeans', 3, 49.99, 150),
-('Mystery Novel', NULL, 12.99, 75),
-('Desk Lamp', NULL, 29.99, 80);
+INSERT INTO products (sku, name, category_id, price, stock_quantity) VALUES
+('ELEC-LAP-001', 'Laptop', 1, 999.99, 50),
+('ELEC-PHN-002', 'Smartphone', 1, 699.99, 100),
+('ELEC-AUD-003', 'Headphones', 1, 149.99, 200),
+('BOOK-SQL-001', 'SQL Mastery Book', 2, 45.99, 30),
+('BOOK-PYT-002', 'Python Guide', 2, 39.99, 25),
+('CLTH-TSH-001', 'T-Shirt', 3, 19.99, 500),
+('CLTH-JNS-002', 'Jeans', 3, 49.99, 150),
+('BOOK-NOV-003', 'Mystery Novel', NULL, 12.99, 75),
+('HOME-LMP-001', 'Desk Lamp', NULL, 29.99, 80);
 
 -- Insert Customers
 INSERT INTO customers (name, email, phone, city, registration_date) VALUES

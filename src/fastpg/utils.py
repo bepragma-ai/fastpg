@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import random
 import functools
@@ -25,9 +26,8 @@ class Relation:
     def __init__(
         self,
         related_model,
-        base_field: str,
         foreign_field: str,
-        related_data_set_name: Optional[str] = None,
+        related_name: Optional[str] = None,
     ) -> None:
         self.RelatedModel = related_model
         try:
@@ -36,21 +36,35 @@ class Relation:
             if str(e) == "Meta":
                 raise MalformedMetaError(self.RelatedModel.__name__)
         self.model_fields = self.RelatedModel.__fields__.keys()
-        self.base_field = base_field
         self.foreign_field = foreign_field
-        self.related_data_set_name = (
-            related_data_set_name if related_data_set_name else f"{self.RelatedModel.__name__.lower()}_set"
-        )
+        self.related_id_field = self.RelatedModel.Meta.primary_key
+        if related_name:
+            self.related_name = related_name
+        else:
+            self.related_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', self.RelatedModel.__name__).lower()  # Camel case to snake case
 
-    def set_related_data_set_name(self, related_data_set_name: str) -> None:
+    def set_related_data_set_name(self, related_name: str) -> None:
         """Set a custom name for the related data set."""
-
-        self.related_data_set_name = related_data_set_name
+        self.related_name = related_name
 
     def render_on_clause(self) -> str:
         """Return the SQL ON clause for the relation."""
+        return f"t.{self.foreign_field} = r.{self.related_id_field}"
 
-        return f"m.{self.base_field} = r.{self.foreign_field}"
+
+class Prefetch:
+    
+    def __init__(self, dataset_name:str, queryset) -> None:
+        self.dataset_name = dataset_name
+        self.queryset = queryset
+        self.foreign_field = None  # Foreign key from the base model
+        self.id_field = None  # Foreign key from the base model
+    
+    def set_foreign_field(self, foreign_field:str) -> None:
+        self.foreign_field = foreign_field
+    
+    def set_id_field(self, id_field:str) -> None:
+        self.id_field = id_field
 
 
 class Q:
@@ -58,7 +72,7 @@ class Q:
 
     def __init__(self, where_clause=None, params=None, relation:Relation=None, **kwargs):
         self.relation = relation
-        self.relation_key = relation.related_data_set_name + '__' if relation else None
+        self.relation_key = relation.related_name + '__' if relation else None
 
         if where_clause:
             self.where_clause = where_clause

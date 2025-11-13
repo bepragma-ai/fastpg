@@ -132,6 +132,7 @@ from .constants import (
 
 from .utils import (
     Relation,
+    Prefetch,
     Q,
 )
 
@@ -158,6 +159,8 @@ from .errors import (
     NothingToCreateError,
     UnrestrictedUpdateError,
     UnrestrictedDeleteError,
+    InvalidRelatedFieldError,
+    InvalidPrefetchError,
 )
 
 
@@ -193,8 +196,11 @@ class AsyncQuerySet:
 
         self.records = None
 
-        self.fetch_related = False
+        self.run_select_related = False
         self.relation:Relation = None
+        
+        self.run_prefetch_related = False
+        self.prefetches:List[Prefetch] = []
 
         self.update_clause = None
 
@@ -214,33 +220,31 @@ class AsyncQuerySet:
             self.related_conditions.extend(args)
         return reduce(lambda x, y: x & y, self.related_conditions)
 
-    def _normalize_records(self) -> list[dict]:
-        items = {}
+    def _denormalize_related_data(self) -> list[dict]:
+        items = []
         for record in self.records:
-            left_id_val = record[f't_{self.relation.base_field}']
-            if left_id_val not in items:
-                items[left_id_val] = {f: record[f't_{f}'] for f in self.columns_to_fetch}
-                items[left_id_val][self.relation.related_data_set_name] = []
-            
-            if record[f'r_{self.relation.foreign_field}']:
-                items[left_id_val][self.relation.related_data_set_name].append(
-                    {f: record[f'r_{f}'] for f in self.relation.model_fields})
+            related_id_field_val = record[f'r_{self.relation.related_id_field}']
 
-        return [items[key] for key in items.keys()]
+            item = {f: record[f't_{f}'] for f in self.columns_to_fetch}
+            item[self.relation.related_name] = None
+            if related_id_field_val:
+                item[self.relation.related_name] = {f: record[f'r_{f}'] for f in self.relation.model_fields}
+            
+            items.append(item)
+        return items
 
     def _serialize_data(self) -> None:
         if self.action == 'count':
             return
 
         if self.return_type == ReturnType.MODEL_INSTANCE:
-            if self.fetch_related:
+            if self.run_select_related:
                 model_objs = []
                 for record in self.records:
-                    related_objs = []
-                    for related_record in record[self.relation.related_data_set_name]:
-                        related_objs.append(self.relation.RelatedModel(**related_record))
+                    related_record = record[self.relation.related_name]
+                    related_obj = self.relation.RelatedModel(**related_record) if related_record else None
                     model_obj = self.Model(**record)
-                    setattr(model_obj, self.relation.related_data_set_name, related_objs)
+                    setattr(model_obj, self.relation.related_name, related_obj)
                     model_objs.append(model_obj)
                 self.records = model_objs
             else:
@@ -273,36 +277,30 @@ class AsyncQuerySet:
         return func()
 
     async def _execute_query_with_select_related(self, func) -> None:
-        main_table_fields = ','.join(f'm.{f} AS t_{f}' for f in self.columns_to_fetch)
+        main_table_fields = ','.join(f't.{f} AS t_{f}' for f in self.columns_to_fetch)
         related_table_fields = ','.join(f'r.{f} AS r_{f}' for f in self.relation.model_fields)
 
-        columns_to_fetch = ','.join(list(self.columns_to_fetch))
-        inner_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
-
+        self.query = f"""
+            SELECT {main_table_fields}, {related_table_fields}
+            FROM {self.table} t LEFT JOIN {self.relation.table} r
+            ON {self.relation.render_on_clause()}
+        """
         if self.where_conditions:
-            inner_query += f' WHERE {self.where_conditions}'
+            self.query += f'WHERE {self.where_conditions}'
+            if self.related_where_conditions:
+                self.query += f' AND {self.related_where_conditions}'
+        else:
+            if self.related_where_conditions:
+                self.query += f' WHERE {self.related_where_conditions}'
         if self.order_by_fields:
             _clauses = []
             for k, v in self.order_by_fields.items():
-                _clauses.append(f'{k} {v}')
-            inner_query += ' ORDER BY ' + ','.join(_clauses)
+                _clauses.append(f't.{k} {v}')
+            self.query += ' ORDER BY ' + ','.join(_clauses)
         if self.fetch_limit:
-            inner_query += f' LIMIT {self.fetch_limit}'
+            self.query += f' LIMIT {self.fetch_limit}'
         if self.fetch_offset:
-            inner_query += f' OFFSET {self.fetch_offset}'
-
-        self.query = f"""
-            WITH main_table AS (
-                {inner_query}
-            )
-            SELECT {main_table_fields}, {related_table_fields}
-            FROM main_table m
-            LEFT JOIN {self.relation.table} r
-            ON {self.relation.render_on_clause()}
-        """
-
-        if self.related_where_conditions:
-            self.query += f' WHERE {self.related_where_conditions}'
+            self.query += f' OFFSET {self.fetch_offset}'
 
         try:
             self.records = await ASYNC_DB_READ.fetch_all(
@@ -316,8 +314,45 @@ class AsyncQuerySet:
                 sqlstate=e.sqlstate,
                 message=str(e))
 
-        self.records = self._normalize_records()
+        self.records = self._denormalize_related_data()
         self._serialize_data()
+        return func()
+    
+    async def _execute_query_with_prefetch_related(self, func) -> None:
+        base_objs = await self._execute_query(func)
+        if not isinstance(base_objs, list):
+            base_objs = [base_objs]
+        
+        if len(base_objs) == 0:
+            return func()
+
+        if self.return_type == ReturnType.MODEL_INSTANCE:
+            for prefetch in self.prefetches:
+                id_field_vals = [getattr(i, prefetch.id_field) for i in base_objs]
+                id_filter = {}
+                id_filter[f'{prefetch.foreign_field}__in'] = id_field_vals
+                prefetch_objs = await prefetch.queryset.filter(**id_filter)
+
+                for base_obj in base_objs:
+                    prefetch_obj_set = []
+                    for prefetch_obj in prefetch_objs:
+                        if getattr(base_obj, prefetch.id_field) == getattr(prefetch_obj, prefetch.foreign_field):
+                            prefetch_obj_set.append(prefetch_obj)
+                    setattr(base_obj, prefetch.dataset_name, prefetch_obj_set)
+        else:
+            for prefetch in self.prefetches:
+                id_field_vals = [i[prefetch.id_field] for i in base_objs]
+                id_filter = {}
+                id_filter[f'{prefetch.foreign_field}__in'] = id_field_vals
+                prefetch_objs = await prefetch.queryset.filter(**id_filter).return_as(ReturnType.DICT)
+
+                for base_obj in base_objs:
+                    prefetch_obj_set = []
+                    for prefetch_obj in prefetch_objs:
+                        if base_obj[prefetch.id_field] == prefetch_obj[prefetch.foreign_field]:
+                            prefetch_obj_set.append(prefetch_obj)
+                    base_obj[prefetch.dataset_name] = prefetch_obj_set
+
         return func()
 
     async def execute_raw_query(self, query:str, values:Dict[str, Any]):
@@ -393,8 +428,8 @@ class AsyncQuerySet:
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
         self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
 
-        self.where_conditions = None
-        self.query_param_values = None
+        self.where_conditions = ''
+        self.query_param_values = {}
         return self
 
     def _all(self):
@@ -403,7 +438,7 @@ class AsyncQuerySet:
     def count(self) -> Self:
         """Count the number of records matching the query."""
         self.action = 'count'
-        self.fetch_related = False
+        self.run_select_related = False
         self.base_query = f'SELECT count({self.ModelMeta.primary_key}) FROM {self.table} t'
         return self
 
@@ -412,10 +447,27 @@ class AsyncQuerySet:
         if record_count == 1:
             return self.records[0]['count']
 
-    def select_related(self, *relation_names:list[str]) -> Self:
-        self.fetch_related = True
-        self.relation = self.ModelMeta.relations[relation_names[0]]
-        self.relation.set_related_data_set_name(relation_names[0])
+    def select_related(self, *relation_names:List[str]) -> Self:
+        self.run_select_related = True
+        relation_name = relation_names[0]
+        try:
+            self.relation = self.ModelMeta.relations[relation_name]
+        except KeyError:
+            raise InvalidRelatedFieldError(self.Model.__name__, relation_name, self.ModelMeta.relations.keys())
+        return self
+    
+    def prefetch_related(self, *prefetches:List[Prefetch]) -> Self:
+        self.run_prefetch_related = True
+        self.prefetches = prefetches
+        for prefetch in self.prefetches:
+            relation_found = False
+            for relation in prefetch.queryset.Model.Meta.relations.values():
+                if relation.RelatedModel == self.Model:
+                    relation_found = True
+                    prefetch.set_foreign_field(relation.foreign_field)
+                    prefetch.set_id_field(relation.related_id_field)
+            if not relation_found:
+                raise InvalidPrefetchError(self.Model.__name__, prefetch.queryset.Model.__name__)
         return self
 
     def limit(self, fetch_limit:int) -> Self:
@@ -446,7 +498,7 @@ class AsyncQuerySet:
             update_fields=["name"]
         )
         """
-        self.fetch_related = False
+        self.run_select_related = False
         primary_key_field = self.ModelMeta.primary_key
 
         model_obj = self.Model(**kwargs)
@@ -515,7 +567,7 @@ class AsyncQuerySet:
         if len(values) == 0:
             raise NothingToCreateError()
 
-        self.fetch_related = False
+        self.run_select_related = False
         model_objs = []
         model_dicts = []
 
@@ -571,7 +623,7 @@ class AsyncQuerySet:
                 message=str(e))
 
     async def get_or_create(self, defaults:dict[str, Any], **kwargs):
-        self.fetch_related = False
+        self.run_select_related = False
         created = False
         try:
             obj = await self.get(**kwargs)
@@ -587,7 +639,7 @@ class AsyncQuerySet:
             raise UnrestrictedUpdateError()
         
         self.action = 'update'
-        self.fetch_related = False
+        self.run_select_related = False
         _update_clause = []
         for key in kwargs.keys():
             if "__" in key:
@@ -609,16 +661,10 @@ class AsyncQuerySet:
                         try:
                             op = op_pieces[0]
                             field_to_update = op_pieces[1]
-                            try:
-                                data_type = op_pieces[2]
-                            except IndexError:
-                                data_type = 'json'
                         except KeyError:
                             raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
-                        if data_type == 'str':
-                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', '\"{kwargs[key]}\"', true)")
-                        else:
-                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', '{kwargs[key]}', true)")
+                        _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', :set_{field_to_update}, true)")
+                        self.query_param_values[f'set_{field_to_update}'] = json.dumps(kwargs[key], cls=CustomJsonEncoder)  # Always send JSON string regardless of the data type
                     else:
                         raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
             else:
@@ -657,7 +703,7 @@ class AsyncQuerySet:
             raise UnrestrictedDeleteError()
 
         self.action = 'delete'
-        self.fetch_related = False
+        self.run_select_related = False
         return self
 
     async def _delete(self) -> int:
@@ -702,8 +748,10 @@ class AsyncQuerySet:
             raise MalformedQuerysetError(self.Model.__name__)
 
         if not self.query_executed:
-            if self.fetch_related:
+            if self.run_select_related:
                 return self._execute_query_with_select_related(func).__await__()
+            elif self.run_prefetch_related:
+                return self._execute_query_with_prefetch_related(func).__await__()
             else:
                 return self._execute_query(func).__await__()
 
