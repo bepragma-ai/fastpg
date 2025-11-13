@@ -14,13 +14,17 @@ methods produces a lazily evaluated queryset that executes when awaited.
 
 ```python
 # Fetch a single customer
+from app.schemas.shop import Customer
+
 customer = await Customer.async_queryset.get(id=42)
 
 # Chain filters and ordering
+from fastpg import OrderBy
+
 recent = await (
     Customer.async_queryset
     .filter(is_active=True)
-    .order_by(created_at="DESC")
+    .order_by(created_at=OrderBy.DESCENDING)
     .limit(20)
 )
 ```
@@ -72,26 +76,40 @@ them without a `WHERE` clause.
 
 ## Changing the return format
 
-By default, querysets yield model instances. Call `return_as(ReturnType.DICT)`
-to obtain a list of dictionaries instead.
+By default, querysets yield model instances. Call
+`return_as(ReturnType.MODEL_INSTANCE)` explicitly when you want to ensure nested
+relations are hydrated as models, or `return_as(ReturnType.DICT)` to obtain a
+list of dictionaries for lightweight serialisation.
 
 ```python
 from fastpg import ReturnType
 
-raw_rows = await Customer.async_queryset.filter(is_active=True).return_as(ReturnType.DICT)
+raw_rows = await (
+    Customer.async_queryset
+    .filter(is_active=True)
+    .return_as(ReturnType.DICT)
+)
 ```
 
 ## Related lookups
 
 When `Meta.relations` is defined, you can fetch related rows in a single
-round-trip using `select_related()` and `filter_related()`.
+round-trip using `select_related()` and `filter_related()`. For large collections
+reach for `prefetch_related()` with a `Prefetch` descriptor.
 
 ```python
+from fastpg import Prefetch
+from app.schemas.shop import OrderItem
+
+
 orders = await (
     Customer.async_queryset
     .select_related("orders")
     .filter(id=1)
     .filter_related(orders__status="open")
+    .prefetch_related(
+        Prefetch("line_items", OrderItem.async_queryset.select_related("product").all())
+    )
 )
 ```
 
