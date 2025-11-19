@@ -12,6 +12,7 @@ from app.schemas.shop import (
     OrderItem,
     Department,
     Employee,
+    Coupon,
 )
 
 
@@ -90,6 +91,7 @@ async def get_categories(
 ):
     return await Category.async_queryset.all()
 
+
 @router.get('/customers', status_code=200)
 async def get_customers(
     response:Response,
@@ -117,3 +119,19 @@ async def get_order(
     ).get(id=id)
     return order
 
+
+@router.post('/coupons/get_or_create', status_code=200)
+async def get_or_create_coupon(
+    coupon:Coupon,
+    response:Response,
+):
+    coupon, created = await Coupon.async_queryset.get_or_create(
+        code=coupon.code,
+        defaults={
+            'value': coupon.value,
+            'value_type': coupon.value_type
+        })
+    return {
+        'coupon': coupon,
+        'newly_created': created
+    }

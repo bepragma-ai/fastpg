@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Literal, List
-from typing_extensions import Self
-from uuid import UUID
-from datetime import datetime, date
+from datetime import date
 
-from fastpg import DatabaseModel, AsyncRawQuery, Relation, JsonData
+from enum import Enum
+
+from fastpg import DatabaseModel, Relation
 
 import pytz
 IST_TZ = pytz.timezone("Asia/Kolkata")
@@ -109,3 +108,18 @@ class Employee(DatabaseModel):
         relations = {
             'department': Relation(Department, foreign_field='department_id'),
         }
+
+
+class CouponTypes(str, Enum):
+    PERCENTAGE = 'percentage'
+    FIXED = 'fixed'
+
+
+class Coupon(DatabaseModel):
+    code:str
+    value:float
+    value_type:CouponTypes
+
+    class Meta:
+        db_table = 'coupons'
+        primary_key = 'code'

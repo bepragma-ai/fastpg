@@ -72,6 +72,13 @@ CREATE TABLE order_items (
     unit_price DECIMAL(10, 2)
 );
 
+-- Sales Reports table
+CREATE TABLE coupons (
+    code VARCHAR(100) NOT NULL PRIMARY KEY,
+    value DECIMAL(10, 2) NOT NULL,
+    value_type VARCHAR(100) NOT NULL
+);
+
 -- Insert Departments
 INSERT INTO departments (name, location) VALUES
 ('Engineering', 'San Francisco'),
