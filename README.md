@@ -25,7 +25,17 @@ In ``requirements.txt``:
 fastpg @ git+https://github.com/bepragma-ai/fastpg.git
 ```
 
-Optional environment variables:
+## Quick Example
+
+Check installation and version
+
+```python
+from fastpg import __version__
+
+print(__version__)
+```
+
+## Environment variables:
 
 - ``FASTPG_TZ`` – timezone used for auto timestamp fields (default: ``UTC``)
 - ``POSTGRES_READ_USER`` - Postgresql read DB user
