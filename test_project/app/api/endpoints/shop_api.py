@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Request, Response
 
 from fastpg import OrderBy, Prefetch, ReturnType, OnConflict
@@ -14,6 +12,9 @@ from app.schemas.shop import (
     Employee,
     Coupon,
 )
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -67,6 +68,7 @@ async def get_department(
 async def get_products(
     response:Response,
 ):
+    logger.info('FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
     return await Product.async_queryset.all()
 
 
