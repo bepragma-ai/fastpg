@@ -11,4 +11,5 @@ FROM postgres:13.5
 # when the container starts and the database is initialized.
 # For example, create a 'init.sql' file in the same directory as the Dockerfile
 # and uncomment the following line:
+COPY dockerify/db/extensions.sql /docker-entrypoint-initdb.d/01_extensions.sql
 COPY dockerify/db/pg13/init.sql /docker-entrypoint-initdb.d/

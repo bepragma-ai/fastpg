@@ -32,7 +32,24 @@ services:
       - '0.0.0.0:17432:5432'
     env_file:
       - secrets.env
+    logging: *default-logging
+
+  db_read:
+    build:
+      context: .
+      dockerfile: ./dockerify/db/pg13/Dockerfile.readonly
+    volumes:
+      - fastpg_db_read:/var/lib/postgresql/data
+    ports:
+      - '0.0.0.0:17433:5432'
+    env_file:
+      - secrets.env
+    depends_on:
+      - db
+    logging: *default-logging
 
 volumes:
   fastpg_db:
+    driver: local
+  fastpg_db_read:
     driver: local

@@ -1,0 +1,6 @@
+FROM postgres:13.5
+
+# Seed the database with test data and extensions
+COPY dockerify/db/extensions.sql /docker-entrypoint-initdb.d/01_extensions.sql
+COPY dockerify/db/pg13/init.sql /docker-entrypoint-initdb.d/10_init.sql
+COPY dockerify/db/pg13/readonly.sql /docker-entrypoint-initdb.d/99_readonly.sql
