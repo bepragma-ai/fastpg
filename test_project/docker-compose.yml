@@ -33,9 +33,6 @@ services:
       - '0.0.0.0:17432:5432'
     env_file:
       - secrets.env
-    environment:
-      - POSTGRES_REPLICATION_USER=replicator
-      - POSTGRES_REPLICATION_PASSWORD=repl_password_123
     command: >
       postgres
       -c wal_level=replica
@@ -50,14 +47,8 @@ services:
       - ./dockerify/db/pg13/replica-entrypoint.sh:/replica-entrypoint.sh:ro
     ports:
       - '0.0.0.0:17433:5432'
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=ASd78hASlpmvC8vbd
-      - POSTGRES_DB=fastpg_db
-      - PRIMARY_HOST=db
-      - PRIMARY_PORT=5432
-      - REPLICATION_USER=replicator
-      - REPLICATION_PASSWORD=repl_password_123
+    env_file:
+      - secrets.env
     depends_on:
       - db
     command: ["/bin/bash", "/replica-entrypoint.sh"]
