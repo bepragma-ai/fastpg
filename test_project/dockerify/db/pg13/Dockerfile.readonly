@@ -1,0 +1,6 @@
+FROM postgres:13.5
+
+COPY dockerify/db/pg13/setup-replica.sh /usr/local/bin/setup-replica.sh
+RUN chmod +x /usr/local/bin/setup-replica.sh
+
+ENTRYPOINT ["/usr/local/bin/setup-replica.sh"]
