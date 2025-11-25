@@ -2,9 +2,6 @@ FROM postgres:13.5
 
 # Set environment variables for PostgreSQL
 # These are used by the entrypoint script to initialize the database
-# ENV POSTGRES_DB=fastpg_db
-# ENV POSTGRES_USER=postgres
-# ENV POSTGRES_PASSWORD=ASd78hASlpmvC8vbd
 
 # Optional: Copy initialization scripts
 # Any .sql or .sh files placed in this directory will be executed
