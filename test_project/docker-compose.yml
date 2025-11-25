@@ -33,6 +33,31 @@ services:
     env_file:
       - secrets.env
 
+  db_replica:
+    image: postgres:13.5
+    hostname: fastpg_db_replica
+    depends_on:
+      - db
+    environment:
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - fastpg_db_replica:/var/lib/postgresql/data
+    ports:
+      - '0.0.0.0:17433:5432'
+    env_file:
+      - secrets.env
+    command: >-
+      bash -c "\
+      if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then \
+        echo 'Initializing replica data directory via pg_basebackup...'; \
+        PGPASSWORD=${POSTGRES_PASSWORD} pg_basebackup -h db -D /var/lib/postgresql/data -U ${POSTGRES_USER} -v -P -R -X stream; \
+        chown -R postgres:postgres /var/lib/postgresql/data; \
+      fi; \
+      exec docker-entrypoint.sh postgres -c hot_standby=on"
+    logging: *default-logging
+
 volumes:
   fastpg_db:
+    driver: local
+  fastpg_db_replica:
     driver: local
