@@ -157,6 +157,9 @@ CREATE INDEX idx_orders_customer ON orders(customer_id);
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product ON order_items(product_id);
 
+-- Prepare a physical replication slot for the standby to ensure WAL retention
+SELECT pg_create_physical_replication_slot('fastpg_replica');
+
 -- Display summary
 SELECT 'Database initialized successfully!' as message;
 SELECT 'Tables created: departments, employees, categories, products, customers, orders, order_items' as info;

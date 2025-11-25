@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.8'
 
 x-logging: &default-logging
   options:
@@ -32,6 +32,18 @@ services:
       - '0.0.0.0:17432:5432'
     env_file:
       - secrets.env
+    command: >-
+      postgres -c wal_level=replica \
+               -c max_wal_senders=10 \
+               -c max_replication_slots=10 \
+               -c hot_standby=on \
+               -c archive_mode=on \
+               -c archive_command='cd .'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   db_replica:
     image: postgres:13.5
@@ -48,9 +60,16 @@ services:
       - secrets.env
     command: >-
       bash -c "\
+      until pg_isready -h db -p 5432 -U ${POSTGRES_USER}; do \
+        echo 'Waiting for primary database to become ready...'; \
+        sleep 2; \
+      done; \
       if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then \
         echo 'Initializing replica data directory via pg_basebackup...'; \
+        rm -rf /var/lib/postgresql/data/*; \
         PGPASSWORD=${POSTGRES_PASSWORD} pg_basebackup -h db -D /var/lib/postgresql/data -U ${POSTGRES_USER} -v -P -R -X stream; \
+        echo "primary_conninfo = 'host=db port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD}'" >> /var/lib/postgresql/data/postgresql.auto.conf; \
+        echo "primary_slot_name = 'fastpg_replica'" >> /var/lib/postgresql/data/postgresql.auto.conf; \
         chown -R postgres:postgres /var/lib/postgresql/data; \
       fi; \
       exec docker-entrypoint.sh postgres -c hot_standby=on"
