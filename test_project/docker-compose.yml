@@ -3,7 +3,7 @@ version: '3.3'
 x-logging: &default-logging
   options:
     max-size: "10M"
-    max-file: "10" 
+    max-file: "10"
   driver: json-file
 
 services:
@@ -32,7 +32,52 @@ services:
       - '0.0.0.0:17432:5432'
     env_file:
       - secrets.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_WRITE_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_WRITE_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_WRITE_DB}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=replica"
+      - "-c"
+      - "max_wal_senders=10"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "hot_standby=on"
+    logging: *default-logging
+
+  db-replica:
+    image: postgres:13.5
+    depends_on:
+      - db
+    env_file:
+      - secrets.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_WRITE_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_WRITE_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_WRITE_DB}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    command: >
+      bash -c "
+        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+          rm -rf /var/lib/postgresql/data/*
+          PGPASSWORD=${POSTGRES_REPLICATION_PASSWORD} pg_basebackup -h db -p 5432 -D /var/lib/postgresql/data -U ${POSTGRES_REPLICATION_USER} -Fp -Xs -P -R -S fastpg_replica
+        fi
+        exec postgres -c hot_standby=on
+      "
+    ports:
+      - '0.0.0.0:17433:5432'
+    volumes:
+      - fastpg_db_replica:/var/lib/postgresql/data
+    logging: *default-logging
 
 volumes:
   fastpg_db:
+    driver: local
+  fastpg_db_replica:
     driver: local

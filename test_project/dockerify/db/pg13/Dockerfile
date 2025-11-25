@@ -9,3 +9,5 @@ FROM postgres:13.5
 # For example, create a 'init.sql' file in the same directory as the Dockerfile
 # and uncomment the following line:
 COPY dockerify/db/pg13/init.sql /docker-entrypoint-initdb.d/
+COPY dockerify/db/pg13/init-replication.sh /docker-entrypoint-initdb.d/
+RUN chmod +x /docker-entrypoint-initdb.d/*.sh
