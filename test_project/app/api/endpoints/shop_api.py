@@ -68,7 +68,6 @@ async def get_department(
 async def get_products(
     response:Response,
 ):
-    logger.info('FOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO')
     return await Product.async_queryset.all()
 
 
