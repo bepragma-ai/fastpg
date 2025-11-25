@@ -1,4 +1,5 @@
 import logging
+from colorlog import ColoredFormatter
 import time
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,44 @@ from fastpg.core import (
     ASYNC_DB_WRITE,
 )
 
+
+# ─────────────────────────────
+# Logging setup with colorlog
+# ─────────────────────────────
+
+LOG_LEVEL = logging.INFO
+
+LOG_FORMAT = (
+    "%(log_color)s[%(levelname)s] "
+    "%(asctime)s - %(name)s - %(message)s%(reset)s"
+)
+
+formatter = ColoredFormatter(
+    LOG_FORMAT,
+    datefmt="%Y-%m-%d %H:%M:%S",
+    log_colors={
+        "DEBUG":    "cyan",
+        "INFO":     "green",
+        "WARNING":  "yellow",
+        "ERROR":    "red",
+        "CRITICAL": "bold_red",
+    },
+)
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+root_logger = logging.getLogger()      # root logger so all modules inherit
+root_logger.handlers = []              # clear default handlers (important)
+root_logger.setLevel(LOG_LEVEL)
+root_logger.addHandler(handler)
+
+logger = logging.getLogger(__name__)   # module-level logger
+
+
+# ─────────────────────────────
+# FastAPI app setup
+# ─────────────────────────────
 
 root_router = APIRouter()
 app = FastAPI(
@@ -27,8 +66,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logger = logging.getLogger(__name__)
 
 
 @app.on_event("startup")

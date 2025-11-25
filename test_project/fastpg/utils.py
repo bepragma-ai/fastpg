@@ -169,19 +169,20 @@ def async_sql_logger(func):
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         if LOG_DB_QUERIES:
+            async_pg_db_obj = args[0]
             start_time = time.perf_counter()
             result = await func(*args, **kwargs)
             end_time = time.perf_counter()
             elapsed_time = end_time - start_time
 
             if elapsed_time < 1.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_LT_1_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{PROJECT_NAME}_QUERY_LT_1_SEC [took {elapsed_time:.4f}s] [DB_CONN: {async_pg_db_obj.conn_type}]: {kwargs['query']}")
             elif elapsed_time < 5.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_1_5_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{PROJECT_NAME}_QUERY_1_5_SEC [took {elapsed_time:.4f}s] [DB_CONN: {async_pg_db_obj.conn_type}]: {kwargs['query']}")
             elif elapsed_time < 10.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_5_10_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{PROJECT_NAME}_QUERY_5_10_SEC [took {elapsed_time:.4f}s] [DB_CONN: {async_pg_db_obj.conn_type}]: {kwargs['query']}")
             else:
-                logger.info(f"{PROJECT_NAME}_QUERY_GT_10_SEC [took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{PROJECT_NAME}_QUERY_GT_10_SEC [took {elapsed_time:.4f}s] [DB_CONN: {async_pg_db_obj.conn_type}]: {kwargs['query']}")
 
             return result
 

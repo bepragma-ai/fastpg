@@ -686,7 +686,7 @@ class AsyncQuerySet:
                 ) SELECT COUNT(*) AS updated_count FROM updated;'''
             
             try:
-                self.records = await ASYNC_DB_READ.execute(
+                self.records = await ASYNC_DB_WRITE.execute(
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
@@ -716,7 +716,7 @@ class AsyncQuerySet:
                 ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
 
             try:
-                self.records = await ASYNC_DB_READ.execute(
+                self.records = await ASYNC_DB_WRITE.execute(
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
