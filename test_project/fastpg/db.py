@@ -84,33 +84,57 @@ class AsyncPostgresDB:
         return await self.database.fetch_all(query=query, values=values)
 
     @async_sql_logger
-    async def execute(self, query: str, values: Optional[Dict] = None):
-        """Execute a query with optional values inside a transaction."""
+    async def execute(self, query: str, values: Optional[Dict] = None, transaction=None):
+        """Execute a query with optional values.
+
+        When a ``transaction`` is provided the caller controls commit/rollback;
+        otherwise a new transaction is created for the single execution.
+        """
 
         values = values or {}
-        transaction = await self.database.transaction()
+
+        # If caller passed a transaction, execute within that context without
+        # creating a nested transaction or auto-committing.
+        if transaction is not None:
+            return await self.database.execute(query=query, values=values)
+
+        transaction_ctx = await self.database.transaction()
         try:
             result = await self.database.execute(query=query, values=values)
         except Exception as e:
-            await transaction.rollback()
+            await transaction_ctx.rollback()
             raise e
         else:
-            await transaction.commit()
+            await transaction_ctx.commit()
         return result
 
     @async_sql_logger
-    async def execute_many(self, query: str, list_of_values: List[Dict]):
-        """Execute a query for multiple sets of values inside a transaction."""
+    async def execute_many(self, query: str, list_of_values: List[Dict], transaction=None):
+        """Execute a query for multiple sets of values.
 
-        transaction = await self.database.transaction()
+        When a ``transaction`` is provided the caller controls commit/rollback;
+        otherwise a new transaction is created for the bulk execution.
+        """
+
+        if transaction is not None:
+            return await self.database.execute_many(query=query, values=list_of_values)
+
+        transaction_ctx = await self.database.transaction()
         try:
             result = await self.database.execute_many(query=query, values=list_of_values)
         except Exception as e:
-            await transaction.rollback()
+            await transaction_ctx.rollback()
             raise e
         else:
-            await transaction.commit()
+            await transaction_ctx.commit()
         return result
+
+    async def transaction(self):
+        """Return a database transaction object managed by the caller."""
+
+        if not self.database:
+            raise RuntimeError("Database connection is not initialized")
+        return await self.database.transaction()
 
     async def close(self) -> None:
         """Close the database connection if it exists."""

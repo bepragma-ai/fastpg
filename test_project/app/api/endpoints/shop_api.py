@@ -1,6 +1,9 @@
+from datetime import date
+
 from fastapi import APIRouter, Request, Response
 
 from fastpg import OrderBy, Prefetch, ReturnType, OnConflict
+from fastpg.db import ASYNC_DB_WRITE
 
 from app.schemas.shop import (
     Category,
@@ -88,6 +91,65 @@ async def get_categories(
     response:Response,
 ):
     return await Category.async_queryset.all()
+
+
+@router.post('/transactions/commit', status_code=200)
+async def create_department_and_employee_with_commit(request: Request):
+    payload = await request.json()
+
+    transaction = await ASYNC_DB_WRITE.transaction()
+    try:
+        department = await Department.async_queryset.with_transaction(transaction).create(
+            name=payload.get('department_name', 'Transactional Ops'),
+            location=payload.get('department_location', 'Remote'),
+        )
+
+        employee = await Employee.async_queryset.with_transaction(transaction).create(
+            department_id=department.id,
+            name=payload.get('employee_name', 'Committed Employee'),
+            email=payload.get('employee_email', 'committed.employee@example.com'),
+            salary=payload.get('employee_salary', 75000),
+            hire_date=date.today(),
+        )
+    except Exception as exc:
+        await transaction.rollback()
+        raise exc
+    else:
+        await transaction.commit()
+
+    return {
+        'department': department,
+        'employee': employee,
+    }
+
+
+@router.post('/transactions/rollback', status_code=200)
+async def create_department_and_employee_with_rollback(request: Request):
+    payload = await request.json()
+
+    transaction = await ASYNC_DB_WRITE.transaction()
+    try:
+        department = await Department.async_queryset.with_transaction(transaction).create(
+            name=payload.get('department_name', 'Rollback Ops'),
+            location=payload.get('department_location', 'Unknown'),
+        )
+
+        await Employee.async_queryset.with_transaction(transaction).create(
+            department_id=department.id,
+            name=payload.get('employee_name', 'Will Rollback'),
+            email=payload.get('employee_email', 'rollback.employee@example.com'),
+            salary=payload.get('employee_salary', 60000),
+            hire_date=date.today(),
+        )
+
+        # Trigger a failure so we can test rollback behaviour
+        raise ValueError('Forcing rollback for transaction demo')
+    except Exception as exc:
+        await transaction.rollback()
+        return {
+            'rolled_back': True,
+            'error': str(exc),
+        }
 
 
 @router.get('/customers', status_code=200)

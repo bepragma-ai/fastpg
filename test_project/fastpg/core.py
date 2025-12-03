@@ -196,6 +196,8 @@ class AsyncQuerySet:
 
         self.records = None
 
+        self.transaction = None
+
         self.run_select_related = False
         self.relation:Relation = None
         
@@ -219,6 +221,12 @@ class AsyncQuerySet:
         if args:
             self.related_conditions.extend(args)
         return reduce(lambda x, y: x & y, self.related_conditions)
+
+    def with_transaction(self, transaction) -> Self:
+        """Execute subsequent write operations within the provided transaction."""
+
+        self.transaction = transaction
+        return self
 
     def _denormalize_related_data(self) -> list[dict]:
         items = []
@@ -528,7 +536,7 @@ class AsyncQuerySet:
 
         try:
             new_id = await ASYNC_DB_WRITE.execute(
-                query=query, values=model_dict)
+                query=query, values=model_dict, transaction=self.transaction)
         except Exception as e:
             try:
                 sqlstate = e.sqlstate
@@ -606,7 +614,7 @@ class AsyncQuerySet:
 
         try:
             await ASYNC_DB_WRITE.execute_many(
-                query=query, list_of_values=model_dicts)
+                query=query, list_of_values=model_dicts, transaction=self.transaction)
         except Exception as e:
             try:
                 sqlstate = e.sqlstate
@@ -687,7 +695,7 @@ class AsyncQuerySet:
             
             try:
                 self.records = await ASYNC_DB_WRITE.execute(
-                    query=self.query, values=self.query_param_values)
+                    query=self.query, values=self.query_param_values, transaction=self.transaction)
                 self.query_executed = True
             except Exception as e:
                 raise DatabaseError(
@@ -717,7 +725,7 @@ class AsyncQuerySet:
 
             try:
                 self.records = await ASYNC_DB_WRITE.execute(
-                    query=self.query, values=self.query_param_values)
+                    query=self.query, values=self.query_param_values, transaction=self.transaction)
                 self.query_executed = True
             except Exception as e:
                 raise DatabaseError(
@@ -836,7 +844,7 @@ class DatabaseModel(BaseModel):
     def async_queryset(cls):
         return AsyncQuerySet(model=cls)
     
-    async def save(self, columns:List[str]=None) -> bool:
+    async def save(self, columns:List[str]=None, transaction=None) -> bool:
         PreSaveProcessors.model_obj_populate_auto_now_fields(self)
 
         values = {}
@@ -862,7 +870,7 @@ class DatabaseModel(BaseModel):
 
         try:
             updated_count = await ASYNC_DB_WRITE.execute(
-                query=query, values=values)
+                query=query, values=values, transaction=transaction)
         except Exception as e:
             raise DatabaseError(
                 name=type(e).__name__,
@@ -871,7 +879,7 @@ class DatabaseModel(BaseModel):
 
         return bool(updated_count)
 
-    async def delete(self) -> bool:
+    async def delete(self, transaction=None) -> bool:
         model_dict = self.model_dump(context={'db_write': True})
         values = {}
         for key in model_dict.keys():
@@ -889,7 +897,7 @@ class DatabaseModel(BaseModel):
 
         try:
             deleted_count = await ASYNC_DB_WRITE.execute(
-                query=query, values=values)
+                query=query, values=values, transaction=transaction)
         except Exception as e:
             raise DatabaseError(
                 name=type(e).__name__,
