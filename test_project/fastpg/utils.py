@@ -163,6 +163,16 @@ class Q:
         return f"{self.where_clause} {self.params}"
 
 
+RENDER_UPDATE_SUFFIXES = {
+    'add': lambda field, value: f'{field}={field} + {value}',
+    'sub': lambda field, value: f'{field}={field} - {value}',
+    'mul': lambda field, value: f'{field}={field} * {value}',
+    'div': lambda field, value: f'{field}={field} / {value}',
+    'add_time': lambda field, value: f"{field}={field} + interval '{value}'",
+    'sub_time': lambda field, value: f"{field}={field} - interval '{value}'",
+}
+
+
 def async_sql_logger(func):
     """Log execution time of SQL queries when enabled."""
 

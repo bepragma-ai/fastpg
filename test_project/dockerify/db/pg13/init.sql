@@ -41,7 +41,11 @@ CREATE TABLE products (
     name VARCHAR(200) NOT NULL,
     category_id INTEGER REFERENCES categories(id),
     price DECIMAL(10, 2),
-    stock_quantity INTEGER DEFAULT 0
+    stock_quantity INTEGER DEFAULT 0,
+    properties JSONB,
+    has_offer BOOLEAN DEFAULT FALSE,
+    offer_type VARCHAR(20) CHECK (offer_type IN ('percent', 'fixed')),
+    offer_expires_at TIMESTAMPTZ
 );
 
 -- Customers table
@@ -104,16 +108,16 @@ INSERT INTO categories (name, description) VALUES
 ('Home & Garden', 'Home improvement and gardening');
 
 -- Insert Products (some without categories, some categories without products)
-INSERT INTO products (sku, name, category_id, price, stock_quantity) VALUES
-('ELEC-LAP-001', 'Laptop', 1, 999.99, 50),
-('ELEC-PHN-002', 'Smartphone', 1, 699.99, 100),
-('ELEC-AUD-003', 'Headphones', 1, 149.99, 200),
-('BOOK-SQL-001', 'SQL Mastery Book', 2, 45.99, 30),
-('BOOK-PYT-002', 'Python Guide', 2, 39.99, 25),
-('CLTH-TSH-001', 'T-Shirt', 3, 19.99, 500),
-('CLTH-JNS-002', 'Jeans', 3, 49.99, 150),
-('BOOK-NOV-003', 'Mystery Novel', NULL, 12.99, 75),
-('HOME-LMP-001', 'Desk Lamp', NULL, 29.99, 80);
+INSERT INTO products (sku, name, category_id, price, stock_quantity, properties, has_offer, offer_type, offer_expires_at) VALUES
+('ELEC-LAP-001', 'Laptop', 1, 999.99, 50, '{"brand": "TechPro", "warranty_years": 2, "features": ["16GB RAM", "512GB SSD", "Intel i7"]}', TRUE, 'percent', '2024-12-31 23:59:59+00'),
+('ELEC-PHN-002', 'Smartphone', 1, 699.99, 100, '{"brand": "SmartTech", "color": "Midnight Blue", "screen_size": "6.5 inches"}', TRUE, 'fixed', '2024-12-25 23:59:59+00'),
+('ELEC-AUD-003', 'Headphones', 1, 149.99, 200, '{"type": "wireless", "noise_cancelling": true, "battery_hours": 30}', FALSE, NULL, NULL),
+('BOOK-SQL-001', 'SQL Mastery Book', 2, 45.99, 30, '{"author": "Jane Database", "pages": 450, "edition": 3}', TRUE, 'percent', '2025-01-15 23:59:59+00'),
+('BOOK-PYT-002', 'Python Guide', 2, 39.99, 25, '{"author": "John Coder", "level": "intermediate", "isbn": "978-1234567890"}', FALSE, NULL, NULL),
+('CLTH-TSH-001', 'T-Shirt', 3, 19.99, 500, '{"sizes": ["S", "M", "L", "XL"], "material": "100% cotton", "colors": ["black", "white", "blue"]}', TRUE, 'fixed', '2024-12-20 23:59:59+00'),
+('CLTH-JNS-002', 'Jeans', 3, 49.99, 150, '{"fit": "slim", "material": "denim", "wash": "dark blue"}', FALSE, NULL, NULL),
+('BOOK-NOV-003', 'Mystery Novel', NULL, 12.99, 75, '{"author": "A. Mystery", "genre": "thriller", "bestseller": true}', TRUE, 'percent', '2025-02-01 23:59:59+00'),
+('HOME-LMP-001', 'Desk Lamp', NULL, 29.99, 80, '{"wattage": 40, "adjustable": true, "bulb_type": "LED"}', FALSE, NULL, NULL);
 
 -- Insert Customers
 INSERT INTO customers (name, email, phone, city, registration_date) VALUES

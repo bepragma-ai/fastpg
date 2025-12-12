@@ -9,7 +9,7 @@ if [ "$action" == "build" ]; then
 elif [ "$action" == "up" ]; then
     docker-compose up -d
 elif [ "$action" == "down" ]; then
-    docker-compose down
+    docker-compose down --remove-orphans
 elif [ "$action" == "shell" ]; then
     docker-compose exec app bash -c "python app/shell.py"
 elif [ "$action" == "exec" ]; then

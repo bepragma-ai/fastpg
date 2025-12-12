@@ -1,9 +1,9 @@
 from __future__ import annotations
-from datetime import date
+from datetime import date, datetime
 
 from enum import Enum
 
-from fastpg import DatabaseModel, Relation
+from fastpg import DatabaseModel, Relation, JsonData
 
 import pytz
 IST_TZ = pytz.timezone("Asia/Kolkata")
@@ -20,6 +20,11 @@ class Category(DatabaseModel):
         auto_generated_fields = ['id']
 
 
+class OfferTypes(str, Enum):
+    PERCENTAGE = 'percent'
+    FIXED = 'fixed'
+
+
 class Product(DatabaseModel):
     id:int|None = None
     sku:str
@@ -27,6 +32,10 @@ class Product(DatabaseModel):
     category_id:int|None = None
     price:float
     stock_quantity:int
+    properties:JsonData = {}
+    has_offer:bool
+    offer_type:OfferTypes
+    offer_expires_at:datetime|None = None
 
     class Meta:
         db_table = 'products'

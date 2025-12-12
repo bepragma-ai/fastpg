@@ -134,6 +134,7 @@ from .utils import (
     Relation,
     Prefetch,
     Q,
+    RENDER_UPDATE_SUFFIXES,
 )
 
 from .preprocessors import (
@@ -644,29 +645,25 @@ class AsyncQuerySet:
         for key in kwargs.keys():
             if "__" in key:
                 field, op = key.split("__", 1)
-                if op == 'add':
-                    _update_clause.append(f'{field}={field} + {kwargs[key]}')
-                elif op == 'sub':
-                    _update_clause.append(f'{field}={field} - {kwargs[key]}')
-                elif op == 'mul':
-                    _update_clause.append(f'{field}={field} * {kwargs[key]}')
-                elif op == 'div':
-                    _update_clause.append(f'{field}={field} / {kwargs[key]}')
-                elif op == 'jsonb':
-                    _update_clause.append(f'{field}=:set_{field}')
-                    self.query_param_values[f'set_{field}'] = json.dumps(kwargs[key], cls=CustomJsonEncoder)
-                else:
-                    op_pieces = op.split("__")
-                    if op_pieces[0] == 'jsonb_set':
-                        try:
-                            op = op_pieces[0]
-                            field_to_update = op_pieces[1]
-                        except KeyError:
-                            raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
-                        _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', :set_{field_to_update}, true)")
-                        self.query_param_values[f'set_{field_to_update}'] = json.dumps(kwargs[key], cls=CustomJsonEncoder)  # Always send JSON string regardless of the data type
+                value = kwargs[key]
+                try:
+                    _update_clause.append(RENDER_UPDATE_SUFFIXES[op](field, value))
+                except KeyError:
+                    if op == 'jsonb':
+                        _update_clause.append(f'{field}=:set_{field}')
+                        self.query_param_values[f'set_{field}'] = json.dumps(value, cls=CustomJsonEncoder)
                     else:
-                        raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
+                        op_pieces = op.split("__")
+                        if op_pieces[0] == 'jsonb_set':
+                            try:
+                                op = op_pieces[0]
+                                field_to_update = op_pieces[1]
+                            except KeyError:
+                                raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
+                            _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', :set_{field_to_update}, true)")
+                            self.query_param_values[f'set_{field_to_update}'] = json.dumps(value, cls=CustomJsonEncoder)  # Always send JSON string regardless of the data type
+                        else:
+                            raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
             else:
                 _update_clause.append(f'{key}=:set_{key}')
                 self.query_param_values[f'set_{key}'] = kwargs[key]

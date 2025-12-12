@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Request, Response
 
 from fastpg import OrderBy, Prefetch, ReturnType, OnConflict
@@ -11,7 +13,11 @@ from app.schemas.shop import (
     Department,
     Employee,
     Coupon,
+    OfferTypes,
 )
+
+import pytz
+IST_TZ = pytz.timezone("Asia/Kolkata")
 
 
 router = APIRouter()
@@ -64,8 +70,18 @@ async def get_department(
 @router.get('/products', status_code=200)
 async def get_products(
     response:Response,
+    id:int|None=None,
 ):
+    if id:
+        return await Product.async_queryset.get(id=id)
     return await Product.async_queryset.all()
+
+
+@router.get('/products/categories', status_code=200)
+async def get_categories(
+    response:Response,
+):
+    return await Category.async_queryset.all()
 
 
 @router.post('/products', status_code=200)
@@ -83,11 +99,70 @@ async def create_products_in_bulk(
     return {}
 
 
-@router.get('/products/categories', status_code=200)
-async def get_categories(
-    response:Response,
+@router.post('/products/update-stock-qtty', status_code=200)
+async def update_product_stock_qtty(
+    request:Request,
 ):
-    return await Category.async_queryset.all()
+    data = await request.json()
+    product_id = data['product_id']
+    quick_action = data['quick_action']  # Options None, "add", "sub", "mul", "div"
+    value = data['value']
+
+    # Demonstrating update suffixes
+    if quick_action == 'add':
+        updated = await Product.async_queryset.filter(id=product_id).update(stock_quantity__add=value)
+    elif quick_action == 'sub':
+        updated = await Product.async_queryset.filter(id=product_id).update(stock_quantity__sub=value)
+    elif quick_action == 'mul':
+        updated = await Product.async_queryset.filter(id=product_id).update(stock_quantity__mul=value)
+    elif quick_action == 'div':
+        updated = await Product.async_queryset.filter(id=product_id).update(stock_quantity__div=value)
+    else:
+        updated = await Product.async_queryset.filter(id=product_id).update(stock_quantity=value)
+    return {'updated': updated}
+
+
+@router.post('/products/update-properties', status_code=200)
+async def update_product_properties(
+    request:Request,
+):
+    data = await request.json()
+    product_id = data['product_id']
+    action = data['action']  # Options: "set_key", "reset"
+    value = data['value']
+
+    if action == 'set_key':
+        updated = await Product.async_queryset.filter(id=product_id).update(properties__jsonb_set__looks=value)
+    elif action == 'reset':
+        updated = await Product.async_queryset.filter(id=product_id).update(properties__jsonb=value)
+    return {'updated': updated}
+
+
+@router.post('/products/update-offer', status_code=200)
+async def update_product_offer(
+    request:Request,
+):
+    data = await request.json()
+    product_id = data['product_id']
+    action = data['action']  # Options: "reset", "extend", "shorten"
+    value = data['value']
+
+    if action == 'reset':
+        updated = await Product.async_queryset.filter(id=product_id).update(
+            has_offer=True,
+            offer_type=OfferTypes.PERCENTAGE,
+            offer_expires_at=datetime.now().astimezone(IST_TZ) + timedelta(days=value))
+    elif action == 'extend':
+        updated = await Product.async_queryset.filter(id=product_id, offer_expires_at__isnull=False).update(
+            has_offer=True,
+            offer_type=OfferTypes.PERCENTAGE,
+            offer_expires_at__add_time=value)
+    elif action == 'shorten':
+        updated = await Product.async_queryset.filter(id=product_id, offer_expires_at__isnull=False).update(
+            has_offer=True,
+            offer_type=OfferTypes.PERCENTAGE,
+            offer_expires_at__sub_time=value)
+    return {'updated': updated}
 
 
 @router.get('/customers', status_code=200)
