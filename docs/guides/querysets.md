@@ -66,13 +66,44 @@ results = await Customer.async_queryset.filter(adults | recent)
 - `get_or_create(defaults=None, **lookup)` – fetch a row matching the lookup or
   insert a new one using `defaults`.
 - `update(**kwargs)` – set or increment fields. Special suffixes include
-  `__add`, `__sub`, `__mul`, `__div`, `__jsonb`, and `__jsonb_set__path[__type]`
-  for JSON columns.
+  `__add`, `__sub`, `__mul`, `__div`, `__jsonb`, `__jsonb_set__path[__type]`,
+  `__jsonb_remove` for JSON columns, and `__add_time`/`__sub_time` for
+  timestamp arithmetic.
 - `delete()` – remove rows that match the current filters.
 
 Both `update` and `delete` require a filter; FastPG raises
 `UnrestrictedUpdateError` or `UnrestrictedDeleteError` if you attempt to call
 them without a `WHERE` clause.
+
+### Update suffix examples
+
+Update suffixes let you express common mutations directly in SQL without
+round-tripping values through Python. A few practical examples from the shop
+demo API:
+
+```python
+# Bump inventory without fetching the row first
+await Product.async_queryset.filter(id=product_id).update(
+    stock_quantity__add=5,
+)
+
+# Remove a JSON field while leaving the rest of the document intact
+await Product.async_queryset.filter(id=product_id).update(
+    properties__jsonb_remove="deprecated_flag",
+)
+
+# Extend or shorten a timestamp by a PostgreSQL interval literal
+await Product.async_queryset.filter(
+    id=product_id,
+    offer_expires_at__isnull=False,
+).update(
+    offer_expires_at__add_time="3 days",   # use __sub_time to shorten
+)
+```
+
+- `__jsonb_remove` subtracts a key (or path) from a JSON/JSONB column.
+- `__add_time` and `__sub_time` apply an interval string (for example, "2 hours"
+  or "5 days") to timestamp fields without recalculating them in Python.
 
 ## Changing the return format
 
