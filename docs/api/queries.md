@@ -32,7 +32,7 @@ The query API comprises `AsyncQuerySet` for model-bound operations and
 
 | Method | Purpose |
 |--------|---------|
-| `update(**values)` | Update rows matching the current filters. Supports arithmetic and JSON operators via suffixes. |
+| `update(**values)` | Update rows matching the current filters. Supports arithmetic (`__add`, `__sub`, `__mul`, `__div`), JSON (`__jsonb`, `__jsonb_set__path`, `__jsonb_remove`), and interval (`__add_time`, `__sub_time`) suffixes. |
 | `delete()` | Delete rows matching the filters. |
 
 Awaiting a queryset triggers execution. If no terminal method has been called,
