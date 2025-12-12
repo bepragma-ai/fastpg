@@ -1207,7 +1207,7 @@
 <tbody>
 <tr>
 <td><code>update(**values)</code></td>
-<td>Update rows matching the current filters. Supports arithmetic and JSON operators via suffixes.</td>
+<td>Update rows matching the current filters. Supports arithmetic (<code>__add</code>, <code>__sub</code>, <code>__mul</code>, <code>__div</code>), JSON (<code>__jsonb</code>, <code>__jsonb_set__path</code>, <code>__jsonb_remove</code>), and interval (<code>__add_time</code>, <code>__sub_time</code>) suffixes.</td>
 </tr>
 <tr>
 <td><code>delete()</code></td>
