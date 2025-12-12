@@ -128,13 +128,13 @@ from databases.backends.common.records import Record
 from .constants import (
     ReturnType,
     OnConflict,
+    RENDER_UPDATE_SUFFIXES,
 )
 
 from .utils import (
     Relation,
     Prefetch,
     Q,
-    RENDER_UPDATE_SUFFIXES,
 )
 
 from .preprocessors import (
@@ -658,12 +658,12 @@ class AsyncQuerySet:
                             try:
                                 op = op_pieces[0]
                                 field_to_update = op_pieces[1]
-                            except KeyError:
-                                raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
+                            except IndexError:
+                                raise UnsupportedOperatorError(message=f'Missing jsonb key name for operation "{op}" in update')
                             _update_clause.append(f"{field}=jsonb_set({field}, '{{{field_to_update}}}', :set_{field_to_update}, true)")
                             self.query_param_values[f'set_{field_to_update}'] = json.dumps(value, cls=CustomJsonEncoder)  # Always send JSON string regardless of the data type
                         else:
-                            raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update')
+                            raise UnsupportedOperatorError(message=f'Invalid operation "{op}" in update. Options are jsonb, jsonb_set, {", ".join(RENDER_UPDATE_SUFFIXES.keys())}')
             else:
                 _update_clause.append(f'{key}=:set_{key}')
                 self.query_param_values[f'set_{key}'] = kwargs[key]

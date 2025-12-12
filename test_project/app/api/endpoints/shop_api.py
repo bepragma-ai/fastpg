@@ -128,11 +128,17 @@ async def update_product_properties(
 ):
     data = await request.json()
     product_id = data['product_id']
-    action = data['action']  # Options: "set_key", "reset"
+    action = data['action']  # Options: "set_key", "remove_key", "reset"
     value = data['value']
 
     if action == 'set_key':
-        updated = await Product.async_queryset.filter(id=product_id).update(properties__jsonb_set__looks=value)
+        key = data['key']
+        update_vals = {}
+        update_vals[f'properties__jsonb_set__{key}'] = value
+        updated = await Product.async_queryset.filter(id=product_id).update(**update_vals)
+    elif action == 'remove_key':
+        key = data['key']
+        updated = await Product.async_queryset.filter(id=product_id).update(properties__jsonb_remove=key)
     elif action == 'reset':
         updated = await Product.async_queryset.filter(id=product_id).update(properties__jsonb=value)
     return {'updated': updated}

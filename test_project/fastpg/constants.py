@@ -15,6 +15,17 @@ OPERATORS = {
 }
 
 
+RENDER_UPDATE_SUFFIXES = {
+    'jsonb_remove': lambda field, value: f"{field}={field} - '{value}'",
+    'add': lambda field, value: f'{field}={field} + {value}',
+    'sub': lambda field, value: f'{field}={field} - {value}',
+    'mul': lambda field, value: f'{field}={field} * {value}',
+    'div': lambda field, value: f'{field}={field} / {value}',
+    'add_time': lambda field, value: f"{field}={field} + interval '{value}'",
+    'sub_time': lambda field, value: f"{field}={field} - interval '{value}'",
+}
+
+
 class OrderBy:
     DESCENDING = 'DESC'
     ASCENDING = 'ASC'
