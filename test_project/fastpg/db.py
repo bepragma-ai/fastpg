@@ -40,6 +40,7 @@ class AsyncPostgresDB:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.database: Optional[Database] = None
+        self.transaction = None
 
     async def connect(self) -> None:
         """Establish a connection to the database with retry logic."""
@@ -62,6 +63,7 @@ class AsyncPostgresDB:
                         statement_cache_size=0,
                     )
                 await self.database.connect()
+                self.transaction = self.database.transaction
                 return
             except Exception as e:  # pragma: no cover - network failures
                 print_red(f"Async connection failed (attempt {retries + 1}): {e}")
