@@ -65,6 +65,9 @@ results = await Customer.async_queryset.filter(adults | recent)
   `OnConflict.UPDATE`, FastPG will emit the relevant `ON CONFLICT` clause.
 - `get_or_create(defaults=None, **lookup)` – fetch a row matching the lookup or
   insert a new one using `defaults`.
+- `update_or_create(defaults, **lookup)` – update a row with `defaults` when it
+  exists, or create it when it does not. Returns a tuple of
+  `(instance, created)` where `created` is a boolean.
 - `update(**kwargs)` – set or increment fields. Special suffixes include
   `__add`, `__sub`, `__mul`, `__div`, `__jsonb`, `__jsonb_set__path[__type]`,
   `__jsonb_remove` for JSON columns, and `__add_time`/`__sub_time` for
@@ -104,6 +107,35 @@ await Product.async_queryset.filter(
 - `__jsonb_remove` subtracts a key (or path) from a JSON/JSONB column.
 - `__add_time` and `__sub_time` apply an interval string (for example, "2 hours"
   or "5 days") to timestamp fields without recalculating them in Python.
+
+### Upsert with `update_or_create`
+
+`update_or_create` is helpful when an API payload might refer to an existing
+record by natural keys but you still want a single call to update or insert it.
+It combines a lookup, update, and create into one step and returns a tuple of
+the resulting model instance and a `created` flag.
+
+```python
+product, created = await Product.async_queryset.update_or_create(
+    id=payload["id"],
+    sku=payload["sku"],
+    defaults={
+        "name": payload["name"],
+        "category_id": payload["category_id"],
+        "price": payload["price"],
+        "stock_quantity": payload["stock_quantity"],
+    },
+)
+
+if created:
+    log.info("Inserted a new product")
+else:
+    log.info("Updated existing product %s", product.id)
+```
+
+The shop demo endpoint `update_or_create_product` in
+`test_project/app/api/endpoints/shop_api.py` uses this pattern when syncing
+products.
 
 ## Changing the return format
 
