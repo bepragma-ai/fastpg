@@ -634,6 +634,22 @@ class AsyncQuerySet:
             created = True
         return obj, created
 
+    async def update_or_create(self, defaults:dict[str, Any], **kwargs):
+        self.run_select_related = False
+        created = False
+        try:
+            obj = await self.get(**kwargs)
+            data = {**obj.model_dump(), **defaults}
+            obj = self.Model(**data)
+            await obj.save()
+        except MultipleRecordsFound as e:
+            raise e
+        except DoesNotExist:
+            data = {**kwargs, **defaults}
+            obj = await self.create(**data)
+            created = True
+        return obj, created
+
     def update(self, **kwargs) -> Self:
         """Update records matching the query with provided values."""
         if self.where_conditions is None:

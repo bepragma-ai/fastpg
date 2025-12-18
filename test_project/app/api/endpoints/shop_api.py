@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 
 from fastapi import APIRouter, Request, Response
 
@@ -98,6 +99,27 @@ async def create_products_in_bulk(
         update_fields=['name', 'category_id', 'price', 'stock_quantity'])
     return {}
 
+
+@router.post('/products/update-or-create', status_code=200)
+async def update_or_create_product(
+    request:Request,
+    response:Response,
+):
+    data = await request.json()
+    
+    id = data['id']
+    sku = data['sku']
+    del data['id']
+    del data['sku']
+
+    product, created = await Product.async_queryset.update_or_create(
+        id=id, sku=sku,
+        defaults=data)
+    return {
+        'product': product,
+        'created': created
+    }
+    
 
 @router.post('/products/update-stock-qtty', status_code=200)
 async def update_product_stock_qtty(

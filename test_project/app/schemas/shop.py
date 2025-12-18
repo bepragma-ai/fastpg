@@ -34,7 +34,7 @@ class Product(DatabaseModel):
     stock_quantity:int
     properties:JsonData = {}
     has_offer:bool
-    offer_type:OfferTypes
+    offer_type:OfferTypes|None = None
     offer_expires_at:datetime|None = None
 
     class Meta:
