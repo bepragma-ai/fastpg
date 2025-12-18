@@ -46,7 +46,7 @@ handling.
 | Method | Purpose |
 |--------|---------|
 | `fetch(values)` | Execute a SELECT-like statement and return dictionaries. |
-| `execute(values)` | Execute a modifying statement inside a transaction. |
+| `execute(values)` | Execute a modifying statement. |
 | `execute_many(list_of_values)` | Execute the same statement with multiple sets of parameters. |
 
 Use raw queries when you need window functions, CTEs, or other constructs that
