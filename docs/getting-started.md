@@ -31,7 +31,7 @@ FastAPI you can rely on the event system:
 
 ```python
 from fastapi import FastAPI
-from fastpg import ASYNC_DB_READ, ASYNC_DB_WRITE
+from fastpg.db import ASYNC_DB_READ, ASYNC_DB_WRITE
 
 app = FastAPI()
 
@@ -50,7 +50,7 @@ For scripts or tests you can manage the lifecycle manually:
 
 ```python
 import asyncio
-from fastpg import ASYNC_DB_READ, ASYNC_DB_WRITE
+from fastpg.db import ASYNC_DB_READ, ASYNC_DB_WRITE
 
 async def bootstrap():
     await ASYNC_DB_READ.connect()
@@ -114,4 +114,5 @@ responses.
 
 Read the concept guides for detailed explanations of metadata, filtering,
 relations, and pagination, or jump straight to the API reference for a
-method-by-method breakdown.
+method-by-method breakdown. Connection settings are covered in
+[Settings & Logging](reference/settings.md).

@@ -35,7 +35,8 @@ The response structure looks like this:
 
 `get_next_page()` and `get_previous_page()` automatically adjust the current
 page number and call `get_page()` internally. If you request a page number less
-than 1, the paginator raises `InvalidPageError`.
+than 1, the paginator raises `InvalidPageError`. When a page contains no
+results, `start_index` and `end_index` are set to `null`.
 
 ## Paginating raw SQL
 
@@ -63,4 +64,7 @@ page = await paginator.get_page(1)
 ```
 
 Optionally provide a `serializer` callable to transform the records returned
-from the database before they are included in the paginator payload.
+from the database before they are included in the paginator payload. See the
+[API reference](../api/queries.md#asyncqueryset) for return types and
+[RawQueryAsyncPaginator](../api/queries.md#asyncrawquery) for configuration
+details.

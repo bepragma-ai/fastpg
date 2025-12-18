@@ -1,8 +1,9 @@
 # Advanced usage
 
 This example mirrors the `shop` API used in the test project and shows multiple
-features working together: joined queries, prefetching, conflict-aware bulk
-writes, and multiple return types that plug straight into FastAPI responses.
+features working together: joined queries, [prefetching](../guides/relationships.md#prefetching-child-collections),
+conflict-aware bulk writes, and multiple return types that plug straight into
+FastAPI responses.
 
 ```python
 from datetime import date
@@ -150,17 +151,18 @@ The resulting structures can be returned directly from FastAPI endpoints, just
 like the demo routes in `test_project/app/api/endpoints/shop_api.py`. Bulk
 operations keep product data fresh, `select_related` joins customer details to an
 order, and `prefetch_related` assembles a rich response for nested collections
-without hand-written SQL.
+without hand-written SQL. Learn more in the [relationships guide](../guides/relationships.md).
 
 ## Managing transactions for multi-step writes
 
 When a write spans multiple tables, wrap it in a database transaction so either
 all steps succeed or none do. The shop demo exposes this flow through the
 `create_department_with_employees` endpoint, which uses `ASYNC_DB_WRITE` to
-wrap department creation and employee inserts in a single unit of work.
+wrap department creation and employee inserts in a single unit of work. See the
+[transactions guide](../guides/transactions.md) for the full API.
 
 ```python
-from fastpg import ASYNC_DB_WRITE
+from fastpg.db import ASYNC_DB_WRITE
 
 
 async def create_department_with_employees(department_data, employees_data):

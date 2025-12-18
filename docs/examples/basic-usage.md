@@ -2,7 +2,8 @@
 
 The shop demo models provide an end-to-end tour of FastPG. The example below
 shows how to model inventory, load related data, and keep products in sync from a
-bulk import while staying entirely asynchronous.
+bulk import while staying entirely asynchronous. Links in the comments point to
+the relevant guides for deeper reference.
 
 ```python
 from fastpg import DatabaseModel, AsyncPaginator, OnConflict, OrderBy, ReturnType
@@ -31,7 +32,7 @@ class Product(DatabaseModel):
         auto_generated_fields = ["id"]
 
 
-# Insert or update a catalogue in one call
+# Insert or update a catalogue in one call (see Query API → mutation helpers)
 payload = [
     {
         "sku": "HAT-001",
@@ -49,6 +50,7 @@ payload = [
     },
 ]
 
+# [bulk_create](../api/queries.md#mutation-helpers) with conflict handling
 await Product.async_queryset.bulk_create(
     payload,
     on_conflict=OnConflict.UPDATE,
@@ -66,7 +68,7 @@ product_data = await (
     .return_as(ReturnType.DICT)
 )
 
-# Paginate the catalogue for an API response
+# Paginate the catalogue for an API response (see [pagination guide](../guides/pagination.md))
 queryset = Product.async_queryset.all().order_by(name=OrderBy.ASCENDING)
 paginator = AsyncPaginator(page_size=10, queryset=queryset)
 page1 = await paginator.get_page(1)
@@ -74,4 +76,5 @@ page1 = await paginator.get_page(1)
 
 `page1["results"]` contains a list of `Product` instances. The paginator
 metadata (total count, page boundaries) lives under `page1["results_paginator"]`,
-which can be returned directly from a FastAPI route.
+which can be returned directly from a FastAPI route. For details on return
+formats, see [`return_as`](../api/queries.md#changing-the-return-format).

@@ -50,7 +50,8 @@ connection management, and CRUD helpers.
 
 ```python
 from fastapi import FastAPI
-from fastpg import DatabaseModel, ASYNC_DB_READ, ASYNC_DB_WRITE
+from fastpg import DatabaseModel
+from fastpg.db import ASYNC_DB_READ, ASYNC_DB_WRITE
 
 class Customer(DatabaseModel):
     id: int | None = None
@@ -91,4 +92,5 @@ async def create_customer(email: str):
 - `mkdocs.yml` – MkDocs configuration, including the navigation tree and theme.
 
 Read on for a deeper dive into models, query construction, pagination, and
-advanced patterns.
+advanced patterns. The [settings reference](reference/settings.md) details the
+environment variables required to establish connections.
