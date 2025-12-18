@@ -74,7 +74,7 @@ async def get_department(
 
 
 @router.post('/department/create', status_code=200)
-async def create_products_in_bulk(
+async def create_department_with_employees(
     request:Request,
     response:Response,
 ):
