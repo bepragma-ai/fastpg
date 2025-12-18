@@ -151,3 +151,27 @@ like the demo routes in `test_project/app/api/endpoints/shop_api.py`. Bulk
 operations keep product data fresh, `select_related` joins customer details to an
 order, and `prefetch_related` assembles a rich response for nested collections
 without hand-written SQL.
+
+## Managing transactions for multi-step writes
+
+When a write spans multiple tables, wrap it in a database transaction so either
+all steps succeed or none do. The shop demo exposes this flow through the
+`create_department_with_employees` endpoint, which uses `ASYNC_DB_WRITE` to
+wrap department creation and employee inserts in a single unit of work.
+
+```python
+from fastpg import ASYNC_DB_WRITE
+
+
+async def create_department_with_employees(department_data, employees_data):
+    async with ASYNC_DB_WRITE.transaction():
+        department = await Department.async_queryset.create(**department_data)
+        for emp in employees_data:
+            emp["department_id"] = department.id
+            await Employee.async_queryset.create(**emp)
+    return department
+```
+
+`ASYNC_DB_WRITE.transaction()` supports async context managers, decorators, or
+manual begin/commit calls. In every mode, FastPG will roll back the transaction
+if an exception is raised so partial writes never hit the database.
