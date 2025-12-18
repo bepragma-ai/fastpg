@@ -13,6 +13,10 @@
         <link rel="canonical" href="https://bepragma.ai/guides/transactions/">
       
       
+        <link rel="prev" href="../pagination/">
+      
+      
+        <link rel="next" href="../../reference/json-fields/">
       
       
         
@@ -245,10 +249,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../models/" class="md-tabs__link">
           
   
@@ -414,26 +420,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -451,7 +462,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -569,6 +580,125 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transactions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transactions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context-manager-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context manager (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual control
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decorator-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decorator style
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1000,37 +1130,49 @@
 
 
 <h1 id="transactions">Transactions</h1>
-<p>Transactions are managed by async context blocks. Transaction state is tied to the connection used in the currently executing asynchronous task.</p>
-<h2 id="acquiring-transactions">Acquiring transactions</h2>
-<p>A transaction can be acquired from the database connection pool:</p>
+<p>FastPG exposes the underlying <a href="https://www.encode.io/databases/connection_pooling/#transactions"><code>databases</code></a>
+transaction helpers through the <code>AsyncPostgresDB</code> instances in <code>fastpg.db</code>.
+Each transaction is bound to the connection used by the current async task, so
+long-lived tasks should acquire and release them carefully.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Import the connection pools from <code>fastpg.db</code> and ensure they are connected
+before opening a transaction:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASYNC_DB_WRITE</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">async</span> <span class="k">with</span> <span class="n">ASYNC_DB_WRITE</span><span class="o">.</span><span class="n">transaction</span><span class="p">():</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">...</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># elsewhere during startup:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># await ASYNC_DB_WRITE.connect()</span>
 </code></pre></div>
-<h2 id="implementing-transactions">Implementing transactions</h2>
-<p>A transaction can be implemented in any of the following ways</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg.db</span><span class="w"> </span><span class="kn">import</span> <span class="n">ASYNC_DB_WRITE</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">async</span> <span class="k">with</span> <span class="n">ASYNC_DB_WRITE</span><span class="o">.</span><span class="n">transaction</span><span class="p">():</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="o">...</span>
+<p>Use <code>ASYNC_DB_WRITE</code> for write operations. <code>ASYNC_DB_READ</code> supports the same
+API but should only be used for read-only transactions.</p>
+<h2 id="context-manager-recommended">Context manager (recommended)</h2>
+<p>Wrap related operations in an <code>async with</code> block. The transaction is committed
+when the block exits normally and rolled back if an exception is raised.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_users</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]):</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">ASYNC_DB_WRITE</span><span class="o">.</span><span class="n">transaction</span><span class="p">():</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>            <span class="k">await</span> <span class="n">User</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span>
 </code></pre></div>
-<p>For a lower-level transaction API:</p>
+<h2 id="manual-control">Manual control</h2>
+<p>When you need explicit control over commit/rollback, grab the transaction
+instance and manage it yourself:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">transaction</span> <span class="o">=</span> <span class="k">await</span> <span class="n">ASYNC_DB_WRITE</span><span class="o">.</span><span class="n">transaction</span><span class="p">()</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="o">...</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">except</span><span class="p">:</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">await</span> <span class="n">transaction</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">await</span> <span class="n">transaction</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">await</span> <span class="n">User</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">user_data</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">await</span> <span class="n">AuditLog</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="s2">&quot;user.created&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">await</span> <span class="n">transaction</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">raise</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">await</span> <span class="n">transaction</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 </code></pre></div>
-<p>You can also use .transaction() as a function decorator on any async function:</p>
+<h2 id="decorator-style">Decorator style</h2>
+<p>Transactions can also wrap async callables using decorator syntax:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@ASYNC_DB_WRITE</span><span class="o">.</span><span class="n">transaction</span><span class="p">()</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_users</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="o">...</span>
 </code></pre></div>
+<p>This pattern is useful for FastAPI dependencies or background tasks where the
+function body should always execute inside a transaction.</p>
 
 
 
@@ -1069,6 +1211,7 @@
   
     <div class="md-copyright__highlight">
       &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+
     </div>
   
   

@@ -16,7 +16,7 @@
         <link rel="prev" href="../relationships/">
       
       
-        <link rel="next" href="../../reference/json-fields/">
+        <link rel="next" href="../transactions/">
       
       
         
@@ -654,6 +654,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../transactions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transactions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1108,7 +1136,8 @@ page.</p>
 </code></pre></div>
 <p><code>get_next_page()</code> and <code>get_previous_page()</code> automatically adjust the current
 page number and call <code>get_page()</code> internally. If you request a page number less
-than 1, the paginator raises <code>InvalidPageError</code>.</p>
+than 1, the paginator raises <code>InvalidPageError</code>. When a page contains no
+results, <code>start_index</code> and <code>end_index</code> are set to <code>null</code>.</p>
 <h2 id="paginating-raw-sql">Paginating raw SQL</h2>
 <p>Sometimes you may want to page the results of a handcrafted SQL statement. Use
 <code>RawQueryAsyncPaginator</code> with a query string that contains <code>{limit}</code> and
@@ -1131,7 +1160,10 @@ than 1, the paginator raises <code>InvalidPageError</code>.</p>
 <a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">page</span> <span class="o">=</span> <span class="k">await</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div>
 <p>Optionally provide a <code>serializer</code> callable to transform the records returned
-from the database before they are included in the paginator payload.</p>
+from the database before they are included in the paginator payload. See the
+<a href="../../api/queries/#asyncqueryset">API reference</a> for return types and
+<a href="../../api/queries/#asyncrawquery">RawQueryAsyncPaginator</a> for configuration
+details.</p>
 
 
 
@@ -1170,6 +1202,7 @@ from the database before they are included in the paginator payload.</p>
   
     <div class="md-copyright__highlight">
       &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+
     </div>
   
   

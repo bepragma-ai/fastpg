@@ -580,6 +580,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/transactions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transactions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1096,8 +1124,8 @@ connections, timestamp behaviour, and SQL logging.</p>
 <h2 id="database-connections">Database connections</h2>
 <p>Two connection pools are created automatically when you import <code>fastpg.db</code>:</p>
 <ul>
-<li><code>ASYNC_DB_READ</code> – read-only operations</li>
-<li><code>ASYNC_DB_WRITE</code> – write operations</li>
+<li><code>ASYNC_DB_READ</code> – read-only operations (import from <code>fastpg.db</code>)</li>
+<li><code>ASYNC_DB_WRITE</code> – write operations (import from <code>fastpg.db</code>)</li>
 </ul>
 <p>Provide credentials via the following environment variables:</p>
 <table>
@@ -1179,6 +1207,7 @@ configuration to route these logs to stdout, files, or observability systems.</p
   
     <div class="md-copyright__highlight">
       &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+
     </div>
   
   
