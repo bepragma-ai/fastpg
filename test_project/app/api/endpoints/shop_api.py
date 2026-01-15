@@ -25,6 +25,8 @@ from app.schemas.shop import (
 import pytz
 IST_TZ = pytz.timezone("Asia/Kolkata")
 
+from fastpg.db import ASYNC_DB_WRITE
+
 
 router = APIRouter()
 

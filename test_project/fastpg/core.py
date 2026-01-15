@@ -144,6 +144,7 @@ from .preprocessors import (
 
 from .fields import CustomJsonEncoder
 
+from .db import AsyncPostgresDB
 from .db import (
     ASYNC_DB_READ,
     ASYNC_DB_WRITE,
@@ -207,6 +208,8 @@ class AsyncQuerySet:
 
         self.return_type = ReturnType.MODEL_INSTANCE
 
+        self.connection = None
+
     def _reduce_conditions(self, *args, **kwargs) -> Q:
         if kwargs:
             self.conditions.append(Q(**kwargs))
@@ -263,9 +266,10 @@ class AsyncQuerySet:
             self.query += f' LIMIT {self.fetch_limit}'
         if self.fetch_offset:
             self.query += f' OFFSET {self.fetch_offset}'
-
+        
+        async_conn = self.connection or ASYNC_DB_READ
         try:
-            self.records = await ASYNC_DB_READ.fetch_all(
+            self.records = await async_conn.fetch_all(
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
@@ -303,8 +307,9 @@ class AsyncQuerySet:
         if self.fetch_offset:
             self.query += f' OFFSET {self.fetch_offset}'
 
+        async_conn = self.connection or ASYNC_DB_READ
         try:
-            self.records = await ASYNC_DB_READ.fetch_all(
+            self.records = await async_conn.fetch_all(
                 query=self.query, values={
                     **self.query_param_values,
                     **self.related_query_param_values})
@@ -360,8 +365,9 @@ class AsyncQuerySet:
         self.query = query
         self.query_param_values = values
         
+        async_conn = self.connection or ASYNC_DB_READ
         try:
-            self.records = await ASYNC_DB_READ.fetch_all(
+            self.records = await async_conn.fetch_all(
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
@@ -372,6 +378,10 @@ class AsyncQuerySet:
         
         self._serialize_data()
         return self.records
+
+    def using(self, connection:AsyncPostgresDB) -> Self:
+        self.connection = connection
+        return self
 
     def columns(self, *columns:set[str]) -> Self:
         self.columns_to_fetch = list(columns)
@@ -771,13 +781,15 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str):
+    def __init__(self, query:str, connection:AsyncPostgresDB=None):
         self.query = query
+        self.connection = connection
 
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
+        async_conn = self.connection or ASYNC_DB_READ
         try:
-            records = await ASYNC_DB_READ.fetch_all(
+            records = await async_conn.fetch_all(
                 query=self.query, values=self.values)
         except Exception as e:
             raise DatabaseError(

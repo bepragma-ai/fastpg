@@ -30,7 +30,7 @@ services:
     volumes:
       - fastpg_db:/var/lib/postgresql/data
     ports:
-      - '0.0.0.0:17432:5432'
+      - '0.0.0.0:19432:5432'
     env_file:
       - secrets.env
     command: >
@@ -46,7 +46,7 @@ services:
       - fastpg_db_replica:/var/lib/postgresql/data
       - ./dockerify/db/pg13/replica-entrypoint.sh:/replica-entrypoint.sh:ro
     ports:
-      - '0.0.0.0:17433:5432'
+      - '0.0.0.0:19433:5432'
     env_file:
       - secrets.env
     depends_on:
