@@ -24,7 +24,8 @@ class AsyncPostgresDB:
         Delay in seconds between retries.
     """
 
-    def __init__(self, conn_type: ConnectionType, db_uri: str, max_retries: int = 3, retry_delay: int = 2) -> None:
+    def __init__(self, conn_name: str, conn_type: ConnectionType, db_uri: str, max_retries: int = 3, retry_delay: int = 2) -> None:
+        self.conn_name = conn_name
         self.conn_type = conn_type
         self.db_uri = db_uri
         self.max_retries = max_retries
@@ -162,6 +163,7 @@ class ConnectionManager:
             port = config['PORT']
 
             self.connections[conn_name] = AsyncPostgresDB(
+                conn_name=conn_name,
                 conn_type=conn_type,
                 db_uri=f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}")
             
