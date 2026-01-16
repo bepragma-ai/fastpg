@@ -177,6 +177,8 @@ class ConnectionManager:
     
     def set_databases(self, databases:Dict[str, Any]) -> None:
         self.databases = databases
+        self.read_conn_names = []
+        self.write_conn_name = None
         self.__create_connections()
 
     async def connect_all(self) -> None:
