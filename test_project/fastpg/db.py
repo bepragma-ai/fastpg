@@ -111,6 +111,8 @@ class AsyncPostgresDBConnection:
 
 class ConnectionManager:
     """
+    Manages all DB connections and DB query routes
+
     Parameters
     ----------
     databases: dict
