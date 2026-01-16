@@ -51,11 +51,11 @@ logger = logging.getLogger(__name__)   # module-level logger
 CONNECTION_MANAGER.set_databases({
     'default': {
         'TYPE': ConnectionType.WRITE,
-        'USER': os.environ.get("POSTGRES_READ_USER"),
-        'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
-        'DB': os.environ.get("POSTGRES_READ_DB"),
-        'HOST': os.environ.get("POSTGRES_READ_HOST"),
-        'PORT': os.environ.get("POSTGRES_READ_PORT"),
+        'USER': os.environ.get("POSTGRES_WRITE_USER"),
+        'PASSWORD': os.environ.get("POSTGRES_WRITE_PASSWORD"),
+        'DB': os.environ.get("POSTGRES_WRITE_DB"),
+        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
+        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
     },
     'replica_1': {
         'TYPE': ConnectionType.READ,

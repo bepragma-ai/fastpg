@@ -11,7 +11,7 @@ from .utils import async_sql_logger
 from .print import print_red, print_green
 
 
-class AsyncPostgresDB:
+class AsyncPostgresDBConnection:
     """Asynchronous PostgreSQL database wrapper.
 
     Parameters
@@ -39,22 +39,17 @@ class AsyncPostgresDB:
         retries = 0
         while retries < self.max_retries:
             try:
-                if self.conn_type == ConnectionType.READ:
-                    self.database = Database(
-                        self.db_uri,
-                        min_size=2,
-                        max_size=5,
-                        statement_cache_size=0,
-                    )
-                else:
-                    self.database = Database(
-                        self.db_uri,
-                        min_size=2,
-                        max_size=5,
-                        statement_cache_size=0,
-                    )
+                self.database = Database(
+                    self.db_uri,
+                    min_size=2,
+                    max_size=5,
+                    statement_cache_size=0,
+                )
                 await self.database.connect()
-                self.transaction = self.database.transaction
+
+                if self.conn_type == ConnectionType.WRITE:
+                    self.transaction = self.database.transaction
+
                 return
             except Exception as e:  # pragma: no cover - network failures
                 print_red(f"Async connection failed (attempt {retries + 1}): {e}")
@@ -111,6 +106,8 @@ class AsyncPostgresDB:
         if self.database:
             await self.database.disconnect()
 
+    def __str__(self):
+        return f'Connection {self.conn_name} [{self.conn_type.value}]'
 
 class ConnectionManager:
     """
@@ -144,6 +141,7 @@ class ConnectionManager:
         self.connections = {}
         self.read_conn_names = []
         self.write_conn_name = None
+        self.transaction = None
     
     def __set_write_connection(self, conn_name:str) -> None:
         if self.write_conn_name is None:
@@ -162,7 +160,7 @@ class ConnectionManager:
             host = config['HOST']
             port = config['PORT']
 
-            self.connections[conn_name] = AsyncPostgresDB(
+            self.connections[conn_name] = AsyncPostgresDBConnection(
                 conn_name=conn_name,
                 conn_type=conn_type,
                 db_uri=f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}")
@@ -183,7 +181,8 @@ class ConnectionManager:
         for conn_name in self.connections:
             await self.connections[conn_name].connect()
             print_green(f'"{conn_name}" successfully connected...')
-    
+        self.transaction = self.connections[self.write_conn_name].transaction
+
     async def close_all(self) -> None:
         for conn_name in self.connections:
             await self.connections[conn_name].close()
@@ -198,22 +197,3 @@ class ConnectionManager:
 
 
 CONNECTION_MANAGER = ConnectionManager()
-
-
-# # MAIN DB POSTGRES READ SYNC
-# POSTGRES_READ_USER = os.environ.get("POSTGRES_READ_USER")
-# POSTGRES_READ_PASSWORD = os.environ.get("POSTGRES_READ_PASSWORD")
-# POSTGRES_READ_DB = os.environ.get("POSTGRES_READ_DB")
-# POSTGRES_READ_HOST = os.environ.get("POSTGRES_READ_HOST")
-# POSTGRES_READ_PORT = os.environ.get("POSTGRES_READ_PORT")
-
-# # MAIN DB POSTGRES WRITE SYNC
-# POSTGRES_WRITE_USER = os.environ.get("POSTGRES_WRITE_USER")
-# POSTGRES_WRITE_PASSWORD = os.environ.get("POSTGRES_WRITE_PASSWORD")
-# POSTGRES_WRITE_DB = os.environ.get("POSTGRES_WRITE_DB")
-# POSTGRES_WRITE_HOST = os.environ.get("POSTGRES_WRITE_HOST")
-# POSTGRES_WRITE_PORT = os.environ.get("POSTGRES_WRITE_PORT")
-
-
-# ASYNC_DB_READ = AsyncPostgresDB(conn_type=ConnectionType.READ, db_uri=f"postgresql+asyncpg://{POSTGRES_READ_USER}:{POSTGRES_READ_PASSWORD}@{POSTGRES_READ_HOST}:{POSTGRES_READ_PORT}/{POSTGRES_READ_DB}")
-# ASYNC_DB_WRITE = AsyncPostgresDB(conn_type=ConnectionType.WRITE, db_uri=f"postgresql+asyncpg://{POSTGRES_WRITE_USER}:{POSTGRES_WRITE_PASSWORD}@{POSTGRES_WRITE_HOST}:{POSTGRES_WRITE_PORT}/{POSTGRES_WRITE_DB}")
