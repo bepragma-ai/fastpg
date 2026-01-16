@@ -781,6 +781,7 @@ class AsyncRawQuery:
     def __init__(self, query:str, connection:AsyncPostgresDBConnection=None):
         self.query = query
         self.read_connection = connection or CONNECTION_MANAGER.db_for_read()
+        self.write_connection = CONNECTION_MANAGER.db_for_write()
 
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
         self.values = values

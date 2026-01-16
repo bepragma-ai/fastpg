@@ -61,9 +61,9 @@ CONNECTION_MANAGER.set_databases({
         'TYPE': ConnectionType.READ,
         'USER': os.environ.get("POSTGRES_READ_USER"),
         'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
-        'DB': os.environ.get("POSTGRES_WRITE_DB"),
-        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
-        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+        'DB': os.environ.get("POSTGRES_READ_DB"),
+        'HOST': os.environ.get("POSTGRES_READ_HOST"),
+        'PORT': os.environ.get("POSTGRES_READ_PORT"),
     }
 })
 
