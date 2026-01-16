@@ -1,28 +1,17 @@
-import os
 import asyncio
-from typing import Optional, Dict, List
+import random
+from urllib.parse import quote_plus
+from typing import Optional, Dict, List, Any
 from databases import Database
 
+from .constants import ConnectionType
+from .errors import MultipleWriteConnectionsError, ReadConnectionNotAvailableError, InvalidConnectionNameError
+
 from .utils import async_sql_logger
-from .print import print_red
+from .print import print_red, print_green
 
 
-# MAIN DB POSTGRES READ SYNC
-POSTGRES_READ_USER = os.environ.get("POSTGRES_READ_USER")
-POSTGRES_READ_PASSWORD = os.environ.get("POSTGRES_READ_PASSWORD")
-POSTGRES_READ_DB = os.environ.get("POSTGRES_READ_DB")
-POSTGRES_READ_HOST = os.environ.get("POSTGRES_READ_HOST")
-POSTGRES_READ_PORT = os.environ.get("POSTGRES_READ_PORT")
-
-# MAIN DB POSTGRES WRITE SYNC
-POSTGRES_WRITE_USER = os.environ.get("POSTGRES_WRITE_USER")
-POSTGRES_WRITE_PASSWORD = os.environ.get("POSTGRES_WRITE_PASSWORD")
-POSTGRES_WRITE_DB = os.environ.get("POSTGRES_WRITE_DB")
-POSTGRES_WRITE_HOST = os.environ.get("POSTGRES_WRITE_HOST")
-POSTGRES_WRITE_PORT = os.environ.get("POSTGRES_WRITE_PORT")
-
-
-class AsyncPostgresDB:
+class AsyncPostgresDBConnection:
     """Asynchronous PostgreSQL database wrapper.
 
     Parameters
@@ -35,8 +24,10 @@ class AsyncPostgresDB:
         Delay in seconds between retries.
     """
 
-    def __init__(self, conn_type: str, max_retries: int = 3, retry_delay: int = 2) -> None:
+    def __init__(self, conn_name: str, conn_type: ConnectionType, db_uri: str, max_retries: int = 3, retry_delay: int = 2) -> None:
+        self.conn_name = conn_name
         self.conn_type = conn_type
+        self.db_uri = db_uri
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.database: Optional[Database] = None
@@ -48,22 +39,17 @@ class AsyncPostgresDB:
         retries = 0
         while retries < self.max_retries:
             try:
-                if self.conn_type == "READ":
-                    self.database = Database(
-                        f"postgresql+asyncpg://{POSTGRES_READ_USER}:{POSTGRES_READ_PASSWORD}@{POSTGRES_READ_HOST}:{POSTGRES_READ_PORT}/{POSTGRES_READ_DB}",
-                        min_size=2,
-                        max_size=5,
-                        statement_cache_size=0,
-                    )
-                else:
-                    self.database = Database(
-                        f"postgresql+asyncpg://{POSTGRES_WRITE_USER}:{POSTGRES_WRITE_PASSWORD}@{POSTGRES_WRITE_HOST}:{POSTGRES_WRITE_PORT}/{POSTGRES_WRITE_DB}",
-                        min_size=2,
-                        max_size=5,
-                        statement_cache_size=0,
-                    )
+                self.database = Database(
+                    self.db_uri,
+                    min_size=2,
+                    max_size=5,
+                    statement_cache_size=0,
+                )
                 await self.database.connect()
-                self.transaction = self.database.transaction
+
+                if self.conn_type == ConnectionType.WRITE:
+                    self.transaction = self.database.transaction
+
                 return
             except Exception as e:  # pragma: no cover - network failures
                 print_red(f"Async connection failed (attempt {retries + 1}): {e}")
@@ -120,6 +106,110 @@ class AsyncPostgresDB:
         if self.database:
             await self.database.disconnect()
 
+    def __str__(self):
+        return f'Connection {self.conn_name} [{self.conn_type.value}]'
 
-ASYNC_DB_READ = AsyncPostgresDB(conn_type='READ')
-ASYNC_DB_WRITE = AsyncPostgresDB(conn_type='WRITE')
+class ConnectionManager:
+    """
+    Manages all DB connections and DB query routes
+
+    Parameters
+    ----------
+    databases: dict
+        Dictionary of database connections. E.g.
+
+        {
+            'default': {
+                'TYPE': ConnectionType.WRITE,
+                'USER': '',
+                'PASSWORD': '',
+                'DB': '',
+                'HOST': '',
+                'PORT': '',
+            },
+            'replica_1': {
+                'TYPE': ConnectionType.READ,
+                'USER': '',
+                'PASSWORD': '',
+                'DB': '',
+                'HOST': '',
+                'PORT': '',
+            }
+        }
+    """
+
+    def __init__(self):
+        self.databases = {}
+        self.connections = {}
+        self.read_conn_names = []
+        self.write_conn_name = None
+        self.transaction = None
+    
+    def __set_write_connection(self, conn_name:str) -> None:
+        if self.write_conn_name is None:
+            self.write_conn_name = conn_name
+        else:
+            raise MultipleWriteConnectionsError
+    
+    def __create_connections(self) -> None:
+        for conn_name in self.databases:
+            config = self.databases[conn_name]
+
+            conn_type = config['TYPE']
+            user = quote_plus(str(config['USER']))
+            password = quote_plus(str(config['PASSWORD']))
+            db = config['DB']
+            host = config['HOST']
+            port = config['PORT']
+
+            self.connections[conn_name] = AsyncPostgresDBConnection(
+                conn_name=conn_name,
+                conn_type=conn_type,
+                db_uri=f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}")
+            
+            if conn_type == ConnectionType.READ:
+                self.read_conn_names.append(conn_name)
+            else:
+                self.__set_write_connection(conn_name)
+            
+        if len(self.read_conn_names) == 0:
+            raise ReadConnectionNotAvailableError
+    
+    def set_databases(self, databases:Dict[str, Any]) -> None:
+        self.databases = databases
+        self.read_conn_names = []
+        self.write_conn_name = None
+        self.__create_connections()
+
+    async def connect_all(self) -> None:
+        for conn_name in self.connections:
+            await self.connections[conn_name].connect()
+            print_green(f'"{conn_name}" successfully connected...')
+        self.transaction = self.connections[self.write_conn_name].transaction
+
+    async def close_all(self) -> None:
+        for conn_name in self.connections:
+            await self.connections[conn_name].close()
+            print_green(f'"{conn_name}" successfully closed...')
+    
+    def get_db_conn(self, conn_name:str) -> AsyncPostgresDBConnection:
+        try:
+            return self.connections[conn_name]
+        except KeyError:
+            raise InvalidConnectionNameError(conn_name)
+
+    def db_for_read(self) -> AsyncPostgresDBConnection:
+        conn_name = random.choice(self.read_conn_names)
+        try:
+            return self.connections[conn_name]
+        except KeyError:
+            raise InvalidConnectionNameError(conn_name)
+
+    def db_for_write(self) -> AsyncPostgresDBConnection:
+        try:
+            return self.connections[self.write_conn_name]
+        except KeyError:
+            raise InvalidConnectionNameError(self.write_conn_name)
+
+
+CONNECTION_MANAGER = ConnectionManager()

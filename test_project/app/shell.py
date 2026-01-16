@@ -1,3 +1,4 @@
+import os
 import sys
 import importlib
 import inspect
@@ -25,10 +26,31 @@ for path in schemas_path.glob("*.py"):
             schema_classes[name] = obj
 
 
-from fastpg.core import (
-    ASYNC_DB_READ,
-    ASYNC_DB_WRITE,
-)
+from fastpg import ConnectionType, CONNECTION_MANAGER
+
+
+# ─────────────────────────────
+# FastPG setup
+# ─────────────────────────────
+
+CONNECTION_MANAGER.set_databases({
+    'default': {
+        'TYPE': ConnectionType.WRITE,
+        'USER': os.environ.get("POSTGRES_WRITE_USER"),
+        'PASSWORD': os.environ.get("POSTGRES_WRITE_PASSWORD"),
+        'DB': os.environ.get("POSTGRES_WRITE_DB"),
+        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
+        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+    },
+    'replica_1': {
+        'TYPE': ConnectionType.READ,
+        'USER': os.environ.get("POSTGRES_READ_USER"),
+        'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
+        'DB': os.environ.get("POSTGRES_WRITE_DB"),
+        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
+        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+    }
+})
 
 
 banner = (
@@ -40,15 +62,13 @@ banner = (
 async def async_on_shell_start():
     print_yellow(banner)
     print_yellow("[entry] Connecting to databases...")
-    await ASYNC_DB_READ.connect()
-    await ASYNC_DB_WRITE.connect()
+    await CONNECTION_MANAGER.connect_all()
     print_yellow("[entry] DB connections ready.")
 
 
 async def async_cleanup():
     print_yellow("[cleanup] Closing DB connections...")
-    await ASYNC_DB_READ.close()
-    await ASYNC_DB_WRITE.close()
+    await CONNECTION_MANAGER.close_all()
     print_yellow("[cleanup] DB connections closed.")
 
 

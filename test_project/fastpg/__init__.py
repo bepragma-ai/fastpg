@@ -12,9 +12,12 @@ __author__ = "Eshan Das"
 __email__ = "eshan@logisy.tech"
 
 
+from .constants import ConnectionType
 from .constants import OrderBy
 from .constants import OnConflict
 from .constants import ReturnType
+
+from .db import CONNECTION_MANAGER
 
 from .utils import Prefetch
 from .utils import Relation
@@ -46,9 +49,12 @@ from .errors import (
 
 
 __all__ = [
+    "ConnectionType",
     "OrderBy",
     "OnConflict",
     "ReturnType",
+    "CONNECTION_MANAGER",
+    "Prefetch",
     "Relation",
     "Q",
     "DatabaseModel",

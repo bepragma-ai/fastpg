@@ -1,3 +1,11 @@
+from enum import Enum
+
+
+class ConnectionType(Enum):
+    READ = 'READ'
+    WRITE = 'WRITE'
+
+
 OPERATORS = {
     'gt': '>',
     'lt': '<',

@@ -8,7 +8,7 @@ from fastpg import (
     ReturnType,
     OnConflict,
 )
-from fastpg.db import ASYNC_DB_WRITE
+from fastpg import CONNECTION_MANAGER
 
 from app.schemas.shop import (
     Category,
@@ -24,8 +24,6 @@ from app.schemas.shop import (
 
 import pytz
 IST_TZ = pytz.timezone("Asia/Kolkata")
-
-from fastpg.db import ASYNC_DB_WRITE
 
 
 router = APIRouter()
@@ -88,19 +86,19 @@ async def create_department_with_employees(
         # Only department gets created if this function has errors
         department = await Department.async_queryset.create(**department_data)
         for emp in employees_data:
-            emp['department_id'] = department.id  # Comment this line to create an error mid txn
+            # emp['department_id'] = department.id  # Comment this line to create an error mid txn
             await Employee.async_queryset.create(**emp)
         return department
 
     async def __create_with_txn(department_data, employees_data):
-        async with ASYNC_DB_WRITE.transaction():
+        async with CONNECTION_MANAGER.transaction():
             department = await Department.async_queryset.create(**department_data)
             for emp in employees_data:
                 # emp['department_id'] = department.id  # Comment this line to create an error mid txn
                 await Employee.async_queryset.create(**emp)
             return department
     
-    @ASYNC_DB_WRITE.transaction()
+    @CONNECTION_MANAGER.transaction()
     async def __create_with_decorator_txn(department_data, employees_data):
         department = await Department.async_queryset.create(**department_data)
         for emp in employees_data:
@@ -108,8 +106,8 @@ async def create_department_with_employees(
             await Employee.async_queryset.create(**emp)
         return department
     
-    async def __create_with_trcatch_txn(department_data, employees_data):
-        transaction = await ASYNC_DB_WRITE.transaction()
+    async def __create_with_try_catch_txn(department_data, employees_data):
+        transaction = await CONNECTION_MANAGER.transaction()
         try:
             department = await Department.async_queryset.create(**department_data)
             for emp in employees_data:
@@ -125,7 +123,7 @@ async def create_department_with_employees(
     # department = await __create_without_txn(department_data, employees_data)
     # department = await __create_with_txn(department_data, employees_data)
     # department = await __create_with_decorator_txn(department_data, employees_data)
-    department = await __create_with_trcatch_txn(department_data, employees_data)
+    department = await __create_with_try_catch_txn(department_data, employees_data)
 
     return await Department.async_queryset.prefetch_related(
         Prefetch('employees', Employee.async_queryset.all())
@@ -139,7 +137,7 @@ async def get_products(
 ):
     if id:
         return await Product.async_queryset.get(id=id)
-    return await Product.async_queryset.all()
+    return await Product.async_queryset.using('default').all().order_by(id=OrderBy.ASCENDING)
 
 
 @router.get('/products/categories', status_code=200)
