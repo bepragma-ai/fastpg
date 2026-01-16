@@ -3,6 +3,8 @@ import asyncio
 from typing import Optional, Dict, List
 from databases import Database
 
+from .constants import ConnectionType
+
 from .utils import async_sql_logger
 from .print import print_red
 
@@ -35,7 +37,7 @@ class AsyncPostgresDB:
         Delay in seconds between retries.
     """
 
-    def __init__(self, conn_type: str, max_retries: int = 3, retry_delay: int = 2) -> None:
+    def __init__(self, conn_type: ConnectionType, max_retries: int = 3, retry_delay: int = 2) -> None:
         self.conn_type = conn_type
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -48,7 +50,7 @@ class AsyncPostgresDB:
         retries = 0
         while retries < self.max_retries:
             try:
-                if self.conn_type == "READ":
+                if self.conn_type == ConnectionType.READ:
                     self.database = Database(
                         f"postgresql+asyncpg://{POSTGRES_READ_USER}:{POSTGRES_READ_PASSWORD}@{POSTGRES_READ_HOST}:{POSTGRES_READ_PORT}/{POSTGRES_READ_DB}",
                         min_size=2,
@@ -121,5 +123,5 @@ class AsyncPostgresDB:
             await self.database.disconnect()
 
 
-ASYNC_DB_READ = AsyncPostgresDB(conn_type='READ')
-ASYNC_DB_WRITE = AsyncPostgresDB(conn_type='WRITE')
+ASYNC_DB_READ = AsyncPostgresDB(conn_type=ConnectionType.READ)
+ASYNC_DB_WRITE = AsyncPostgresDB(conn_type=ConnectionType.WRITE)

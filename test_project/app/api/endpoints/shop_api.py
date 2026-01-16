@@ -139,7 +139,7 @@ async def get_products(
 ):
     if id:
         return await Product.async_queryset.get(id=id)
-    return await Product.async_queryset.all()
+    return await Product.async_queryset.all().order_by(id=OrderBy.ASCENDING)
 
 
 @router.get('/products/categories', status_code=200)
