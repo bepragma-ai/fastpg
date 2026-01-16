@@ -1,6 +1,20 @@
 from typing import List
 
 
+class ReadConnectionNotAvailableError(Exception):
+
+    def __init__(self) -> None:
+        self.message = 'At least one read connection must be provided. Check your databases configuration.'
+        super().__init__(self.message)
+
+
+class MultipleWriteConnectionsError(Exception):
+
+    def __init__(self) -> None:
+        self.message = 'Multiple write connections are not allowed. Check your databases configuration.'
+        super().__init__(self.message)
+
+
 class MalformedMetaError(Exception):
 
     def __init__(self, model_name:str) -> None:

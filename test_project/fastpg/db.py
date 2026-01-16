@@ -5,6 +5,7 @@ from typing import Optional, Dict, List, Any
 from databases import Database
 
 from .constants import ConnectionType
+from .errors import MultipleWriteConnectionsError, ReadConnectionNotAvailableError
 
 from .utils import async_sql_logger
 from .print import print_red, print_green
@@ -143,6 +144,12 @@ class ConnectionManager:
         self.read_conn_names = []
         self.write_conn_name = None
     
+    def __set_write_connection(self, conn_name:str) -> None:
+        if self.write_conn_name is None:
+            self.write_conn_name = conn_name
+        else:
+            raise MultipleWriteConnectionsError
+    
     def __create_connections(self) -> None:
         for conn_name in self.databases:
             config = self.databases[conn_name]
@@ -161,13 +168,10 @@ class ConnectionManager:
             if conn_type == ConnectionType.READ:
                 self.read_conn_names.append(conn_name)
             else:
-                if self.write_conn_name is None:
-                    self.write_conn_name = conn_name
-                else:
-                    raise ValueError('Multiple write connections are not allowed')
+                self.__set_write_connection(conn_name)
             
         if len(self.read_conn_names) == 0:
-            raise ValueError('At least one read connection must be provided')
+            raise ReadConnectionNotAvailableError
     
     def set_databases(self, databases:Dict[str, Any]) -> None:
         self.databases = databases
