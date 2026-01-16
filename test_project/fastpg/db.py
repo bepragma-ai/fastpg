@@ -1,6 +1,6 @@
-import os
 import asyncio
 import random
+from urllib.parse import quote_plus
 from typing import Optional, Dict, List, Any
 from databases import Database
 
@@ -156,8 +156,8 @@ class ConnectionManager:
             config = self.databases[conn_name]
 
             conn_type = config['TYPE']
-            user = config['USER']
-            password = config['PASSWORD']
+            user = quote_plus(str(config['USER']))
+            password = quote_plus(str(config['PASSWORD']))
             db = config['DB']
             host = config['HOST']
             port = config['PORT']
