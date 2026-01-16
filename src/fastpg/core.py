@@ -144,11 +144,8 @@ from .preprocessors import (
 
 from .fields import CustomJsonEncoder
 
-from .db import AsyncPostgresDB
-from .db import (
-    ASYNC_DB_READ,
-    ASYNC_DB_WRITE,
-)
+from .db import CONNECTION_MANAGER
+from .db import AsyncPostgresDBConnection
 
 from .errors import (
     MalformedMetaError,
@@ -208,7 +205,8 @@ class AsyncQuerySet:
 
         self.return_type = ReturnType.MODEL_INSTANCE
 
-        self.connection = None
+        self.read_connection = CONNECTION_MANAGER.db_for_read()
+        self.write_connection = CONNECTION_MANAGER.db_for_write()
 
     def _reduce_conditions(self, *args, **kwargs) -> Q:
         if kwargs:
@@ -267,9 +265,8 @@ class AsyncQuerySet:
         if self.fetch_offset:
             self.query += f' OFFSET {self.fetch_offset}'
         
-        async_conn = self.connection or ASYNC_DB_READ
         try:
-            self.records = await async_conn.fetch_all(
+            self.records = await self.read_connection.fetch_all(
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
@@ -307,9 +304,8 @@ class AsyncQuerySet:
         if self.fetch_offset:
             self.query += f' OFFSET {self.fetch_offset}'
 
-        async_conn = self.connection or ASYNC_DB_READ
         try:
-            self.records = await async_conn.fetch_all(
+            self.records = await self.read_connection.fetch_all(
                 query=self.query, values={
                     **self.query_param_values,
                     **self.related_query_param_values})
@@ -364,10 +360,9 @@ class AsyncQuerySet:
     async def execute_raw_query(self, query:str, values:Dict[str, Any]):
         self.query = query
         self.query_param_values = values
-        
-        async_conn = self.connection or ASYNC_DB_READ
+
         try:
-            self.records = await async_conn.fetch_all(
+            self.records = await self.read_connection.fetch_all(
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
@@ -379,8 +374,8 @@ class AsyncQuerySet:
         self._serialize_data()
         return self.records
 
-    def using(self, connection:AsyncPostgresDB) -> Self:
-        self.connection = connection
+    def using(self, conn_name:str) -> Self:
+        self.read_connection = CONNECTION_MANAGER.get_db_conn(conn_name)
         return self
 
     def columns(self, *columns:set[str]) -> Self:
@@ -538,7 +533,7 @@ class AsyncQuerySet:
         query += f" RETURNING {primary_key_field} AS new_id"
 
         try:
-            new_id = await ASYNC_DB_WRITE.execute(
+            new_id = await self.write_connection.execute(
                 query=query, values=model_dict)
         except Exception as e:
             try:
@@ -550,6 +545,8 @@ class AsyncQuerySet:
                     table_name=self.table,
                     sqlstate=sqlstate,
                     message=str(e))
+            print('++++++++++++++++++++++++++++++++++++++++++++')
+            print(self.write_connection)
             raise DatabaseError(
                 name=type(e).__name__,
                 sqlstate=sqlstate,
@@ -616,7 +613,7 @@ class AsyncQuerySet:
             query += f" ON CONFLICT ({target}) DO UPDATE SET {updates}"
 
         try:
-            await ASYNC_DB_WRITE.execute_many(
+            await self.write_connection.execute_many(
                 query=query, list_of_values=model_dicts)
         except Exception as e:
             try:
@@ -709,7 +706,7 @@ class AsyncQuerySet:
                 ) SELECT COUNT(*) AS updated_count FROM updated;'''
             
             try:
-                self.records = await ASYNC_DB_WRITE.execute(
+                self.records = await self.write_connection.execute(
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
@@ -739,7 +736,7 @@ class AsyncQuerySet:
                 ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
 
             try:
-                self.records = await ASYNC_DB_WRITE.execute(
+                self.records = await self.write_connection.execute(
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
@@ -781,15 +778,15 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, connection:AsyncPostgresDB=None):
+    def __init__(self, query:str, connection:AsyncPostgresDBConnection=None):
         self.query = query
-        self.connection = connection
+        self.read_connection = connection or CONNECTION_MANAGER.db_for_read()
+        self.write_connection = CONNECTION_MANAGER.db_for_write()
 
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
-        async_conn = self.connection or ASYNC_DB_READ
         try:
-            records = await async_conn.fetch_all(
+            records = await self.read_connection.fetch_all(
                 query=self.query, values=self.values)
         except Exception as e:
             raise DatabaseError(
@@ -801,7 +798,7 @@ class AsyncRawQuery:
     async def execute(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
         try:
-            return await ASYNC_DB_WRITE.execute(
+            return await self.write_connection.execute(
                 query=self.query, values=self.values)
         except TypeError as e:
             raise e
@@ -823,7 +820,7 @@ class AsyncRawQuery:
     async def execute_many(self, list_of_values: List[Dict]) -> list[Record]:
         self.values = list_of_values
         try:
-            return await ASYNC_DB_WRITE.execute_many(
+            return await self.write_connection.execute_many(
                 query=self.query, list_of_values=self.values)
         except TypeError as e:
             raise e
@@ -886,7 +883,7 @@ class DatabaseModel(BaseModel):
             ) SELECT COUNT(*) AS updated_count FROM updated;'''
 
         try:
-            updated_count = await ASYNC_DB_WRITE.execute(
+            updated_count = await self.write_connection.execute(
                 query=query, values=values)
         except Exception as e:
             raise DatabaseError(
@@ -913,7 +910,7 @@ class DatabaseModel(BaseModel):
             ) SELECT COUNT(*) AS deleted_count FROM deleted;'''
 
         try:
-            deleted_count = await ASYNC_DB_WRITE.execute(
+            deleted_count = await self.write_connection.execute(
                 query=query, values=values)
         except Exception as e:
             raise DatabaseError(
