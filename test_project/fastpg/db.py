@@ -5,7 +5,7 @@ from typing import Optional, Dict, List, Any
 from databases import Database
 
 from .constants import ConnectionType
-from .errors import MultipleWriteConnectionsError, ReadConnectionNotAvailableError
+from .errors import MultipleWriteConnectionsError, ReadConnectionNotAvailableError, InvalidConnectionNameError
 
 from .utils import async_sql_logger
 from .print import print_red, print_green
@@ -189,13 +189,25 @@ class ConnectionManager:
         for conn_name in self.connections:
             await self.connections[conn_name].close()
             print_green(f'"{conn_name}" successfully closed...')
+    
+    def get_db_conn(self, conn_name:str) -> AsyncPostgresDBConnection:
+        try:
+            return self.connections[conn_name]
+        except KeyError:
+            raise InvalidConnectionNameError(conn_name)
 
-    def db_for_read(self):
+    def db_for_read(self) -> AsyncPostgresDBConnection:
         conn_name = random.choice(self.read_conn_names)
-        return self.connections[conn_name]
+        try:
+            return self.connections[conn_name]
+        except KeyError:
+            raise InvalidConnectionNameError(conn_name)
 
-    def db_for_write(self):
-        return self.connections[self.write_conn_name]
+    def db_for_write(self) -> AsyncPostgresDBConnection:
+        try:
+            return self.connections[self.write_conn_name]
+        except KeyError:
+            raise InvalidConnectionNameError(self.write_conn_name)
 
 
 CONNECTION_MANAGER = ConnectionManager()

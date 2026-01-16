@@ -374,8 +374,8 @@ class AsyncQuerySet:
         self._serialize_data()
         return self.records
 
-    def using(self, connection:AsyncPostgresDBConnection) -> Self:
-        self.read_connection = connection
+    def using(self, conn_name:str) -> Self:
+        self.read_connection = CONNECTION_MANAGER.get_db_conn(conn_name)
         return self
 
     def columns(self, *columns:set[str]) -> Self:

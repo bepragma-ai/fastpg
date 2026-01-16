@@ -15,6 +15,14 @@ class MultipleWriteConnectionsError(Exception):
         super().__init__(self.message)
 
 
+class InvalidConnectionNameError(Exception):
+
+    def __init__(self, conn_name:str) -> None:
+        self.conn_name = conn_name
+        self.message = f'Invalid connection name "{conn_name}"'
+        super().__init__(self.message)
+
+
 class MalformedMetaError(Exception):
 
     def __init__(self, model_name:str) -> None:
