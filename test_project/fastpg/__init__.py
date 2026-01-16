@@ -17,6 +17,8 @@ from .constants import OrderBy
 from .constants import OnConflict
 from .constants import ReturnType
 
+from .db import CONNECTION_MANAGER
+
 from .utils import Prefetch
 from .utils import Relation
 from .utils import Q
@@ -51,6 +53,7 @@ __all__ = [
     "OrderBy",
     "OnConflict",
     "ReturnType",
+    "CONNECTION_MANAGER",
     "Prefetch",
     "Relation",
     "Q",

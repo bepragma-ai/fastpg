@@ -1,3 +1,4 @@
+import os
 import logging
 from colorlog import ColoredFormatter
 import time
@@ -6,10 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.api import api_router
 
-from fastpg.core import (
-    ASYNC_DB_READ,
-    ASYNC_DB_WRITE,
-)
+from fastpg import ConnectionType, CONNECTION_MANAGER
 
 
 # ─────────────────────────────
@@ -47,6 +45,30 @@ logger = logging.getLogger(__name__)   # module-level logger
 
 
 # ─────────────────────────────
+# FastPG setup
+# ─────────────────────────────
+
+CONNECTION_MANAGER.set_databases({
+    'default': {
+        'TYPE': ConnectionType.WRITE,
+        'USER': os.environ.get("POSTGRES_READ_USER"),
+        'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
+        'DB': os.environ.get("POSTGRES_READ_DB"),
+        'HOST': os.environ.get("POSTGRES_READ_HOST"),
+        'PORT': os.environ.get("POSTGRES_READ_PORT"),
+    },
+    'replica_1': {
+        'TYPE': ConnectionType.READ,
+        'USER': os.environ.get("POSTGRES_READ_USER"),
+        'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
+        'DB': os.environ.get("POSTGRES_WRITE_DB"),
+        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
+        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+    }
+})
+
+
+# ─────────────────────────────
 # FastAPI app setup
 # ─────────────────────────────
 
@@ -70,18 +92,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    await ASYNC_DB_READ.connect()
-    print("READ DB successfully connected...")
-    await ASYNC_DB_WRITE.connect()
-    print("WRITE DB successfully connected...")
+    await CONNECTION_MANAGER.connect_all()
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    await ASYNC_DB_READ.close()
-    print("READ DB successfully disconnected...")
-    await ASYNC_DB_WRITE.close()
-    print("WRITE DB successfully disconnected...")
+    await CONNECTION_MANAGER.close_all()
 
 
 @app.middleware("http")

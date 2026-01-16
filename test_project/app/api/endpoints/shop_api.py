@@ -8,7 +8,7 @@ from fastpg import (
     ReturnType,
     OnConflict,
 )
-from fastpg.db import ASYNC_DB_WRITE
+from fastpg import CONNECTION_MANAGER
 
 from app.schemas.shop import (
     Category,
@@ -24,8 +24,6 @@ from app.schemas.shop import (
 
 import pytz
 IST_TZ = pytz.timezone("Asia/Kolkata")
-
-from fastpg.db import ASYNC_DB_WRITE
 
 
 router = APIRouter()
@@ -75,61 +73,61 @@ async def get_department(
     return departments
 
 
-@router.post('/department/create', status_code=200)
-async def create_department_with_employees(
-    request:Request,
-    response:Response,
-):
-    data = await request.json()
-    department_data = data['department']
-    employees_data = data['employees']
+# @router.post('/department/create', status_code=200)
+# async def create_department_with_employees(
+#     request:Request,
+#     response:Response,
+# ):
+#     data = await request.json()
+#     department_data = data['department']
+#     employees_data = data['employees']
 
-    async def __create_without_txn(department_data, employees_data):
-        # Only department gets created if this function has errors
-        department = await Department.async_queryset.create(**department_data)
-        for emp in employees_data:
-            emp['department_id'] = department.id  # Comment this line to create an error mid txn
-            await Employee.async_queryset.create(**emp)
-        return department
+#     async def __create_without_txn(department_data, employees_data):
+#         # Only department gets created if this function has errors
+#         department = await Department.async_queryset.create(**department_data)
+#         for emp in employees_data:
+#             emp['department_id'] = department.id  # Comment this line to create an error mid txn
+#             await Employee.async_queryset.create(**emp)
+#         return department
 
-    async def __create_with_txn(department_data, employees_data):
-        async with ASYNC_DB_WRITE.transaction():
-            department = await Department.async_queryset.create(**department_data)
-            for emp in employees_data:
-                # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-                await Employee.async_queryset.create(**emp)
-            return department
+#     async def __create_with_txn(department_data, employees_data):
+#         async with ASYNC_DB_WRITE.transaction():
+#             department = await Department.async_queryset.create(**department_data)
+#             for emp in employees_data:
+#                 # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+#                 await Employee.async_queryset.create(**emp)
+#             return department
     
-    @ASYNC_DB_WRITE.transaction()
-    async def __create_with_decorator_txn(department_data, employees_data):
-        department = await Department.async_queryset.create(**department_data)
-        for emp in employees_data:
-            # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-            await Employee.async_queryset.create(**emp)
-        return department
+#     @ASYNC_DB_WRITE.transaction()
+#     async def __create_with_decorator_txn(department_data, employees_data):
+#         department = await Department.async_queryset.create(**department_data)
+#         for emp in employees_data:
+#             # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+#             await Employee.async_queryset.create(**emp)
+#         return department
     
-    async def __create_with_trcatch_txn(department_data, employees_data):
-        transaction = await ASYNC_DB_WRITE.transaction()
-        try:
-            department = await Department.async_queryset.create(**department_data)
-            for emp in employees_data:
-                # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-                await Employee.async_queryset.create(**emp)
-        except Exception as e:
-            await transaction.rollback()
-            raise e
-        else:
-            await transaction.commit()
-        return department
+#     async def __create_with_trcatch_txn(department_data, employees_data):
+#         transaction = await ASYNC_DB_WRITE.transaction()
+#         try:
+#             department = await Department.async_queryset.create(**department_data)
+#             for emp in employees_data:
+#                 # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+#                 await Employee.async_queryset.create(**emp)
+#         except Exception as e:
+#             await transaction.rollback()
+#             raise e
+#         else:
+#             await transaction.commit()
+#         return department
     
-    # department = await __create_without_txn(department_data, employees_data)
-    # department = await __create_with_txn(department_data, employees_data)
-    # department = await __create_with_decorator_txn(department_data, employees_data)
-    department = await __create_with_trcatch_txn(department_data, employees_data)
+#     # department = await __create_without_txn(department_data, employees_data)
+#     # department = await __create_with_txn(department_data, employees_data)
+#     # department = await __create_with_decorator_txn(department_data, employees_data)
+#     department = await __create_with_trcatch_txn(department_data, employees_data)
 
-    return await Department.async_queryset.prefetch_related(
-        Prefetch('employees', Employee.async_queryset.all())
-    ).get(id=department.id).return_as(ReturnType.DICT)
+#     return await Department.async_queryset.prefetch_related(
+#         Prefetch('employees', Employee.async_queryset.all())
+#     ).get(id=department.id).return_as(ReturnType.DICT)
 
 
 @router.get('/products', status_code=200)
