@@ -1,14 +1,11 @@
 import asyncio
-import random
-from urllib.parse import quote_plus
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List
 from databases import Database
 
 from .constants import ConnectionType
-from .errors import MultipleWriteConnectionsError, ReadConnectionNotAvailableError, InvalidConnectionNameError
 
 from .utils import async_sql_logger
-from .print import print_red, print_green
+from .print import print_red
 
 
 class AsyncPostgresDBConnection:
@@ -108,108 +105,3 @@ class AsyncPostgresDBConnection:
 
     def __str__(self):
         return f'Connection {self.conn_name} [{self.conn_type.value}]'
-
-class ConnectionManager:
-    """
-    Manages all DB connections and DB query routes
-
-    Parameters
-    ----------
-    databases: dict
-        Dictionary of database connections. E.g.
-
-        {
-            'default': {
-                'TYPE': ConnectionType.WRITE,
-                'USER': '',
-                'PASSWORD': '',
-                'DB': '',
-                'HOST': '',
-                'PORT': '',
-            },
-            'replica_1': {
-                'TYPE': ConnectionType.READ,
-                'USER': '',
-                'PASSWORD': '',
-                'DB': '',
-                'HOST': '',
-                'PORT': '',
-            }
-        }
-    """
-
-    def __init__(self):
-        self.databases = {}
-        self.connections = {}
-        self.read_conn_names = []
-        self.write_conn_name = None
-        self.transaction = None
-    
-    def __set_write_connection(self, conn_name:str) -> None:
-        if self.write_conn_name is None:
-            self.write_conn_name = conn_name
-        else:
-            raise MultipleWriteConnectionsError
-    
-    def __create_connections(self) -> None:
-        for conn_name in self.databases:
-            config = self.databases[conn_name]
-
-            conn_type = config['TYPE']
-            user = quote_plus(str(config['USER']))
-            password = quote_plus(str(config['PASSWORD']))
-            db = config['DB']
-            host = config['HOST']
-            port = config['PORT']
-
-            self.connections[conn_name] = AsyncPostgresDBConnection(
-                conn_name=conn_name,
-                conn_type=conn_type,
-                db_uri=f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{db}")
-            
-            if conn_type == ConnectionType.READ:
-                self.read_conn_names.append(conn_name)
-            else:
-                self.__set_write_connection(conn_name)
-            
-        if len(self.read_conn_names) == 0:
-            raise ReadConnectionNotAvailableError
-    
-    def set_databases(self, databases:Dict[str, Any]) -> None:
-        self.databases = databases
-        self.read_conn_names = []
-        self.write_conn_name = None
-        self.__create_connections()
-
-    async def connect_all(self) -> None:
-        for conn_name in self.connections:
-            await self.connections[conn_name].connect()
-            print_green(f'"{conn_name}" successfully connected...')
-        self.transaction = self.connections[self.write_conn_name].transaction
-
-    async def close_all(self) -> None:
-        for conn_name in self.connections:
-            await self.connections[conn_name].close()
-            print_green(f'"{conn_name}" successfully closed...')
-    
-    def get_db_conn(self, conn_name:str) -> AsyncPostgresDBConnection:
-        try:
-            return self.connections[conn_name]
-        except KeyError:
-            raise InvalidConnectionNameError(conn_name)
-
-    def db_for_read(self) -> AsyncPostgresDBConnection:
-        conn_name = random.choice(self.read_conn_names)
-        try:
-            return self.connections[conn_name]
-        except KeyError:
-            raise InvalidConnectionNameError(conn_name)
-
-    def db_for_write(self) -> AsyncPostgresDBConnection:
-        try:
-            return self.connections[self.write_conn_name]
-        except KeyError:
-            raise InvalidConnectionNameError(self.write_conn_name)
-
-
-CONNECTION_MANAGER = ConnectionManager()

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.api import api_router
 
-from fastpg import ConnectionType, CONNECTION_MANAGER
+from fastpg import FAST_PG, ConnectionType
 
 
 # ─────────────────────────────
@@ -48,24 +48,31 @@ logger = logging.getLogger(__name__)   # module-level logger
 # FastPG setup
 # ─────────────────────────────
 
-CONNECTION_MANAGER.set_databases({
-    'default': {
-        'TYPE': ConnectionType.WRITE,
-        'USER': os.environ.get("POSTGRES_WRITE_USER"),
-        'PASSWORD': os.environ.get("POSTGRES_WRITE_PASSWORD"),
-        'DB': os.environ.get("POSTGRES_WRITE_DB"),
-        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
-        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+FAST_PG.configure(
+    databases={
+        'default': {
+            'TYPE': ConnectionType.WRITE,
+            'USER': os.environ.get("POSTGRES_WRITE_USER"),
+            'PASSWORD': os.environ.get("POSTGRES_WRITE_PASSWORD"),
+            'DB': os.environ.get("POSTGRES_WRITE_DB"),
+            'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
+            'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+        },
+        'replica_1': {
+            'TYPE': ConnectionType.READ,
+            'USER': os.environ.get("POSTGRES_READ_USER"),
+            'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
+            'DB': os.environ.get("POSTGRES_READ_DB"),
+            'HOST': os.environ.get("POSTGRES_READ_HOST"),
+            'PORT': os.environ.get("POSTGRES_READ_PORT"),
+        }
     },
-    'replica_1': {
-        'TYPE': ConnectionType.READ,
-        'USER': os.environ.get("POSTGRES_READ_USER"),
-        'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
-        'DB': os.environ.get("POSTGRES_READ_DB"),
-        'HOST': os.environ.get("POSTGRES_READ_HOST"),
-        'PORT': os.environ.get("POSTGRES_READ_PORT"),
+    fastpg_tz='IST',
+    query_logger={
+        'LOG_QUERIES': True,
+        'TITLE': 'TEST_PROJECT'
     }
-})
+)
 
 
 # ─────────────────────────────
@@ -77,13 +84,9 @@ app = FastAPI(
     title='FastPG Test'
 )
 
-origins = [
-    "*"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -92,12 +95,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    await CONNECTION_MANAGER.connect_all()
+    await FAST_PG.connect_all()
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    await CONNECTION_MANAGER.close_all()
+    await FAST_PG.close_all()
 
 
 @app.middleware("http")
