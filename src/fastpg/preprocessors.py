@@ -1,25 +1,8 @@
 """Utility preprocessors for automatic field handling."""
 
 from datetime import datetime
-import os
-import pytz
 
-
-def _get_timezone():
-    """Return the configured timezone.
-
-    The timezone name is read from the ``FASTPG_TZ`` environment variable. If the
-    variable is not set or invalid, UTC is used.
-    """
-
-    tz_name = os.getenv("FASTPG_TZ", "UTC")
-    try:
-        return pytz.timezone(tz_name)
-    except pytz.UnknownTimeZoneError:
-        return pytz.UTC
-
-
-TZ = _get_timezone()
+from .fastpg import FAST_PG
 
 
 class PreCreateProcessors:
@@ -30,7 +13,7 @@ class PreCreateProcessors:
         """Populate ``auto_now_add`` fields on the given model instance."""
         try:
             for field_name in model_obj.Meta.auto_now_add_fields:
-                setattr(model_obj, field_name, datetime.now(TZ))
+                setattr(model_obj, field_name, datetime.now(FAST_PG.TZ))
         except AttributeError:
             pass
 
@@ -52,6 +35,6 @@ class PreSaveProcessors:
         """Populate ``auto_now`` fields on the given model instance."""
         try:
             for field_name in model_obj.Meta.auto_now_fields:
-                setattr(model_obj, field_name, datetime.now(TZ))
+                setattr(model_obj, field_name, datetime.now(FAST_PG.TZ))
         except AttributeError:
             pass
