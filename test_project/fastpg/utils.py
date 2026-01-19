@@ -1,4 +1,3 @@
-import os
 import re
 import time
 import random
@@ -12,12 +11,9 @@ from .errors import (
     MalformedMetaError,
 )
 
+
 import logging
 logger = logging.getLogger(__name__)
-
-
-PROJECT_NAME = os.environ.get('PROJECT_NAME', 'UNNAMED').upper()
-LOG_DB_QUERIES = os.environ.get('LOG_DB_QUERIES', 'false').upper() == 'TRUE'
 
 
 class Relation:
@@ -168,7 +164,9 @@ def async_sql_logger(func):
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
-        if LOG_DB_QUERIES:
+        from .fastpg import FAST_PG  # Imported here to avoid circular import
+
+        if FAST_PG.log_db_queries:
             async_pg_db_obj = args[0]
             start_time = time.perf_counter()
             result = await func(*args, **kwargs)
@@ -176,13 +174,13 @@ def async_sql_logger(func):
             elapsed_time = end_time - start_time
 
             if elapsed_time < 1.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_LT_1_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{FAST_PG.log_title}_QUERY_LT_1_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
             elif elapsed_time < 5.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_1_5_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{FAST_PG.log_title}_QUERY_1_5_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
             elif elapsed_time < 10.0:
-                logger.info(f"{PROJECT_NAME}_QUERY_5_10_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{FAST_PG.log_title}_QUERY_5_10_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
             else:
-                logger.info(f"{PROJECT_NAME}_QUERY_GT_10_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
+                logger.info(f"{FAST_PG.log_title}_QUERY_GT_10_SEC [{async_pg_db_obj.conn_name} {async_pg_db_obj.conn_type.value} took {elapsed_time:.4f}s]: {kwargs['query']}")
 
             return result
 

@@ -1,127 +1,9 @@
-"""
-Django-inspired lightweight ORM with Pydantic integration for seamless FastAPI support.
-
-
-## Creating a Database Model
-Decorate a Pydantic `BaseModel` class using `@db_model` to turn it into a fully functional DB model.
-- Data queried from the database is instantiated as a Pydantic model (validation skipped assuming verified data).
-- Models can be directly used as FastAPI input/output.
-- Both synchronous and asynchronous APIs are supported.
-```python
-from fastpg import db_model
-from pydantic import BaseModel
-from datetime import datetime
-
-@db_model
-class Customer(BaseModel):
-    id: int | None = None
-    first_name: str
-    last_name: str
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
-
-    class Meta:
-        db_table = 'task_checklists_customer'
-        primary_key = 'id'
-        auto_generated_fields = ['id']
-        auto_now_add_fields = ['created_at']
-        auto_now_fields = ['updated_at']
-```
-
-#### Saving Models
-```python
-# Async example
-customer = await Customer.async_queryset.get(id=10)
-customer.first_name = 'Jane'
-await customer.save()
-```
-
-#### Usage in FastAPI
-```python
-# Async example
-customer = await Customer.async_queryset.get(id=10)
-customer.first_name = 'Jane'
-await customer.save()
-```
-
-
-## QuerySets
-Models provide two query interfaces:
-- `async_queryset` — for async DB access
-- `sync_query_set` — for sync DB access
-
-#### Query Methods
-- `get(**kwargs)`: Fetch a single item. Raises `DoesNotExist` if no result is found.
-- `filter(**kwargs)`: Fetch multiple results. Returns empty list if no matches.
-- `count(**kwargs)`: Returns the count of rows matching given filters.
-- `create(**kwargs)`: Inserts a new record and returns the created model instance.
-- `bulk_update(filters: dict, updates: dict)`: Updates all matching rows based on filters.
-
-## Filter Syntax
-The ORM supports expressive filtering using field-based keyword arguments, inspired by Django's syntax. Filters can be combined to create complex queries. Here’s how each type works:
-
-1. Equality Filter `field=value`: This performs a standard SQL equality check: `WHERE first_name = 'Alice'`. Example: `.get(first_name='Alice')`
-2. Comparison Filters: You can use special suffixes with `__` to express SQL comparison operators.
-    - Supported Operators:
-        - `field__gt=value` → `field > value`
-        - `field__lt=value` → `field < value`
-        - `field__gte=value` → `field >= value`
-        - `field__lte=value` → `field <= value`
-        - `field__ne=value` → `field != value`
-        - `field__is_null=True/False` → `field IS NULL` or `field IS NOT NULL`
-    - Example: `age__gt=25, created_at__lte=datetime.utcnow()` translates to `WHERE age > 25 AND created_at <= now()`
-3. IN Clause `field__in=[...]`: Translates to `WHERE id IN (1, 2, 3)`
-    > ⚠️ NOTE: The value must be a list; otherwise, an InvalidINClauseValueError is raised.
-4. OR Conditions `__or=[{condition1}, {condition2}, ...]`: The following example
-    ```python
-    __or=[
-        {"first_name": "John"},
-        {"age__lt": 18}
-    ]
-    ```
-    Translates to
-    ```sql
-    WHERE (first_name = 'John' OR age < 18)
-    ```
-    You can also combine __or with other filters:
-    ```python
-    await Customer.async_queryset.filter(
-        last_name="Doe",
-        __or=[
-            {"id__gt": 5},
-            {"first_name": "Jane"}
-        ]
-    )
-    ```
-    Which translates to
-    ```sql
-    WHERE last_name = 'Doe' AND (id > 5 OR first_name = 'Jane')
-    ```
-5. Additional filter options:
-    - `columns={'id', 'first_name'}` — Select specific columns by providing them as a set of string
-    - `order_by={'created_at': OrderBy.DESCENDING}` — Order data by providing dict of column names. `OrderBy` can be imported from `from fastpg import OrderBy`
-    - `self.fetch_limit=10`
-    - `self.fetch_offset=20`
-
-## Error Handling
-Common exceptions:
-- `DoesNotExist` — When get() finds no record
-- `UnsupportedOperatorError` — If filter uses an unknown operator
-- `InvalidINClauseValueError` — If __in receives non-list value
-- `DatabaseError` — For any underlying SQL/connection error
-
-
-## Notes
-- `save()` method updates the row based on the primary key.
-- During insertions, fields listed in `BaseModel.Meta.auto_generated_fields` are excluded.
-- `model_construct(**record)` is used for faster instantiation without validation during reads.
-"""
-
 from functools import reduce
 from typing import Any, ClassVar, Dict, List
 from typing_extensions import Self
-from pydantic import BaseModel, ConfigDict
 import json
+
+from pydantic import BaseModel, ConfigDict
 
 from databases.backends.common.records import Record
 
@@ -137,14 +19,8 @@ from .utils import (
     Q,
 )
 
-from .preprocessors import (
-    PreCreateProcessors,
-    PreSaveProcessors,
-)
-
 from .fields import CustomJsonEncoder
 
-from .db import CONNECTION_MANAGER
 from .db import AsyncPostgresDBConnection
 
 from .errors import (
@@ -161,6 +37,13 @@ from .errors import (
     InvalidRelatedFieldError,
     InvalidPrefetchError,
 )
+
+from .preprocessors import (
+    PreCreateProcessors,
+    PreSaveProcessors,
+)
+
+from .fastpg import FAST_PG
 
 
 class AsyncQuerySet:
@@ -205,8 +88,8 @@ class AsyncQuerySet:
 
         self.return_type = ReturnType.MODEL_INSTANCE
 
-        self.read_connection = CONNECTION_MANAGER.db_for_read()
-        self.write_connection = CONNECTION_MANAGER.db_for_write()
+        self.read_connection = FAST_PG.db_for_read()
+        self.write_connection = FAST_PG.db_for_write()
 
     def _reduce_conditions(self, *args, **kwargs) -> Q:
         if kwargs:
@@ -270,9 +153,13 @@ class AsyncQuerySet:
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
         
         self._serialize_data()
@@ -311,9 +198,13 @@ class AsyncQuerySet:
                     **self.related_query_param_values})
             self.query_executed = True
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
 
         self.records = self._denormalize_related_data()
@@ -366,16 +257,20 @@ class AsyncQuerySet:
                 query=self.query, values=self.query_param_values)
             self.query_executed = True
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
         
         self._serialize_data()
         return self.records
 
     def using(self, conn_name:str) -> Self:
-        self.read_connection = CONNECTION_MANAGER.get_db_conn(conn_name)
+        self.read_connection = FAST_PG.get_db_conn(conn_name)
         return self
 
     def columns(self, *columns:set[str]) -> Self:
@@ -484,7 +379,7 @@ class AsyncQuerySet:
         self.fetch_offset = fetch_offset
         return self
 
-    def order_by(self, **order_by:dict[str, str]) -> Self:
+    def order_by(self, **order_by) -> Self:
         self.order_by_fields = order_by
         return self
 
@@ -710,9 +605,13 @@ class AsyncQuerySet:
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
+                try:
+                    sqlstate = e.sqlstate
+                except AttributeError:
+                    raise e
                 raise DatabaseError(
                     name=type(e).__name__,
-                    sqlstate=e.sqlstate,
+                    sqlstate=sqlstate,
                     message=str(e))
 
         return self.records
@@ -740,9 +639,13 @@ class AsyncQuerySet:
                     query=self.query, values=self.query_param_values)
                 self.query_executed = True
             except Exception as e:
+                try:
+                    sqlstate = e.sqlstate
+                except AttributeError:
+                    raise e
                 raise DatabaseError(
                     name=type(e).__name__,
-                    sqlstate=e.sqlstate,
+                    sqlstate=sqlstate,
                     message=str(e))
 
         return self.records
@@ -780,8 +683,8 @@ class AsyncRawQuery:
 
     def __init__(self, query:str, connection:AsyncPostgresDBConnection=None):
         self.query = query
-        self.read_connection = connection or CONNECTION_MANAGER.db_for_read()
-        self.write_connection = CONNECTION_MANAGER.db_for_write()
+        self.read_connection = connection or FAST_PG.db_for_read()
+        self.write_connection = FAST_PG.db_for_write()
 
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
@@ -789,9 +692,13 @@ class AsyncRawQuery:
             records = await self.read_connection.fetch_all(
                 query=self.query, values=self.values)
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
         return [dict(record) for record in records]
     
@@ -851,11 +758,13 @@ class queryset_property:
 
 class DatabaseModel(BaseModel):
     async_queryset:ClassVar[AsyncQuerySet]
+    write_connection:ClassVar[AsyncPostgresDBConnection]
 
     model_config = ConfigDict(extra='allow')
     
     @queryset_property
     def async_queryset(cls):
+        cls.write_connection = FAST_PG.db_for_write()
         return AsyncQuerySet(model=cls)
     
     async def save(self, columns:List[str]=None) -> bool:
@@ -886,9 +795,13 @@ class DatabaseModel(BaseModel):
             updated_count = await self.write_connection.execute(
                 query=query, values=values)
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
 
         return bool(updated_count)
@@ -913,9 +826,13 @@ class DatabaseModel(BaseModel):
             deleted_count = await self.write_connection.execute(
                 query=query, values=values)
         except Exception as e:
+            try:
+                sqlstate = e.sqlstate
+            except AttributeError:
+                raise e
             raise DatabaseError(
                 name=type(e).__name__,
-                sqlstate=e.sqlstate,
+                sqlstate=sqlstate,
                 message=str(e))
         
         return bool(deleted_count)

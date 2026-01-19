@@ -1,7 +1,6 @@
 """
 FastPG - Lightweight async ORM for PostgreSQL and FastAPI
 """
-
 try:
     from ._version import __version__
 except ImportError:
@@ -17,16 +16,9 @@ from .constants import OrderBy
 from .constants import OnConflict
 from .constants import ReturnType
 
-from .db import CONNECTION_MANAGER
-
 from .utils import Prefetch
 from .utils import Relation
 from .utils import Q
-
-from .core import DatabaseModel
-from .core import AsyncQuerySet
-from .core import AsyncRawQuery
-from .core import queryset_property
 
 from .fields import (
     JsonData,
@@ -47,13 +39,20 @@ from .errors import (
     MultipleRecordsFound,
 )
 
+from .core import DatabaseModel
+from .core import AsyncQuerySet
+from .core import AsyncRawQuery
+from .core import queryset_property
+
+from .fastpg import FAST_PG
+
 
 __all__ = [
+    "FAST_PG",
     "ConnectionType",
     "OrderBy",
     "OnConflict",
     "ReturnType",
-    "CONNECTION_MANAGER",
     "Prefetch",
     "Relation",
     "Q",
