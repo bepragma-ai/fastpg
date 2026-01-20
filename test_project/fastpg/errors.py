@@ -23,6 +23,14 @@ class InvalidConnectionNameError(Exception):
         super().__init__(self.message)
 
 
+class FastPGInstanceNotConfiguredError(Exception):
+
+    def __init__(self, instance_name:str) -> None:
+        self.instance_name = instance_name
+        self.message = f'FastPG instance "{instance_name}" is not configured'
+        super().__init__(self.message)
+
+
 class MalformedMetaError(Exception):
 
     def __init__(self, model_name:str) -> None:

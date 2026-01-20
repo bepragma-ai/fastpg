@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.api import api_router
 
-from fastpg import FAST_PG, ConnectionType
+from fastpg import create_fastpg, ConnectionType
 
 
 # ─────────────────────────────
@@ -48,7 +48,8 @@ logger = logging.getLogger(__name__)   # module-level logger
 # FastPG setup
 # ─────────────────────────────
 
-FAST_PG.configure(
+FAST_PG = create_fastpg(
+    name="api",
     databases={
         'default': {
             'TYPE': ConnectionType.WRITE,
@@ -71,8 +72,7 @@ FAST_PG.configure(
     query_logger={
         'LOG_QUERIES': True,
         'TITLE': 'TEST_PROJECT'
-    }
-)
+    })
 
 
 # ─────────────────────────────

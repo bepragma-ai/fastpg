@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from contextvars import ContextVar
+from typing import Dict, Any, Optional
 from urllib.parse import quote_plus
 import random
 import pytz
@@ -13,6 +14,7 @@ from .errors import (
     ReadConnectionNotAvailableError,
     MultipleWriteConnectionsError,
     InvalidConnectionNameError,
+    FastPGInstanceNotConfiguredError,
 )
 
 from .print import print_green
@@ -96,27 +98,25 @@ class DBConnectionManager:
 
 class FastPG:
 
-    def __init__(self):
-        self.tz_name = 'UTC'
-        self.TZ = None
-        self.log_title = ''
-        self.log_db_queries = False
-        self.db_conn_manager:DBConnectionManager = None
-
-    def configure(
+    def __init__(
             self,
             databases:Dict[str, Dict[str, str]]=None,
             fastpg_tz:str='UTC',
             query_logger:Dict[str, Any]=None
         ):
+        self.tz_name = fastpg_tz
+        self.TZ = None
+        self.log_title = ''
+        self.log_db_queries = False
+        self.db_conn_manager:DBConnectionManager = None
+
         if query_logger:
             self.log_title = query_logger['TITLE']
             self.log_db_queries = query_logger['LOG_QUERIES']
-        self.tz_name = fastpg_tz
         self.__get_timezone()
 
         self.db_conn_manager = DBConnectionManager(databases or {})
-    
+
     def __get_timezone(self) -> None:
         """Return the configured timezone.
 
@@ -129,4 +129,40 @@ class FastPG:
             self.TZ = pytz.UTC
 
 
-FAST_PG = FastPG()
+_FASTPG_REGISTRY: Dict[str, "FastPG"] = {}
+_CURRENT_FASTPG_NAME:ContextVar[str] = ContextVar("fastpg_current_name", default="default")
+
+
+def register_fastpg(name:str, instance:"FastPG") -> None:
+    _FASTPG_REGISTRY[name] = instance
+
+
+def create_fastpg(
+        name:str="default",
+        databases:Dict[str, Dict[str, str]]=None,
+        fastpg_tz:str='UTC',
+        query_logger:Dict[str, Any]=None
+    ) -> "FastPG":
+    instance = FastPG(
+        databases=databases,
+        fastpg_tz=fastpg_tz,
+        query_logger=query_logger)
+
+    register_fastpg(name, instance)
+    _CURRENT_FASTPG_NAME.set(name)
+
+    return instance
+
+
+def get_fastpg(name:Optional[str]=None) -> "FastPG":
+    resolved_name = name or _CURRENT_FASTPG_NAME.get()
+    try:
+        return _FASTPG_REGISTRY[resolved_name]
+    except KeyError:
+        raise FastPGInstanceNotConfiguredError(resolved_name)
+
+
+def set_current_fastpg(name:str) -> None:
+    if name not in _FASTPG_REGISTRY:
+        raise FastPGInstanceNotConfiguredError(name)
+    _CURRENT_FASTPG_NAME.set(name)

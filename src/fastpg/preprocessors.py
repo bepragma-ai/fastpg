@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from .fastpg import FAST_PG
+from .fastpg import get_fastpg
 
 
 class PreCreateProcessors:
@@ -12,8 +12,9 @@ class PreCreateProcessors:
     def model_obj_populate_auto_now_add_fields(model_obj):
         """Populate ``auto_now_add`` fields on the given model instance."""
         try:
+            fastpg = get_fastpg()
             for field_name in model_obj.Meta.auto_now_add_fields:
-                setattr(model_obj, field_name, datetime.now(FAST_PG.TZ))
+                setattr(model_obj, field_name, datetime.now(fastpg.TZ))
         except AttributeError:
             pass
 
@@ -34,7 +35,8 @@ class PreSaveProcessors:
     def model_obj_populate_auto_now_fields(model_obj):
         """Populate ``auto_now`` fields on the given model instance."""
         try:
+            fastpg = get_fastpg()
             for field_name in model_obj.Meta.auto_now_fields:
-                setattr(model_obj, field_name, datetime.now(FAST_PG.TZ))
+                setattr(model_obj, field_name, datetime.now(fastpg.TZ))
         except AttributeError:
             pass
