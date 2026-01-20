@@ -18,46 +18,21 @@ from .errors import (
 from .print import print_green
 
 
-class FastPG:
+class DBConnectionManager:
 
-    def __init__(self):
-        self.databases_config = {}
-        self.tz_name = 'UTC'
-        self.TZ = None
-        self.log_title = ''
-        self.log_db_queries = False
-        
+    def __init__(
+            self,
+            databases_config:Dict[str, Dict[str, str]]=None,
+        ):
+        self.databases_config = databases_config or {}
         self.databases = {}
         self.connections = {}
         self.read_conn_names = []
         self.write_conn_name = None
         self.transaction = None
 
-    def configure(
-            self,
-            databases:Dict[str, Dict[str, str]]=None,
-            fastpg_tz:str='UTC',
-            query_logger:Dict[str, Any]=None
-        ):
-        if query_logger:
-            self.log_title = query_logger['TITLE']
-            self.log_db_queries = query_logger['LOG_QUERIES']
-        self.databases_config = databases if databases else {}
-        self.tz_name = fastpg_tz
         self.__create_connections()
-        self.__get_timezone()
-    
-    def __get_timezone(self) -> None:
-        """Return the configured timezone.
 
-        The timezone name is read from the ``FASTPG_TZ`` environment variable. If the
-        variable is not set or invalid, UTC is used.
-        """
-        try:
-            self.TZ = pytz.timezone(self.tz_name)
-        except pytz.UnknownTimeZoneError:
-            self.TZ = pytz.UTC
-    
     def __set_write_connection(self, conn_name:str) -> None:
         if self.write_conn_name is None:
             self.write_conn_name = conn_name
@@ -117,6 +92,41 @@ class FastPG:
             return self.connections[self.write_conn_name]
         except KeyError:
             raise InvalidConnectionNameError(self.write_conn_name)
+
+
+class FastPG:
+
+    def __init__(self):
+        self.tz_name = 'UTC'
+        self.TZ = None
+        self.log_title = ''
+        self.log_db_queries = False
+        self.db_conn_manager:DBConnectionManager = None
+
+    def configure(
+            self,
+            databases:Dict[str, Dict[str, str]]=None,
+            fastpg_tz:str='UTC',
+            query_logger:Dict[str, Any]=None
+        ):
+        if query_logger:
+            self.log_title = query_logger['TITLE']
+            self.log_db_queries = query_logger['LOG_QUERIES']
+        self.tz_name = fastpg_tz
+        self.__get_timezone()
+
+        self.db_conn_manager = DBConnectionManager(databases or {})
+    
+    def __get_timezone(self) -> None:
+        """Return the configured timezone.
+
+        The timezone name is read from the ``FASTPG_TZ`` environment variable. If the
+        variable is not set or invalid, UTC is used.
+        """
+        try:
+            self.TZ = pytz.timezone(self.tz_name)
+        except pytz.UnknownTimeZoneError:
+            self.TZ = pytz.UTC
 
 
 FAST_PG = FastPG()

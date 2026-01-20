@@ -95,12 +95,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    await FAST_PG.connect_all()
+    await FAST_PG.db_conn_manager.connect_all()
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    await FAST_PG.close_all()
+    await FAST_PG.db_conn_manager.close_all()
 
 
 @app.middleware("http")
