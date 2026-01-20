@@ -16,6 +16,12 @@ dependencies = [
     "databases[postgresql]>=0.7.0",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/bepragma-ai/fastpg"
 Repository = "https://github.com/bepragma-ai/fastpg"
@@ -29,3 +35,6 @@ where = ["src"]
 
 [tool.setuptools_scm]
 write_to = "src/fastpg/_version.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
