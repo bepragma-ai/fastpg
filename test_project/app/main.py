@@ -68,7 +68,7 @@ FAST_PG = create_fastpg(
             'PORT': os.environ.get("POSTGRES_READ_PORT"),
         }
     },
-    fastpg_tz='IST',
+    tz_name='IST',
     query_logger={
         'LOG_QUERIES': True,
         'TITLE': 'TEST_PROJECT'
