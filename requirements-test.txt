@@ -1,0 +1,6 @@
+databases[postgresql]>=0.7.0
+pydantic>=2
+pytz
+pytest>=7.4
+pytest-asyncio>=0.23
+typing-extensions

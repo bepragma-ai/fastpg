@@ -7,8 +7,8 @@ from fastpg import (
     Prefetch,
     ReturnType,
     OnConflict,
+    Transaction,
 )
-# from fastpg import CONNECTION_MANAGER
 
 from app.schemas.shop import (
     Category,
@@ -73,61 +73,79 @@ async def get_department(
     return departments
 
 
-# @router.post('/department/create', status_code=200)
-# async def create_department_with_employees(
-#     request:Request,
-#     response:Response,
-# ):
-#     data = await request.json()
-#     department_data = data['department']
-#     employees_data = data['employees']
+@router.post('/department/create', status_code=200)
+async def create_department_with_employees(
+    request:Request,
+    response:Response,
+):
+    data = await request.json()
+    department_data = data['department']
+    employees_data = data['employees']
 
-#     async def __create_without_txn(department_data, employees_data):
-#         # Only department gets created if this function has errors
-#         department = await Department.async_queryset.create(**department_data)
-#         for emp in employees_data:
-#             # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-#             await Employee.async_queryset.create(**emp)
-#         return department
+    async def __create_without_txn(department_data, employees_data):
+        # Only department gets created if this function has errors
+        department = await Department.async_queryset.create(**department_data)
+        for emp in employees_data:
+            # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+            await Employee.async_queryset.create(**emp)
+        return department
 
-#     async def __create_with_txn(department_data, employees_data):
-#         async with CONNECTION_MANAGER.transaction():
-#             department = await Department.async_queryset.create(**department_data)
-#             for emp in employees_data:
-#                 # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-#                 await Employee.async_queryset.create(**emp)
-#             return department
+    async def __create_with_txn(department_data, employees_data):
+        async with Transaction.atomic():
+            department = await Department.async_queryset.create(**department_data)
+            for emp in employees_data:
+                # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+                await Employee.async_queryset.create(**emp)
+            return department
     
-#     @CONNECTION_MANAGER.transaction()
-#     async def __create_with_decorator_txn(department_data, employees_data):
-#         department = await Department.async_queryset.create(**department_data)
-#         for emp in employees_data:
-#             # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-#             await Employee.async_queryset.create(**emp)
-#         return department
+    @Transaction.decorator()
+    async def __create_with_decorator_txn(department_data, employees_data):
+        department = await Department.async_queryset.create(**department_data)
+        for emp in employees_data:
+            # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+            await Employee.async_queryset.create(**emp)
+        return department
     
-#     async def __create_with_try_catch_txn(department_data, employees_data):
-#         transaction = await CONNECTION_MANAGER.transaction()
-#         try:
-#             department = await Department.async_queryset.create(**department_data)
-#             for emp in employees_data:
-#                 # emp['department_id'] = department.id  # Comment this line to create an error mid txn
-#                 await Employee.async_queryset.create(**emp)
-#         except Exception as e:
-#             await transaction.rollback()
-#             raise e
-#         else:
-#             await transaction.commit()
-#         return department
+    async def __create_with_try_catch_txn(department_data, employees_data):
+        transaction = await Transaction.start()
+        try:
+            department = await Department.async_queryset.create(**department_data)
+            for emp in employees_data:
+                # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+                await Employee.async_queryset.create(**emp)
+        except Exception as e:
+            await transaction.rollback()
+            raise e
+        else:
+            await transaction.commit()
+        return department
     
-#     # department = await __create_without_txn(department_data, employees_data)
-#     # department = await __create_with_txn(department_data, employees_data)
-#     # department = await __create_with_decorator_txn(department_data, employees_data)
-#     department = await __create_with_try_catch_txn(department_data, employees_data)
+    # department = await __create_without_txn(department_data, employees_data)
+    # department = await __create_with_txn(department_data, employees_data)
+    # department = await __create_with_decorator_txn(department_data, employees_data)
+    department = await __create_with_try_catch_txn(department_data, employees_data)
 
-#     return await Department.async_queryset.prefetch_related(
-#         Prefetch('employees', Employee.async_queryset.all())
-#     ).get(id=department.id).return_as(ReturnType.DICT)
+    return await Department.async_queryset.prefetch_related(
+        Prefetch('employees', Employee.async_queryset.all())
+    ).get(id=department.id).return_as(ReturnType.DICT)
+
+
+@router.delete('/department', status_code=200)
+async def delete_department(
+    name:str,
+    response:Response,
+):
+    department = await Department.async_queryset.get(name=name)
+    transaction = await Transaction.start()
+    try:
+        await Employee.async_queryset.filter(department_id=department.id).delete()
+        await department.delete()
+    except Exception as e:
+        await transaction.rollback()
+        raise e
+    else:
+        await transaction.commit()
+    return {}
 
 
 @router.get('/products', status_code=200)

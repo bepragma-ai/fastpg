@@ -43,12 +43,21 @@ from .core import DatabaseModel
 from .core import AsyncQuerySet
 from .core import AsyncRawQuery
 from .core import queryset_property
+from .core import Transaction
 
-from .fastpg import FAST_PG
+from .fastpg import (
+    create_fastpg,
+    register_fastpg,
+    get_fastpg,
+    set_current_fastpg,
+)
 
 
 __all__ = [
-    "FAST_PG",
+    "create_fastpg",
+    "register_fastpg",
+    "get_fastpg",
+    "set_current_fastpg",
     "ConnectionType",
     "OrderBy",
     "OnConflict",
@@ -60,6 +69,7 @@ __all__ = [
     "AsyncQuerySet",
     "AsyncRawQuery",
     "queryset_property",
+    "Transaction",
     "JsonData",
     "json_str_to_dict",
     "serialize_json_data",

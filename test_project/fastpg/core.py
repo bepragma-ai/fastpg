@@ -43,7 +43,7 @@ from .preprocessors import (
     PreSaveProcessors,
 )
 
-from .fastpg import FAST_PG
+from .fastpg import get_fastpg
 
 
 class AsyncQuerySet:
@@ -88,8 +88,9 @@ class AsyncQuerySet:
 
         self.return_type = ReturnType.MODEL_INSTANCE
 
-        self.read_connection = FAST_PG.db_for_read()
-        self.write_connection = FAST_PG.db_for_write()
+        fastpg = get_fastpg()
+        self.read_connection = fastpg.db_conn_manager.db_for_read()
+        self.write_connection = fastpg.db_conn_manager.db_for_write()
 
     def _reduce_conditions(self, *args, **kwargs) -> Q:
         if kwargs:
@@ -270,7 +271,7 @@ class AsyncQuerySet:
         return self.records
 
     def using(self, conn_name:str) -> Self:
-        self.read_connection = FAST_PG.get_db_conn(conn_name)
+        self.read_connection = get_fastpg().db_conn_manager.get_db_conn(conn_name)
         return self
 
     def columns(self, *columns:set[str]) -> Self:
@@ -683,8 +684,9 @@ class AsyncRawQuery:
 
     def __init__(self, query:str, connection:AsyncPostgresDBConnection=None):
         self.query = query
-        self.read_connection = connection or FAST_PG.db_for_read()
-        self.write_connection = FAST_PG.db_for_write()
+        fastpg = get_fastpg()
+        self.read_connection = connection or fastpg.db_conn_manager.db_for_read()
+        self.write_connection = fastpg.db_conn_manager.db_for_write()
 
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
         self.values = values
@@ -764,7 +766,7 @@ class DatabaseModel(BaseModel):
     
     @queryset_property
     def async_queryset(cls):
-        cls.write_connection = FAST_PG.db_for_write()
+        cls.write_connection = get_fastpg().db_conn_manager.db_for_write()
         return AsyncQuerySet(model=cls)
     
     async def save(self, columns:List[str]=None) -> bool:
@@ -836,3 +838,25 @@ class DatabaseModel(BaseModel):
                 message=str(e))
         
         return bool(deleted_count)
+
+
+class Transaction:
+
+    @staticmethod
+    def atomic():
+        fastpg = get_fastpg()
+        return fastpg.db_conn_manager.transaction()
+    
+    @staticmethod
+    async def start():
+        fastpg = get_fastpg()
+        return await fastpg.db_conn_manager.transaction()
+    
+    @staticmethod
+    def decorator():
+        def _decorator(fn):
+            async def _wrapped(*args, **kwargs):
+                async with Transaction.atomic():
+                    return await fn(*args, **kwargs)
+            return _wrapped
+        return _decorator
