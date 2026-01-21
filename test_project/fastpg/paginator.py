@@ -60,9 +60,10 @@ class BasePaginator:
 class AsyncPaginator(BasePaginator):
     """Paginator for :class:`AsyncQuerySet` instances."""
 
-    def __init__(self, page_size: int, queryset: AsyncQuerySet) -> None:
+    def __init__(self, page_size: int, queryset: AsyncQuerySet, using:str = None) -> None:
         super().__init__(page_size=page_size)
         self.queryset = queryset
+        self.conn_name = using
 
     async def get_page(self, page: int = 1, context: Optional[Dict] = None) -> dict:
         self.page = page
@@ -70,6 +71,8 @@ class AsyncPaginator(BasePaginator):
             raise InvalidPageError(page=self.page)
 
         self.queryset.limit(self.page_size).offset((self.page - 1) * self.page_size)
+        if self.conn_name:
+            self.queryset.using(self.conn_name)
 
         data = await self.queryset
         # if isinstance(self.queryset, AsyncQuerySet):
@@ -90,12 +93,14 @@ class RawQueryAsyncPaginator(BasePaginator):
         values: Dict[str, Any],
         serializer: Optional[Callable] = None,
         auto_offset_and_limit: bool = True,
+        using: str = None,
     ):
         super().__init__(page_size=page_size)
         self.query = query
         self.values = values
         self.serializer = serializer
         self.auto_offset_and_limit = auto_offset_and_limit
+        self.conn_name = using
 
     async def get_page(self, page: int = 1, context: Optional[Dict] = None) -> dict:
         self.page = page
@@ -112,7 +117,7 @@ class RawQueryAsyncPaginator(BasePaginator):
                 page_size=self.page_size,
                 offset=(self.page - 1) * self.page_size)
 
-        raw_query = AsyncRawQuery(query=_query)
+        raw_query = AsyncRawQuery(query=_query, using=self.conn_name)
         records = await raw_query.fetch(values=self.values)
         if self.serializer:
             records = self.serializer(records)

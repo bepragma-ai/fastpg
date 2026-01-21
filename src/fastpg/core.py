@@ -682,10 +682,13 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, connection:AsyncPostgresDBConnection=None):
+    def __init__(self, query:str, using:str=None):
         self.query = query
         fastpg = get_fastpg()
-        self.read_connection = connection or fastpg.db_conn_manager.db_for_read()
+        if using:
+            self.read_connection = fastpg.db_conn_manager.get_db_conn(using)
+        else:
+            self.read_connection = fastpg.db_conn_manager.db_for_read()
         self.write_connection = fastpg.db_conn_manager.db_for_write()
 
     async def fetch(self, values:dict[str, Any]) -> List[Record]:
