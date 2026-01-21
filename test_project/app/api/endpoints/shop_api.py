@@ -86,7 +86,7 @@ async def create_department_with_employees(
         # Only department gets created if this function has errors
         department = await Department.async_queryset.create(**department_data)
         for emp in employees_data:
-            # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+            emp['department_id'] = department.id  # Comment this line to create an error mid txn
             await Employee.async_queryset.create(**emp)
         return department
 
@@ -94,7 +94,7 @@ async def create_department_with_employees(
         async with Transaction.atomic():
             department = await Department.async_queryset.create(**department_data)
             for emp in employees_data:
-                # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+                emp['department_id'] = department.id  # Comment this line to create an error mid txn
                 await Employee.async_queryset.create(**emp)
             return department
     
@@ -102,7 +102,7 @@ async def create_department_with_employees(
     async def __create_with_decorator_txn(department_data, employees_data):
         department = await Department.async_queryset.create(**department_data)
         for emp in employees_data:
-            # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+            emp['department_id'] = department.id  # Comment this line to create an error mid txn
             await Employee.async_queryset.create(**emp)
         return department
     
@@ -111,7 +111,7 @@ async def create_department_with_employees(
         try:
             department = await Department.async_queryset.create(**department_data)
             for emp in employees_data:
-                # emp['department_id'] = department.id  # Comment this line to create an error mid txn
+                emp['department_id'] = department.id  # Comment this line to create an error mid txn
                 await Employee.async_queryset.create(**emp)
         except Exception as e:
             await transaction.rollback()

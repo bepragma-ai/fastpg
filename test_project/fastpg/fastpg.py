@@ -102,7 +102,8 @@ class FastPG:
             self,
             databases:Dict[str, Dict[str, str]]=None,
             fastpg_tz:str='UTC',
-            query_logger:Dict[str, Any]=None
+            query_logger:Dict[str, Any]=None,
+            db_conn_manager_class:DBConnectionManager=None,
         ):
         self.tz_name = fastpg_tz
         self.TZ = None
@@ -115,7 +116,10 @@ class FastPG:
             self.log_db_queries = query_logger['LOG_QUERIES']
         self.__get_timezone()
 
-        self.db_conn_manager = DBConnectionManager(databases or {})
+        if db_conn_manager_class:
+            self.db_conn_manager = db_conn_manager_class(databases or {})
+        else:
+            self.db_conn_manager = DBConnectionManager(databases or {})
 
     def __get_timezone(self) -> None:
         """Return the configured timezone.
@@ -141,12 +145,14 @@ def create_fastpg(
         name:str="default",
         databases:Dict[str, Dict[str, str]]=None,
         fastpg_tz:str='UTC',
-        query_logger:Dict[str, Any]=None
+        query_logger:Dict[str, Any]=None,
+        db_conn_manager_class:DBConnectionManager=None,
     ) -> "FastPG":
     instance = FastPG(
         databases=databases,
         fastpg_tz=fastpg_tz,
-        query_logger=query_logger)
+        query_logger=query_logger,
+        db_conn_manager_class=db_conn_manager_class)
 
     register_fastpg(name, instance)
     _CURRENT_FASTPG_NAME.set(name)

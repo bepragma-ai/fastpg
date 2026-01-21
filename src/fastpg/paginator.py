@@ -101,6 +101,7 @@ class RawQueryAsyncPaginator(BasePaginator):
         self.serializer = serializer
         self.auto_offset_and_limit = auto_offset_and_limit
         self.conn_name = using
+        self.final_query = ''
 
     async def get_page(self, page: int = 1, context: Optional[Dict] = None) -> dict:
         self.page = page
@@ -108,16 +109,16 @@ class RawQueryAsyncPaginator(BasePaginator):
             raise InvalidPageError(page=self.page)
 
         if self.auto_offset_and_limit:
-            _query = '{query} LIMIT {page_size:.0f} OFFSET {offset:.0f}'.format(
+            self.final_query = '{query} LIMIT {page_size:.0f} OFFSET {offset:.0f}'.format(
                 query=self.query,
                 page_size=self.page_size,
                 offset=(self.page - 1) * self.page_size)
         else:
-            _query = self.query.format(
+            self.final_query = self.query.format(
                 page_size=self.page_size,
                 offset=(self.page - 1) * self.page_size)
 
-        raw_query = AsyncRawQuery(query=_query, using=self.conn_name)
+        raw_query = AsyncRawQuery(query=self.final_query, using=self.conn_name)
         records = await raw_query.fetch(values=self.values)
         if self.serializer:
             records = self.serializer(records)

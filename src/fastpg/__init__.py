@@ -31,6 +31,7 @@ from .paginator import AsyncPaginator
 from .paginator import RawQueryAsyncPaginator
 
 from .errors import (
+    InvalidConnectionNameError,
     DatabaseError,
     DuplicateKeyDatabaseError,
     DoesNotExist,
@@ -50,6 +51,7 @@ from .fastpg import (
     register_fastpg,
     get_fastpg,
     set_current_fastpg,
+    DBConnectionManager,
 )
 
 
@@ -58,6 +60,7 @@ __all__ = [
     "register_fastpg",
     "get_fastpg",
     "set_current_fastpg",
+    "DBConnectionManager",
     "ConnectionType",
     "OrderBy",
     "OnConflict",
@@ -76,6 +79,7 @@ __all__ = [
     "validate_json_data",
     "AsyncPaginator",
     "RawQueryAsyncPaginator",
+    "InvalidConnectionNameError",
     "DatabaseError",
     "DuplicateKeyDatabaseError",
     "DoesNotExist",
