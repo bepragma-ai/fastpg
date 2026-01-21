@@ -70,31 +70,21 @@ class AsyncPostgresDBConnection:
 
     @async_sql_logger
     async def execute(self, query: str, values: Optional[Dict] = None):
-        """Execute a query with optional values inside a transaction."""
-
+        """Execute a query with optional values."""
         values = values or {}
-        transaction = await self.database.transaction()
         try:
             result = await self.database.execute(query=query, values=values)
         except Exception as e:
-            await transaction.rollback()
             raise e
-        else:
-            await transaction.commit()
         return result
 
     @async_sql_logger
     async def execute_many(self, query: str, list_of_values: List[Dict]):
-        """Execute a query for multiple sets of values inside a transaction."""
-
-        transaction = await self.database.transaction()
+        """Execute a query for multiple sets of values."""
         try:
             result = await self.database.execute_many(query=query, values=list_of_values)
         except Exception as e:
-            await transaction.rollback()
             raise e
-        else:
-            await transaction.commit()
         return result
 
     async def close(self) -> None:
