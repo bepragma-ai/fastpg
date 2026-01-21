@@ -845,4 +845,18 @@ class Transaction:
     @staticmethod
     def atomic():
         fastpg = get_fastpg()
-        return fastpg.db_conn_manager.transaction
+        return fastpg.db_conn_manager.transaction()
+    
+    @staticmethod
+    async def start():
+        fastpg = get_fastpg()
+        return await fastpg.db_conn_manager.transaction()
+    
+    @staticmethod
+    def decorator():
+        def _decorator(fn):
+            async def _wrapped(*args, **kwargs):
+                async with Transaction.atomic():
+                    return await fn(*args, **kwargs)
+            return _wrapped
+        return _decorator
