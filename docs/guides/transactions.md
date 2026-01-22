@@ -1,24 +1,22 @@
 # Transactions
 
 FastPG exposes the underlying [`databases`](https://www.encode.io/databases/connection_pooling/#transactions)
-transaction helpers through the `AsyncPostgresDB` instances in `fastpg.db`.
-Each transaction is bound to the connection used by the current async task, so
-long-lived tasks should acquire and release them carefully.
+transaction helpers through the active FastPG instance. Each transaction is
+bound to the connection used by the current async task, so long-lived tasks
+should acquire and release them carefully.
 
 ## Prerequisites
 
-Import the connection pools from `fastpg.db` and ensure they are connected
-before opening a transaction:
+Ensure the FastPG instance is connected before opening a transaction:
 
 ```python
-from fastpg.db import ASYNC_DB_WRITE
+from fastpg import Transaction
 
 # elsewhere during startup:
-# await ASYNC_DB_WRITE.connect()
+# await FAST_PG.db_conn_manager.connect_all()
 ```
 
-Use `ASYNC_DB_WRITE` for write operations. `ASYNC_DB_READ` supports the same
-API but should only be used for read-only transactions.
+Transactions are always backed by the write connection.
 
 ## Context manager (recommended)
 
@@ -27,7 +25,7 @@ when the block exits normally and rolled back if an exception is raised.
 
 ```python
 async def create_users(payload: list[dict]):
-    async with ASYNC_DB_WRITE.transaction():
+    async with Transaction.atomic():
         for data in payload:
             await User.async_queryset.create(**data)
 ```
@@ -38,7 +36,7 @@ When you need explicit control over commit/rollback, grab the transaction
 instance and manage it yourself:
 
 ```python
-transaction = await ASYNC_DB_WRITE.transaction()
+transaction = await Transaction.start()
 try:
     await User.async_queryset.create(**user_data)
     await AuditLog.async_queryset.create(event="user.created")
@@ -54,7 +52,7 @@ else:
 Transactions can also wrap async callables using decorator syntax:
 
 ```python
-@ASYNC_DB_WRITE.transaction()
+@Transaction.decorator()
 async def create_users(request):
     ...
 ```

@@ -157,16 +157,15 @@ without hand-written SQL. Learn more in the [relationships guide](../guides/rela
 
 When a write spans multiple tables, wrap it in a database transaction so either
 all steps succeed or none do. The shop demo exposes this flow through the
-`create_department_with_employees` endpoint, which uses `ASYNC_DB_WRITE` to
-wrap department creation and employee inserts in a single unit of work. See the
+`create_department_with_employees` endpoint. See the
 [transactions guide](../guides/transactions.md) for the full API.
 
 ```python
-from fastpg.db import ASYNC_DB_WRITE
+from fastpg import Transaction
 
 
 async def create_department_with_employees(department_data, employees_data):
-    async with ASYNC_DB_WRITE.transaction():
+    async with Transaction.atomic():
         department = await Department.async_queryset.create(**department_data)
         for emp in employees_data:
             emp["department_id"] = department.id
@@ -174,6 +173,6 @@ async def create_department_with_employees(department_data, employees_data):
     return department
 ```
 
-`ASYNC_DB_WRITE.transaction()` supports async context managers, decorators, or
-manual begin/commit calls. In every mode, FastPG will roll back the transaction
-if an exception is raised so partial writes never hit the database.
+`Transaction.atomic()` supports async context managers, decorators, or manual
+begin/commit calls. In every mode, FastPG will roll back the transaction if an
+exception is raised so partial writes never hit the database.

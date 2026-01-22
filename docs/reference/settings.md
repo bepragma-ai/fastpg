@@ -1,37 +1,80 @@
 # Settings and logging
 
-FastPG relies on a handful of environment variables to configure database
-connections, timestamp behaviour, and SQL logging.
+FastPG uses a Python-first configuration API to define database connections,
+timezone handling, and SQL logging.
 
-## Database connections
+## Database configuration
 
-Two connection pools are created automatically when you import `fastpg.db`:
+Create a FastPG instance with `create_fastpg` and pass a `databases` mapping.
+Each entry is a named connection with a `TYPE` (read/write) and credentials.
 
-- `ASYNC_DB_READ` – read-only operations (import from `fastpg.db`)
-- `ASYNC_DB_WRITE` – write operations (import from `fastpg.db`)
+```python
+import os
+from fastpg import create_fastpg, ConnectionType
 
-Provide credentials via the following environment variables:
+FAST_PG = create_fastpg(
+    name="default",
+    databases={
+        "primary": {
+            "TYPE": ConnectionType.WRITE,
+            "USER": os.environ["POSTGRES_WRITE_USER"],
+            "PASSWORD": os.environ["POSTGRES_WRITE_PASSWORD"],
+            "DB": os.environ["POSTGRES_WRITE_DB"],
+            "HOST": os.environ["POSTGRES_WRITE_HOST"],
+            "PORT": os.environ["POSTGRES_WRITE_PORT"],
+        },
+        "replica_1": {
+            "TYPE": ConnectionType.READ,
+            "USER": os.environ["POSTGRES_READ_USER"],
+            "PASSWORD": os.environ["POSTGRES_READ_PASSWORD"],
+            "DB": os.environ["POSTGRES_READ_DB"],
+            "HOST": os.environ["POSTGRES_READ_HOST"],
+            "PORT": os.environ["POSTGRES_READ_PORT"],
+        },
+    },
+)
+```
 
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_READ_USER` / `POSTGRES_WRITE_USER` | Database user for each pool. |
-| `POSTGRES_READ_PASSWORD` / `POSTGRES_WRITE_PASSWORD` | Password for the user. |
-| `POSTGRES_READ_DB` / `POSTGRES_WRITE_DB` | Database name. |
-| `POSTGRES_READ_HOST` / `POSTGRES_WRITE_HOST` | Hostname or IP address. |
-| `POSTGRES_READ_PORT` / `POSTGRES_WRITE_PORT` | Port number. |
+Connections are established when you call `connect_all()` on the connection
+manager. Each pool uses an asyncpg-powered DSN with a minimum of two
+connections and a maximum of five.
 
-Connections are established lazily when you call `connect()`. Each pool uses an
-asyncpg-powered DSN with a minimum of two connections and a maximum of five.
+## Connection routing
+
+FastPG routes reads and writes based on connection type:
+
+- reads use a random `ConnectionType.READ` connection
+- writes always use the single `ConnectionType.WRITE` connection
+
+You must configure at least one read connection and exactly one write
+connection. FastPG raises errors if a read connection is missing or multiple
+write connections are supplied.
+
+To target a specific connection, use `using()` on a queryset:
+
+```python
+orders = await Order.async_queryset.using("replica_1").filter(status="open")
+```
 
 ## Timezone
 
-`FASTPG_TZ` controls the timezone for automatic timestamp fields. Unknown values
-fall back to UTC.
+Pass `tz_name` to `create_fastpg` to control automatic timestamp fields.
+Unknown values fall back to UTC.
 
 ## SQL logging
 
-Set `LOG_DB_QUERIES=true` to log the SQL statement and execution time for every
-query executed through `AsyncPostgresDB`. The logger categorises durations into
-<1s, 1–5s, 5–10s, and >10s buckets and prefixes the message with the upper-cased
-`PROJECT_NAME` (defaults to `UNNAMED`). Use standard Python logging
+Enable SQL timing logs by passing a `query_logger` dictionary to `create_fastpg`:
+
+```python
+FAST_PG = create_fastpg(
+    databases=...,
+    query_logger={
+        "LOG_QUERIES": True,
+        "TITLE": "MY_SERVICE",
+    },
+)
+```
+
+The logger categorises durations into <1s, 1–5s, 5–10s, and >10s buckets and
+prefixes messages with the configured `TITLE`. Use standard Python logging
 configuration to route these logs to stdout, files, or observability systems.

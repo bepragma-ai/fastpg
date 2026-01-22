@@ -34,14 +34,11 @@ FastPG requires Python 3.9 or newer.
 pip install git+https://github.com/bepragma-ai/fastpg.git
 ```
 
-### Environment variables
+### Configuration
 
-Provide PostgreSQL credentials and optional timezone configuration through the
-following variables:
-
-- `FASTPG_TZ` – timezone used for auto timestamp fields (defaults to `UTC`).
-- `POSTGRES_READ_*` and `POSTGRES_WRITE_*` – credentials used by the read and
-  write connection pools respectively.
+FastPG is configured in Python via `create_fastpg`. You can still read
+credentials from environment variables, but you decide how to wire them into
+the `databases` mapping.
 
 ## Quickstart
 
@@ -49,9 +46,10 @@ Below is a minimal FastAPI application showcasing model declaration,
 connection management, and CRUD helpers.
 
 ```python
+import os
+from datetime import datetime
 from fastapi import FastAPI
-from fastpg import DatabaseModel
-from fastpg.db import ASYNC_DB_READ, ASYNC_DB_WRITE
+from fastpg import create_fastpg, ConnectionType, DatabaseModel
 
 class Customer(DatabaseModel):
     id: int | None = None
@@ -66,15 +64,36 @@ class Customer(DatabaseModel):
 
 app = FastAPI()
 
+FAST_PG = create_fastpg(
+    name="default",
+    databases={
+        "primary": {
+            "TYPE": ConnectionType.WRITE,
+            "USER": os.environ["POSTGRES_WRITE_USER"],
+            "PASSWORD": os.environ["POSTGRES_WRITE_PASSWORD"],
+            "DB": os.environ["POSTGRES_WRITE_DB"],
+            "HOST": os.environ["POSTGRES_WRITE_HOST"],
+            "PORT": os.environ["POSTGRES_WRITE_PORT"],
+        },
+        "replica_1": {
+            "TYPE": ConnectionType.READ,
+            "USER": os.environ["POSTGRES_READ_USER"],
+            "PASSWORD": os.environ["POSTGRES_READ_PASSWORD"],
+            "DB": os.environ["POSTGRES_READ_DB"],
+            "HOST": os.environ["POSTGRES_READ_HOST"],
+            "PORT": os.environ["POSTGRES_READ_PORT"],
+        },
+    },
+    tz_name="UTC",
+)
+
 @app.on_event("startup")
 async def connect_db():
-    await ASYNC_DB_READ.connect()
-    await ASYNC_DB_WRITE.connect()
+    await FAST_PG.db_conn_manager.connect_all()
 
 @app.on_event("shutdown")
 async def close_db():
-    await ASYNC_DB_READ.close()
-    await ASYNC_DB_WRITE.close()
+    await FAST_PG.db_conn_manager.close_all()
 
 @app.get("/customers")
 async def list_customers():
@@ -93,4 +112,4 @@ async def create_customer(email: str):
 
 Read on for a deeper dive into models, query construction, pagination, and
 advanced patterns. The [settings reference](reference/settings.md) details the
-environment variables required to establish connections.
+Pythonic configuration options and routing rules for connections.
