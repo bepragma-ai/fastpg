@@ -1122,9 +1122,9 @@
 <p>FastPG applies a handful of pre-save hooks to keep timestamp fields up to date
 without littering your application code with <code>datetime.utcnow()</code> calls.</p>
 <h2 id="timezone-detection">Timezone detection</h2>
-<p>The library reads the <code>FASTPG_TZ</code> environment variable to determine which
-timezone should be used when populating automatic timestamp fields. If the value
-is missing or invalid, UTC is used as a safe default.</p>
+<p>The library uses the <code>tz_name</code> value passed to <code>create_fastpg</code> to determine
+which timezone should be used when populating automatic timestamp fields. If
+the value is missing or invalid, UTC is used as a safe default.</p>
 <h2 id="creation-hooks">Creation hooks</h2>
 <p><code>PreCreateProcessors.model_obj_populate_auto_now_add_fields(model_obj)</code></p>
 <ul>

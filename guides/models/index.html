@@ -1219,8 +1219,8 @@ model.</p>
 </tr>
 </tbody>
 </table>
-<p>The automatic timestamp hooks draw the timezone from the <code>FASTPG_TZ</code>
-environment variable. Invalid or missing values fall back to UTC.</p>
+<p>The automatic timestamp hooks draw the timezone from the <code>tz_name</code> value passed
+to <code>create_fastpg</code>. Invalid or missing values fall back to UTC.</p>
 <h2 id="accessing-the-queryset">Accessing the queryset</h2>
 <p>Every <code>DatabaseModel</code> exposes an <code>async_queryset</code> descriptor that returns an
 <code>AsyncQuerySet</code> bound to the model. The queryset is safe to reuse across

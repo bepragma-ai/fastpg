@@ -651,6 +651,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#routing-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Routing reads
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#executing-custom-sql" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1351,13 +1362,18 @@ reach for <code>prefetch_related()</code> with a <code>Prefetch</code> descripto
 </code></pre></div>
 <p>The related records are hydrated into the attribute named after the relation.
 See the <a href="../relationships/">relationships guide</a> for a detailed example.</p>
+<h2 id="routing-reads">Routing reads</h2>
+<p>FastPG routes reads to a random read connection by default. To pin a queryset to
+a specific connection (for example, a replica), use <code>using()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">recent_orders</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Order</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="s2">&quot;replica_1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;open&quot;</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="executing-custom-sql">Executing custom SQL</h2>
 <p>For cases where the queryset API is too limiting, use <code>execute_raw_query()</code> to
 run arbitrary SQL and still benefit from the queryset execution helpers.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Customer</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">execute_raw_query</span><span class="p">(</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">&quot;SELECT id, email FROM customers WHERE created_at &gt;= :start&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="p">{</span><span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">window_start</span><span class="p">},</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Customer</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">execute_raw_query</span><span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="s2">&quot;SELECT id, email FROM customers WHERE created_at &gt;= :start&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="p">{</span><span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">window_start</span><span class="p">},</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">)</span>
 </code></pre></div>
 <p>Alternatively, instantiate <code>AsyncRawQuery</code> directly for standalone read or write
 operations outside of a model context.</p>
