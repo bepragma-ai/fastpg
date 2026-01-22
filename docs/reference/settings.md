@@ -7,8 +7,8 @@ connections, timestamp behaviour, and SQL logging.
 
 Two connection pools are created automatically when you import `fastpg.db`:
 
-- `ASYNC_DB_READ` – read-only operations
-- `ASYNC_DB_WRITE` – write operations
+- `ASYNC_DB_READ` – read-only operations (import from `fastpg.db`)
+- `ASYNC_DB_WRITE` – write operations (import from `fastpg.db`)
 
 Provide credentials via the following environment variables:
 
