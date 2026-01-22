@@ -1,47 +1,61 @@
 # Transactions
 
-Transactions are managed by async context blocks. Transaction state is tied to the connection used in the currently executing asynchronous task.
+FastPG exposes the underlying [`databases`](https://www.encode.io/databases/connection_pooling/#transactions)
+transaction helpers through the active FastPG instance. Each transaction is
+bound to the connection used by the current async task, so long-lived tasks
+should acquire and release them carefully.
 
-## Acquiring transactions
+## Prerequisites
 
-A transaction can be acquired from the database connection pool:
+Ensure the FastPG instance is connected before opening a transaction:
 
 ```python
-from fastpg.db import ASYNC_DB_WRITE
+from fastpg import Transaction
 
-
-async with ASYNC_DB_WRITE.transaction():
-    ...
+# elsewhere during startup:
+# await FAST_PG.db_conn_manager.connect_all()
 ```
 
-## Implementing transactions
+Transactions are always backed by the write connection.
 
-A transaction can be implemented in any of the following ways
+## Context manager (recommended)
+
+Wrap related operations in an `async with` block. The transaction is committed
+when the block exits normally and rolled back if an exception is raised.
 
 ```python
-from fastpg.db import ASYNC_DB_WRITE
-
-
-async with ASYNC_DB_WRITE.transaction():
-    ...
+async def create_users(payload: list[dict]):
+    async with Transaction.atomic():
+        for data in payload:
+            await User.async_queryset.create(**data)
 ```
 
-For a lower-level transaction API:
+## Manual control
+
+When you need explicit control over commit/rollback, grab the transaction
+instance and manage it yourself:
 
 ```python
-transaction = await ASYNC_DB_WRITE.transaction()
+transaction = await Transaction.start()
 try:
-    ...
-except:
+    await User.async_queryset.create(**user_data)
+    await AuditLog.async_queryset.create(event="user.created")
+except Exception:
     await transaction.rollback()
+    raise
 else:
     await transaction.commit()
 ```
 
-You can also use .transaction() as a function decorator on any async function:
+## Decorator style
+
+Transactions can also wrap async callables using decorator syntax:
 
 ```python
-@ASYNC_DB_WRITE.transaction()
+@Transaction.decorator()
 async def create_users(request):
     ...
 ```
+
+This pattern is useful for FastAPI dependencies or background tasks where the
+function body should always execute inside a transaction.

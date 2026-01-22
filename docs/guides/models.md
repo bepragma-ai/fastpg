@@ -41,8 +41,8 @@ model.
 | `auto_now_fields` | ❌ | Fields refreshed with the current timestamp on `save()`. |
 | `relations` | ❌ | Mapping of relation name → `Relation` describing joins. |
 
-The automatic timestamp hooks draw the timezone from the `FASTPG_TZ`
-environment variable. Invalid or missing values fall back to UTC.
+The automatic timestamp hooks draw the timezone from the `tz_name` value passed
+to `create_fastpg`. Invalid or missing values fall back to UTC.
 
 ## Accessing the queryset
 

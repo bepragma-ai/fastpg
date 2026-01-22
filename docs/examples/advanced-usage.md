@@ -1,8 +1,9 @@
 # Advanced usage
 
 This example mirrors the `shop` API used in the test project and shows multiple
-features working together: joined queries, prefetching, conflict-aware bulk
-writes, and multiple return types that plug straight into FastAPI responses.
+features working together: joined queries, [prefetching](../guides/relationships.md#prefetching-child-collections),
+conflict-aware bulk writes, and multiple return types that plug straight into
+FastAPI responses.
 
 ```python
 from datetime import date
@@ -150,21 +151,21 @@ The resulting structures can be returned directly from FastAPI endpoints, just
 like the demo routes in `test_project/app/api/endpoints/shop_api.py`. Bulk
 operations keep product data fresh, `select_related` joins customer details to an
 order, and `prefetch_related` assembles a rich response for nested collections
-without hand-written SQL.
+without hand-written SQL. Learn more in the [relationships guide](../guides/relationships.md).
 
 ## Managing transactions for multi-step writes
 
 When a write spans multiple tables, wrap it in a database transaction so either
 all steps succeed or none do. The shop demo exposes this flow through the
-`create_department_with_employees` endpoint, which uses `ASYNC_DB_WRITE` to
-wrap department creation and employee inserts in a single unit of work.
+`create_department_with_employees` endpoint. See the
+[transactions guide](../guides/transactions.md) for the full API.
 
 ```python
-from fastpg import ASYNC_DB_WRITE
+from fastpg import Transaction
 
 
 async def create_department_with_employees(department_data, employees_data):
-    async with ASYNC_DB_WRITE.transaction():
+    async with Transaction.atomic():
         department = await Department.async_queryset.create(**department_data)
         for emp in employees_data:
             emp["department_id"] = department.id
@@ -172,6 +173,6 @@ async def create_department_with_employees(department_data, employees_data):
     return department
 ```
 
-`ASYNC_DB_WRITE.transaction()` supports async context managers, decorators, or
-manual begin/commit calls. In every mode, FastPG will roll back the transaction
-if an exception is raised so partial writes never hit the database.
+`Transaction.atomic()` supports async context managers, decorators, or manual
+begin/commit calls. In every mode, FastPG will roll back the transaction if an
+exception is raised so partial writes never hit the database.

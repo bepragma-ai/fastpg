@@ -35,6 +35,7 @@ nav:
     - Querysets: guides/querysets.md
     - Relationships: guides/relationships.md
     - Pagination: guides/pagination.md
+    - Transactions: guides/transactions.md
   - Reference:
     - JSON Fields: reference/json-fields.md
     - Preprocessors: reference/preprocessors.md

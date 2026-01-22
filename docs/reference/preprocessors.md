@@ -5,9 +5,9 @@ without littering your application code with `datetime.utcnow()` calls.
 
 ## Timezone detection
 
-The library reads the `FASTPG_TZ` environment variable to determine which
-timezone should be used when populating automatic timestamp fields. If the value
-is missing or invalid, UTC is used as a safe default.
+The library uses the `tz_name` value passed to `create_fastpg` to determine
+which timezone should be used when populating automatic timestamp fields. If
+the value is missing or invalid, UTC is used as a safe default.
 
 ## Creation hooks
 

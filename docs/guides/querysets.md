@@ -179,6 +179,15 @@ orders = await (
 The related records are hydrated into the attribute named after the relation.
 See the [relationships guide](relationships.md) for a detailed example.
 
+## Routing reads
+
+FastPG routes reads to a random read connection by default. To pin a queryset to
+a specific connection (for example, a replica), use `using()`:
+
+```python
+recent_orders = await Order.async_queryset.using("replica_1").filter(status="open")
+```
+
 ## Executing custom SQL
 
 For cases where the queryset API is too limiting, use `execute_raw_query()` to

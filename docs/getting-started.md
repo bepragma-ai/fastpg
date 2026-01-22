@@ -5,59 +5,66 @@ model, and executing a few queries from a Python REPL or FastAPI application.
 
 ## 1. Configure connections
 
-FastPG ships with two `AsyncPostgresDB` connection pools – one for read
-operations and one for write operations. Populate the required environment
-variables before starting your application:
-
-```bash
-export POSTGRES_READ_USER=postgres
-export POSTGRES_READ_PASSWORD=secret
-export POSTGRES_READ_DB=app
-export POSTGRES_READ_HOST=127.0.0.1
-export POSTGRES_READ_PORT=5432
-
-export POSTGRES_WRITE_USER=postgres
-export POSTGRES_WRITE_PASSWORD=secret
-export POSTGRES_WRITE_DB=app
-export POSTGRES_WRITE_HOST=127.0.0.1
-export POSTGRES_WRITE_PORT=5432
-
-# Optional timezone for auto_now/auto_now_add fields
-export FASTPG_TZ=UTC
-```
-
-Create the connection pools on startup and close them during shutdown. With
-FastAPI you can rely on the event system:
+FastPG uses a Python-first configuration API. Create a FastPG instance with a
+read connection (or replicas) and a single write connection:
 
 ```python
+import os
 from fastapi import FastAPI
-from fastpg import ASYNC_DB_READ, ASYNC_DB_WRITE
+from fastpg import create_fastpg, ConnectionType
 
 app = FastAPI()
 
+FAST_PG = create_fastpg(
+    name="default",
+    databases={
+        "primary": {
+            "TYPE": ConnectionType.WRITE,
+            "USER": os.environ["POSTGRES_WRITE_USER"],
+            "PASSWORD": os.environ["POSTGRES_WRITE_PASSWORD"],
+            "DB": os.environ["POSTGRES_WRITE_DB"],
+            "HOST": os.environ["POSTGRES_WRITE_HOST"],
+            "PORT": os.environ["POSTGRES_WRITE_PORT"],
+        },
+        "replica_1": {
+            "TYPE": ConnectionType.READ,
+            "USER": os.environ["POSTGRES_READ_USER"],
+            "PASSWORD": os.environ["POSTGRES_READ_PASSWORD"],
+            "DB": os.environ["POSTGRES_READ_DB"],
+            "HOST": os.environ["POSTGRES_READ_HOST"],
+            "PORT": os.environ["POSTGRES_READ_PORT"],
+        },
+    },
+    tz_name="UTC",
+)
+```
+
+Connect on startup and close on shutdown:
+
+```python
 @app.on_event("startup")
 async def connect_db():
-    await ASYNC_DB_READ.connect()
-    await ASYNC_DB_WRITE.connect()
+    await FAST_PG.db_conn_manager.connect_all()
 
 @app.on_event("shutdown")
 async def close_db():
-    await ASYNC_DB_READ.close()
-    await ASYNC_DB_WRITE.close()
+    await FAST_PG.db_conn_manager.close_all()
 ```
 
 For scripts or tests you can manage the lifecycle manually:
 
 ```python
 import asyncio
-from fastpg import ASYNC_DB_READ, ASYNC_DB_WRITE
 
 async def bootstrap():
-    await ASYNC_DB_READ.connect()
-    await ASYNC_DB_WRITE.connect()
+    await FAST_PG.db_conn_manager.connect_all()
 
 asyncio.run(bootstrap())
 ```
+
+FastPG routes reads to a random read connection and writes to the single write
+connection. To target a specific connection for a read, use
+`Customer.async_queryset.using("replica_1")`.
 
 ## 2. Declare models
 
@@ -85,7 +92,7 @@ class Customer(DatabaseModel):
 ```
 
 When you call `create` or `save`, FastPG will automatically populate the
-`auto_now*` fields using the timezone chosen in `FASTPG_TZ`.
+`auto_now*` fields using the timezone chosen in `tz_name`.
 
 ## 3. Run queries
 
@@ -114,4 +121,5 @@ responses.
 
 Read the concept guides for detailed explanations of metadata, filtering,
 relations, and pagination, or jump straight to the API reference for a
-method-by-method breakdown.
+method-by-method breakdown. Connection settings are covered in
+[Settings & Logging](reference/settings.md).
