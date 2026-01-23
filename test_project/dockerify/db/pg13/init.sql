@@ -9,12 +9,14 @@ DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS coupons;
 
--- Departments table
+-- Departments table (added created_at)
 CREATE TABLE departments (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    location VARCHAR(100)
+    location VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Employees table (with optional department reference)
@@ -34,7 +36,7 @@ CREATE TABLE categories (
     description TEXT
 );
 
--- Products table (with optional category reference)
+-- Products table (added created_at)
 CREATE TABLE products (
     id SERIAL PRIMARY KEY,
     sku VARCHAR(200) NOT NULL UNIQUE,
@@ -45,7 +47,8 @@ CREATE TABLE products (
     properties JSONB,
     has_offer BOOLEAN DEFAULT FALSE,
     offer_type VARCHAR(20) CHECK (offer_type IN ('percent', 'fixed')),
-    offer_expires_at TIMESTAMPTZ
+    offer_expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Customers table
@@ -83,7 +86,7 @@ CREATE TABLE coupons (
     value_type VARCHAR(100) NOT NULL
 );
 
--- Insert Departments
+-- Insert Departments (created_at will auto-populate)
 INSERT INTO departments (name, location) VALUES
 ('Engineering', 'San Francisco'),
 ('Marketing', 'New York'),
@@ -107,7 +110,7 @@ INSERT INTO categories (name, description) VALUES
 ('Clothing', 'Apparel and accessories'),
 ('Home & Garden', 'Home improvement and gardening');
 
--- Insert Products (some without categories, some categories without products)
+-- Insert Products (created_at will auto-populate)
 INSERT INTO products (sku, name, category_id, price, stock_quantity, properties, has_offer, offer_type, offer_expires_at) VALUES
 ('ELEC-LAP-001', 'Laptop', 1, 999.99, 50, '{"brand": "TechPro", "warranty_years": 2, "features": ["16GB RAM", "512GB SSD", "Intel i7"]}', TRUE, 'percent', '2024-12-31 23:59:59+00'),
 ('ELEC-PHN-002', 'Smartphone', 1, 699.99, 100, '{"brand": "SmartTech", "color": "Midnight Blue", "screen_size": "6.5 inches"}', TRUE, 'fixed', '2024-12-25 23:59:59+00'),
