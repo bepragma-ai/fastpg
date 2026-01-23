@@ -95,11 +95,13 @@ class Department(DatabaseModel):
     id:int|None = None
     name:str
     location:str
+    created_at:datetime|None = None
 
     class Meta:
         db_table = 'departments'
         primary_key = 'id'
         auto_generated_fields = ['id']
+        auto_now_add_fields = ["created_at"]
 
 
 class Employee(DatabaseModel):

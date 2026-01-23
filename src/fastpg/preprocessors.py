@@ -14,7 +14,8 @@ class PreCreateProcessors:
         try:
             fastpg = get_fastpg()
             for field_name in model_obj.Meta.auto_now_add_fields:
-                setattr(model_obj, field_name, datetime.now(fastpg.TZ))
+                if getattr(model_obj, field_name) is None:
+                    setattr(model_obj, field_name, datetime.now(fastpg.TZ))
         except AttributeError:
             pass
 
@@ -37,6 +38,7 @@ class PreSaveProcessors:
         try:
             fastpg = get_fastpg()
             for field_name in model_obj.Meta.auto_now_fields:
-                setattr(model_obj, field_name, datetime.now(fastpg.TZ))
+                if getattr(model_obj, field_name) is None:
+                    setattr(model_obj, field_name, datetime.now(fastpg.TZ))
         except AttributeError:
             pass
