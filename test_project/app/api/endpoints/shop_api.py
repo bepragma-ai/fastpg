@@ -148,6 +148,19 @@ async def delete_department(
     return {}
 
 
+@router.post('/department/update', status_code=200)
+async def post_department(
+    name:str,
+    request:Request,
+    response:Response,
+):
+    data = await request.json()
+    department = await Department.async_queryset.get(name=name)
+    department.location = data['location']
+    await department.save()
+    return department
+
+
 @router.get('/products', status_code=200)
 async def get_products(
     response:Response,
