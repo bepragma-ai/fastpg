@@ -44,12 +44,13 @@ class BasePaginator:
             response = {**response, **context}
         return response
 
-    def get_empty_data_response(self, context: Optional[Dict] = None) -> dict:
+    @staticmethod
+    def get_empty_data_response(page:int, page_size:int, context: Optional[Dict] = None) -> dict:
         response = {
             "results": [],
             "results_paginator": {
-                "number": self.page,
-                "page_size": self.page_size,
+                "number": page,
+                "page_size": page_size,
                 "has_next": False,
                 "has_previous": False,
                 "start_index": 0,
