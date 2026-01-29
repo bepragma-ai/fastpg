@@ -44,6 +44,22 @@ class BasePaginator:
             response = {**response, **context}
         return response
 
+    def get_empty_data_response(self, context: Optional[Dict] = None) -> dict:
+        response = {
+            "results": [],
+            "results_paginator": {
+                "number": self.page,
+                "page_size": self.page_size,
+                "has_next": False,
+                "has_previous": False,
+                "start_index": 0,
+                "end_index": 0,
+            },
+        }
+        if context:
+            response = {**response, **context}
+        return response
+
     async def get_next_page(self) -> dict:
         self.page += 1
         if self.has_next:
