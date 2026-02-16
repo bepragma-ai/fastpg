@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#databasemodel" class="md-skip">
+        <a href="#database-models-api" class="md-skip">
           Skip to content
         </a>
       
@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../reference/json-fields/" class="md-tabs__link">
+        <a href="../../reference/constants/" class="md-tabs__link">
           
   
   
@@ -674,6 +674,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/json-fields/" class="md-nav__link">
         
   
@@ -765,7 +793,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -910,33 +938,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#attributes" class="md-nav__link">
+  <a href="#databasemodel" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Attributes
+        DatabaseModel
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#instance-methods" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Instance methods
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Instance methods">
+    <nav class="md-nav" aria-label="DatabaseModel">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#savecolumns-liststr-none-none-bool" class="md-nav__link">
+  <a href="#class-attributes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        save(columns: list[str] | None = None) -&gt; bool
+        Class attributes
       
     </span>
   </a>
@@ -944,10 +961,60 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#delete-bool" class="md-nav__link">
+  <a href="#methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        delete() -&gt; bool
+        Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#async-def-savecolumns-liststr-none-none-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        async def save(columns: list[str] | None = None) -&gt; bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#async-def-delete-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        async def delete() -&gt; bool
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-meta-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Meta members
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optional-meta-members" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optional Meta members
       
     </span>
   </a>
@@ -960,10 +1027,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#meta-configuration" class="md-nav__link">
+  <a href="#queryset_property" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Meta configuration
+        queryset_property
       
     </span>
   </a>
@@ -971,13 +1038,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#queryset-property" class="md-nav__link">
+  <a href="#transaction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Queryset property
+        Transaction
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Transaction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#methods_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1157,60 +1241,41 @@
 
 
 
-<h1 id="databasemodel">DatabaseModel</h1>
-<p>Reference for the <code>DatabaseModel</code> base class and related helpers.</p>
-<h2 id="attributes">Attributes</h2>
+<h1 id="database-models-api">Database Models API</h1>
+<h2 id="databasemodel"><code>DatabaseModel</code></h2>
+<p>Base class for all FastPG models.</p>
+<h3 id="class-attributes">Class attributes</h3>
 <ul>
-<li><code>async_queryset</code> – descriptor returning an <code>AsyncQuerySet</code> bound to the model.</li>
-<li><code>model_config</code> – defaults to <code>ConfigDict(extra="allow")</code>, enabling unknown
-  columns (useful for <code>SELECT</code> statements with computed fields).</li>
+<li><code>async_queryset</code>: descriptor returning a new <code>AsyncQuerySet(model=cls)</code>.</li>
+<li><code>write_connection</code>: populated from the current FastPG instance.</li>
 </ul>
-<h2 id="instance-methods">Instance methods</h2>
-<h3 id="savecolumns-liststr-none-none-bool"><code>save(columns: list[str] | None = None) -&gt; bool</code></h3>
-<p>Update the current row in the database. When <code>columns</code> is omitted, all fields on
-the model are persisted. Returns <code>True</code> if at least one row was updated.</p>
-<h3 id="delete-bool"><code>delete() -&gt; bool</code></h3>
-<p>Delete the current row and return whether a row was removed.</p>
-<p>Both methods rely on the <code>Meta.primary_key</code> value to build the <code>WHERE</code> clause.</p>
-<h2 id="meta-configuration">Meta configuration</h2>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>db_table</code></td>
-<td>Name of the table to query. Required.</td>
-</tr>
-<tr>
-<td><code>primary_key</code></td>
-<td>Name of the primary key column. Defaults to <code>"id"</code>.</td>
-</tr>
-<tr>
-<td><code>auto_generated_fields</code></td>
-<td>Sequence of fields removed from insert statements.</td>
-</tr>
-<tr>
-<td><code>auto_now_add_fields</code></td>
-<td>Sequence of fields populated once during insert.</td>
-</tr>
-<tr>
-<td><code>auto_now_fields</code></td>
-<td>Sequence of fields refreshed each time <code>save()</code> runs.</td>
-</tr>
-<tr>
-<td><code>relations</code></td>
-<td>Dict mapping relation names to <code>Relation</code> objects.</td>
-</tr>
-</tbody>
-</table>
-<h2 id="queryset-property">Queryset property</h2>
-<p><code>queryset_property</code> is a descriptor similar to <code>@property</code> but designed for
-classes. It powers the <code>async_queryset</code> attribute and can be reused to expose
-custom querysets on your own classes if needed.</p>
+<h3 id="methods">Methods</h3>
+<h4 id="async-def-savecolumns-liststr-none-none-bool"><code>async def save(columns: list[str] | None = None) -&gt; bool</code></h4>
+<p>Updates current row by primary key and returns whether any row changed.</p>
+<h4 id="async-def-delete-bool"><code>async def delete() -&gt; bool</code></h4>
+<p>Deletes current row by primary key and returns whether any row was deleted.</p>
+<h3 id="required-meta-members">Required <code>Meta</code> members</h3>
+<ul>
+<li><code>db_table</code></li>
+<li><code>primary_key</code></li>
+</ul>
+<h3 id="optional-meta-members">Optional <code>Meta</code> members</h3>
+<ul>
+<li><code>auto_generated_fields</code></li>
+<li><code>auto_now_add_fields</code></li>
+<li><code>auto_now_fields</code></li>
+<li><code>relations</code></li>
+</ul>
+<h2 id="queryset_property"><code>queryset_property</code></h2>
+<p>Descriptor used internally for <code>DatabaseModel.async_queryset</code>.</p>
+<h2 id="transaction"><code>Transaction</code></h2>
+<p>Utility class exposing write-connection transaction helpers.</p>
+<h3 id="methods_1">Methods</h3>
+<ul>
+<li><code>Transaction.atomic()</code></li>
+<li><code>await Transaction.start()</code></li>
+<li><code>Transaction.decorator()</code></li>
+</ul>
 
 
 

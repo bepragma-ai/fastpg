@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../reference/json-fields/" class="md-tabs__link">
+        <a href="../../reference/constants/" class="md-tabs__link">
           
   
   
@@ -674,6 +674,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/json-fields/" class="md-nav__link">
         
   
@@ -765,7 +793,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -1048,12 +1076,9 @@
 
 
 
-<h1 id="basic-usage">Basic usage</h1>
-<p>The shop demo models provide an end-to-end tour of FastPG. The example below
-shows how to model inventory, load related data, and keep products in sync from a
-bulk import while staying entirely asynchronous. Links in the comments point to
-the relevant guides for deeper reference.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span><span class="p">,</span> <span class="n">AsyncPaginator</span><span class="p">,</span> <span class="n">OnConflict</span><span class="p">,</span> <span class="n">OrderBy</span><span class="p">,</span> <span class="n">ReturnType</span>
+<h1 id="basic-usage">Basic Usage</h1>
+<p>This example mirrors the <code>test_project</code> shop schema.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span><span class="p">,</span> <span class="n">JsonData</span><span class="p">,</span> <span class="n">OnConflict</span><span class="p">,</span> <span class="n">OrderBy</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Category</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
@@ -1063,67 +1088,57 @@ the relevant guides for deeper reference.</p>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;categories&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">class</span><span class="w"> </span><span class="nc">Product</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">category_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">price</span><span class="p">:</span> <span class="nb">float</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">stock_quantity</span><span class="p">:</span> <span class="nb">int</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;products&quot;</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="c1"># Insert or update a catalogue in one call (see Query API → mutation helpers)</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="n">payload</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="p">{</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="s2">&quot;sku&quot;</span><span class="p">:</span> <span class="s2">&quot;HAT-001&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Logo Baseball Cap&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        <span class="s2">&quot;category_id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>        <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="mf">19.99</span><span class="p">,</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>        <span class="s2">&quot;stock_quantity&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    <span class="p">},</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>    <span class="p">{</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>        <span class="s2">&quot;sku&quot;</span><span class="p">:</span> <span class="s2">&quot;HAT-002&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Wool Beanie&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="s2">&quot;category_id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>        <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="mf">24.99</span><span class="p">,</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>        <span class="s2">&quot;stock_quantity&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>    <span class="p">},</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="p">]</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>
-<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="c1"># [bulk_create](../api/queries.md#mutation-helpers) with conflict handling</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>    <span class="n">payload</span><span class="p">,</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>    <span class="n">on_conflict</span><span class="o">=</span><span class="n">OnConflict</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>    <span class="n">conflict_target</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>    <span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;category_id&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="s2">&quot;stock_quantity&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="p">)</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>
-<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="c1"># Read back the range of products, sorted by price descending</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="n">products</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">price</span><span class="o">=</span><span class="n">OrderBy</span><span class="o">.</span><span class="n">DESCENDING</span><span class="p">)</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>
-<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="c1"># Pull a single product as a dict for light-weight serialisation</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="n">product_data</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a>    <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="s2">&quot;HAT-001&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>    <span class="o">.</span><span class="n">return_as</span><span class="p">(</span><span class="n">ReturnType</span><span class="o">.</span><span class="n">DICT</span><span class="p">)</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="p">)</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a>
-<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a><span class="c1"># Paginate the catalogue for an API response (see [pagination guide](../guides/pagination.md))</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="n">queryset</span> <span class="o">=</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">OrderBy</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">)</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a><span class="n">paginator</span> <span class="o">=</span> <span class="n">AsyncPaginator</span><span class="p">(</span><span class="n">page_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">queryset</span><span class="p">)</span>
-<a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a><span class="n">page1</span> <span class="o">=</span> <span class="k">await</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">Product</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">category_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">price</span><span class="p">:</span> <span class="nb">float</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">stock_quantity</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="n">properties</span><span class="p">:</span> <span class="n">JsonData</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;products&quot;</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p><code>page1["results"]</code> contains a list of <code>Product</code> instances. The paginator
-metadata (total count, page boundaries) lives under <code>page1["results_paginator"]</code>,
-which can be returned directly from a FastAPI route. For details on return
-formats, see <a href="../../api/queries/#changing-the-return-format"><code>return_as</code></a>.</p>
+<p>Bulk upsert-like sync with <code>bulk_create</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">payload</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="s2">&quot;sku&quot;</span><span class="p">:</span> <span class="s2">&quot;SKU-1&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Cap&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;category_id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="mf">15.0</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="s2">&quot;stock_quantity&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;black&quot;</span><span class="p">},</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="p">},</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="p">{</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="s2">&quot;sku&quot;</span><span class="p">:</span> <span class="s2">&quot;SKU-2&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Tee&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="s2">&quot;category_id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="mf">20.0</span><span class="p">,</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="s2">&quot;stock_quantity&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;size&quot;</span><span class="p">:</span> <span class="s2">&quot;L&quot;</span><span class="p">},</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="p">},</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="p">]</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="n">values</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="n">on_conflict</span><span class="o">=</span><span class="n">OnConflict</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    <span class="n">conflict_target</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>    <span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;category_id&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="s2">&quot;stock_quantity&quot;</span><span class="p">,</span> <span class="s2">&quot;properties&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="p">)</span>
+</code></pre></div>
+<p>Read and mutate:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">products</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">OrderBy</span><span class="o">.</span><span class="n">ASCENDING</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stock_quantity__add</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">properties__jsonb_set__color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">)</span>
+</code></pre></div>
 
 
 

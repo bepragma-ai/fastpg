@@ -27,7 +27,7 @@
     
     
       
-        <title>Settings & Logging - FastPG Documentation</title>
+        <title>Settings & Configuration - FastPG Documentation</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#settings-and-logging" class="md-skip">
+        <a href="#settings-and-configuration" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Settings & Logging
+              Settings & Configuration
             
           </span>
         </div>
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../json-fields/" class="md-tabs__link">
+        <a href="../constants/" class="md-tabs__link">
           
   
   
@@ -679,6 +679,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../json-fields/" class="md-nav__link">
         
   
@@ -779,7 +807,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -797,7 +825,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -823,10 +851,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#database-configuration" class="md-nav__link">
+  <a href="#create_fastpg" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Database configuration
+        create_fastpg(...)
       
     </span>
   </a>
@@ -834,10 +862,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connection-routing" class="md-nav__link">
+  <a href="#databases-config-format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connection routing
+        Databases config format
       
     </span>
   </a>
@@ -856,10 +884,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#sql-logging" class="md-nav__link">
+  <a href="#query-logging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        SQL logging
+        Query logging
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registry-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry helpers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection-manager-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connection manager API
       
     </span>
   </a>
@@ -1129,68 +1179,85 @@
 
 
 
-<h1 id="settings-and-logging">Settings and logging</h1>
-<p>FastPG uses a Python-first configuration API to define database connections,
-timezone handling, and SQL logging.</p>
-<h2 id="database-configuration">Database configuration</h2>
-<p>Create a FastPG instance with <code>create_fastpg</code> and pass a <code>databases</code> mapping.
-Each entry is a named connection with a <code>TYPE</code> (read/write) and credentials.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_fastpg</span><span class="p">,</span> <span class="n">ConnectionType</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">FAST_PG</span> <span class="o">=</span> <span class="n">create_fastpg</span><span class="p">(</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">databases</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="s2">&quot;primary&quot;</span><span class="p">:</span> <span class="p">{</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="n">ConnectionType</span><span class="o">.</span><span class="n">WRITE</span><span class="p">,</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="s2">&quot;USER&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_USER&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="s2">&quot;PASSWORD&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_PASSWORD&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="s2">&quot;DB&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_DB&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="s2">&quot;HOST&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_HOST&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="s2">&quot;PORT&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_PORT&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="p">},</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="s2">&quot;replica_1&quot;</span><span class="p">:</span> <span class="p">{</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>            <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="n">ConnectionType</span><span class="o">.</span><span class="n">READ</span><span class="p">,</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>            <span class="s2">&quot;USER&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_USER&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>            <span class="s2">&quot;PASSWORD&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_PASSWORD&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>            <span class="s2">&quot;DB&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_DB&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>            <span class="s2">&quot;HOST&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_HOST&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>            <span class="s2">&quot;PORT&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_PORT&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="p">},</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="p">},</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="p">)</span>
+<h1 id="settings-and-configuration">Settings And Configuration</h1>
+<h2 id="create_fastpg"><code>create_fastpg(...)</code></h2>
+<p>Primary entry point:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">create_fastpg</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">databases</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">},</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tz_name</span><span class="o">=</span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">query_logger</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;LOG_QUERIES&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;TITLE&quot;</span><span class="p">:</span> <span class="s2">&quot;MY_APP&quot;</span><span class="p">},</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">db_conn_manager_class</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
 </code></pre></div>
-<p>Connections are established when you call <code>connect_all()</code> on the connection
-manager. Each pool uses an asyncpg-powered DSN with a minimum of two
-connections and a maximum of five.</p>
-<h2 id="connection-routing">Connection routing</h2>
-<p>FastPG routes reads and writes based on connection type:</p>
+<h2 id="databases-config-format">Databases config format</h2>
+<p>Each connection entry contains:</p>
 <ul>
-<li>reads use a random <code>ConnectionType.READ</code> connection</li>
-<li>writes always use the single <code>ConnectionType.WRITE</code> connection</li>
+<li><code>TYPE</code>: <code>ConnectionType.READ</code> or <code>ConnectionType.WRITE</code></li>
+<li><code>USER</code></li>
+<li><code>PASSWORD</code></li>
+<li><code>DB</code></li>
+<li><code>HOST</code></li>
+<li><code>PORT</code></li>
 </ul>
-<p>You must configure at least one read connection and exactly one write
-connection. FastPG raises errors if a read connection is missing or multiple
-write connections are supplied.</p>
-<p>To target a specific connection, use <code>using()</code> on a queryset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">orders</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Order</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="s2">&quot;replica_1&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;open&quot;</span><span class="p">)</span>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectionType</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">databases</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="s2">&quot;default&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="n">ConnectionType</span><span class="o">.</span><span class="n">WRITE</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="s2">&quot;USER&quot;</span><span class="p">:</span> <span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="s2">&quot;PASSWORD&quot;</span><span class="p">:</span> <span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="s2">&quot;DB&quot;</span><span class="p">:</span> <span class="s2">&quot;app_db&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="s2">&quot;HOST&quot;</span><span class="p">:</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="s2">&quot;PORT&quot;</span><span class="p">:</span> <span class="mi">5432</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="p">},</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="s2">&quot;replica_1&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="n">ConnectionType</span><span class="o">.</span><span class="n">READ</span><span class="p">,</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="s2">&quot;USER&quot;</span><span class="p">:</span> <span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="s2">&quot;PASSWORD&quot;</span><span class="p">:</span> <span class="s2">&quot;postgres&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="s2">&quot;DB&quot;</span><span class="p">:</span> <span class="s2">&quot;app_db&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="s2">&quot;HOST&quot;</span><span class="p">:</span> <span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        <span class="s2">&quot;PORT&quot;</span><span class="p">:</span> <span class="mi">5433</span><span class="p">,</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="p">},</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="timezone">Timezone</h2>
-<p>Pass <code>tz_name</code> to <code>create_fastpg</code> to control automatic timestamp fields.
-Unknown values fall back to UTC.</p>
-<h2 id="sql-logging">SQL logging</h2>
-<p>Enable SQL timing logs by passing a <code>query_logger</code> dictionary to <code>create_fastpg</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">FAST_PG</span> <span class="o">=</span> <span class="n">create_fastpg</span><span class="p">(</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">databases</span><span class="o">=...</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">query_logger</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="s2">&quot;LOG_QUERIES&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="s2">&quot;TITLE&quot;</span><span class="p">:</span> <span class="s2">&quot;MY_SERVICE&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="p">},</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span>
+<ul>
+<li><code>tz_name</code> controls timezone for automatic timestamp processors.</li>
+<li>Invalid timezone names fallback to <code>UTC</code>.</li>
+</ul>
+<h2 id="query-logging">Query logging</h2>
+<p>Enable DB timing logs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">query_logger</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="s2">&quot;LOG_QUERIES&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">&quot;TITLE&quot;</span><span class="p">:</span> <span class="s2">&quot;SHOP_API&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
 </code></pre></div>
-<p>The logger categorises durations into &lt;1s, 1–5s, 5–10s, and &gt;10s buckets and
-prefixes messages with the configured <code>TITLE</code>. Use standard Python logging
-configuration to route these logs to stdout, files, or observability systems.</p>
+<p>When enabled, logs are emitted from <code>fastpg.utils</code> and bucketed by elapsed time.</p>
+<h2 id="registry-helpers">Registry helpers</h2>
+<p>FastPG supports multiple named instances:</p>
+<ul>
+<li><code>register_fastpg(name, instance)</code></li>
+<li><code>create_fastpg(name=...)</code></li>
+<li><code>get_fastpg(name=None)</code></li>
+<li><code>set_current_fastpg(name)</code></li>
+</ul>
+<p><code>get_fastpg()</code> without <code>name</code> returns the current context-bound instance.</p>
+<h2 id="connection-manager-api">Connection manager API</h2>
+<p><code>DBConnectionManager</code> methods:</p>
+<ul>
+<li><code>connect_all()</code></li>
+<li><code>close_all()</code></li>
+<li><code>get_db_conn(conn_name)</code></li>
+<li><code>db_for_read()</code></li>
+<li><code>db_for_write()</code></li>
+</ul>
+<p>Validation behavior:</p>
+<ul>
+<li>Raises <code>ReadConnectionNotAvailableError</code> if no read connection exists.</li>
+<li>Raises <code>MultipleWriteConnectionsError</code> if more than one write connection is configured.</li>
+</ul>
 
 
 

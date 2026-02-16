@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../reference/json-fields/" class="md-tabs__link">
+        <a href="../../reference/constants/" class="md-tabs__link">
           
   
   
@@ -540,10 +540,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#declaring-a-model" class="md-nav__link">
+  <a href="#model-definition" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Declaring a model
+        Model definition
       
     </span>
   </a>
@@ -562,43 +562,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#accessing-the-queryset" class="md-nav__link">
+  <a href="#instance-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Accessing the queryset
+        Instance methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Instance methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#savecolumns-liststr-none-none-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save(columns: list[str] | None = None) -&gt; bool
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#instance-helpers" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#delete-bool" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Instance helpers
+        delete() -&gt; bool
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#working-with-json-columns" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Working with JSON columns
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#relationships" class="md-nav__link">
+  <a href="#json-fields-in-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Relationships
+        JSON fields in models
       
     </span>
   </a>
@@ -792,6 +798,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/json-fields/" class="md-nav__link">
         
   
@@ -883,7 +917,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -1152,112 +1186,94 @@
 
 
 <h1 id="models">Models</h1>
-<p><code>DatabaseModel</code> is the heart of FastPG. It builds on <code>pydantic.BaseModel</code>, so
-your database records immediately benefit from Pydantic validation, type hints,
-and serialisation helpers.</p>
-<h2 id="declaring-a-model">Declaring a model</h2>
+<p><code>DatabaseModel</code> extends <code>pydantic.BaseModel</code> and is the base class for all FastPG models.</p>
+<h2 id="model-definition">Model definition</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Invoice</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">customer_id</span><span class="p">:</span> <span class="nb">int</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">total</span><span class="p">:</span> <span class="nb">float</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;draft&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">issued_at</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">updated_at</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;invoices&quot;</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">auto_now_add_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;issued_at&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">auto_now_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;updated_at&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">Department</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">location</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;departments&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">auto_now_add_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p>All fields defined on the model map directly to columns in the backing table.
-Default values and <code>Field</code> metadata behave just like in a regular Pydantic
-model.</p>
-<h2 id="meta-options">Meta options</h2>
+<h2 id="meta-options"><code>Meta</code> options</h2>
 <table>
 <thead>
 <tr>
-<th>Attribute</th>
+<th>Option</th>
 <th>Required</th>
-<th>Description</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>db_table</code></td>
-<td>✅</td>
-<td>Name of the table FastPG should query.</td>
+<td>Yes</td>
+<td>Backing PostgreSQL table name.</td>
 </tr>
 <tr>
 <td><code>primary_key</code></td>
-<td>❌ (defaults to <code>"id"</code>)</td>
-<td>Column used to uniquely identify rows.</td>
+<td>No</td>
+<td>Primary key column name.</td>
 </tr>
 <tr>
 <td><code>auto_generated_fields</code></td>
-<td>❌</td>
-<td>Fields that should be omitted on insert (e.g. serial IDs).</td>
+<td>No</td>
+<td>Fields removed before insert.</td>
 </tr>
 <tr>
 <td><code>auto_now_add_fields</code></td>
-<td>❌</td>
-<td>Fields populated with the current timestamp when inserting.</td>
+<td>No</td>
+<td>Fields auto-populated during create/bulk_create if current value is <code>None</code>.</td>
 </tr>
 <tr>
 <td><code>auto_now_fields</code></td>
-<td>❌</td>
-<td>Fields refreshed with the current timestamp on <code>save()</code>.</td>
+<td>No</td>
+<td>Fields auto-populated before <code>save()</code> if current value is <code>None</code>.</td>
 </tr>
 <tr>
 <td><code>relations</code></td>
-<td>❌</td>
-<td>Mapping of relation name → <code>Relation</code> describing joins.</td>
+<td>No</td>
+<td>Mapping of relation name to <code>Relation(...)</code>.</td>
 </tr>
 </tbody>
 </table>
-<p>The automatic timestamp hooks draw the timezone from the <code>tz_name</code> value passed
-to <code>create_fastpg</code>. Invalid or missing values fall back to UTC.</p>
-<h2 id="accessing-the-queryset">Accessing the queryset</h2>
-<p>Every <code>DatabaseModel</code> exposes an <code>async_queryset</code> descriptor that returns an
-<code>AsyncQuerySet</code> bound to the model. The queryset is safe to reuse across
-requests because each query call produces a new instance under the hood.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">invoices</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Invoice</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="s2">&quot;sent&quot;</span><span class="p">)</span>
+<h2 id="instance-methods">Instance methods</h2>
+<h3 id="savecolumns-liststr-none-none-bool"><code>save(columns: list[str] | None = None) -&gt; bool</code></h3>
+<p>Updates the current row using <code>Meta.primary_key</code> in the <code>WHERE</code> clause.</p>
+<ul>
+<li>Returns <code>True</code> if at least one row was updated.</li>
+<li>If <code>columns</code> is omitted, all model fields are included in <code>SET</code>.</li>
+</ul>
+<h3 id="delete-bool"><code>delete() -&gt; bool</code></h3>
+<p>Deletes the current row by <code>Meta.primary_key</code>.</p>
+<ul>
+<li>Returns <code>True</code> if at least one row was deleted.</li>
+</ul>
+<h2 id="json-fields-in-models">JSON fields in models</h2>
+<p>Use <code>JsonData</code> for JSON/JSONB columns:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span><span class="p">,</span> <span class="n">JsonData</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Product</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">properties</span><span class="p">:</span> <span class="n">JsonData</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;products&quot;</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
 </code></pre></div>
-<h2 id="instance-helpers">Instance helpers</h2>
-<p>Use <code>save()</code> to persist modifications to a model instance. Only the columns you
-pass will be updated; if omitted, the method updates every field present on the
-model.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">invoice</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Invoice</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">123</span><span class="p">)</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">invoice</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;paid&quot;</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">await</span> <span class="n">invoice</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">])</span>
-</code></pre></div>
-<p><code>delete()</code> removes the row matching the model's primary key and returns a
-boolean indicating whether a record was deleted.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">invoice</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Invoice</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">123</span><span class="p">)</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">await</span> <span class="n">invoice</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
-</code></pre></div>
-<h2 id="working-with-json-columns">Working with JSON columns</h2>
-<p>If a column stores JSON, annotate it with <code>JsonData</code> for transparent
-serialisation and deserialisation. FastPG will convert Python objects to JSON
-strings when writing and back into Python objects when reading.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonData</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">Event</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">payload</span><span class="p">:</span> <span class="n">JsonData</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;events&quot;</span>
-</code></pre></div>
-<h2 id="relationships">Relationships</h2>
-<p>Attach lightweight relationships via the <code>Meta.relations</code> dictionary. Each entry
-contains a <code>Relation</code> object that specifies how the current table relates to
-another model. See the <a href="../relationships/">relationships guide</a> for details on
-querying related rows.</p>
+<p><code>JsonData</code> serializes dict/list values for DB writes and preserves Python objects in normal model use.</p>
 
 
 

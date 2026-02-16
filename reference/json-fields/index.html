@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://bepragma.ai/reference/json-fields/">
       
       
-        <link rel="prev" href="../../guides/transactions/">
+        <link rel="prev" href="../constants/">
       
       
         <link rel="next" href="../preprocessors/">
@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../constants/" class="md-tabs__link">
           
   
   
@@ -676,6 +676,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -754,6 +782,17 @@
     <span class="md-ellipsis">
       
         Helper functions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json-update-operators-in-queryset-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON update operators in queryset update(...)
       
     </span>
   </a>
@@ -839,7 +878,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -1107,34 +1146,44 @@
 
 
 
-<h1 id="json-fields">JSON fields</h1>
-<p>FastPG provides utilities for working with JSON columns stored in PostgreSQL.</p>
+<h1 id="json-fields">JSON Fields</h1>
+<p>FastPG includes JSON helpers in <code>fastpg.fields</code>.</p>
 <h2 id="jsondata"><code>JsonData</code></h2>
-<p>Annotate model attributes with <code>JsonData</code> to enable automatic serialisation and
-deserialisation. The type is defined as an annotated Pydantic <code>Json</code> field with
-custom validators and serializers.</p>
+<p><code>JsonData</code> is an annotated Pydantic type for JSON-compatible values.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span><span class="p">,</span> <span class="n">JsonData</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">AuditLog</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">payload</span><span class="p">:</span> <span class="n">JsonData</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;audit_logs&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Product</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">properties</span><span class="p">:</span> <span class="n">JsonData</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;products&quot;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p>When a model instance is persisted, FastPG serialises dictionaries and lists to
-JSON strings using a custom encoder that understands <code>datetime</code> objects. When
-reading from the database, JSON strings are converted back to Python objects.</p>
+<p>Behavior:</p>
+<ul>
+<li>For DB writes (<code>model_dump(context={"db_write": True})</code>), dict/list values are serialized to JSON.</li>
+<li>For normal serialization, Python objects are preserved.</li>
+</ul>
 <h2 id="helper-functions">Helper functions</h2>
 <ul>
-<li><code>json_str_to_dict(value)</code> – convert JSON strings into dictionaries; used
-  internally when hydrating models.</li>
-<li><code>validate_json_data(value)</code> – serialise Python objects before insert/update.</li>
-<li><code>serialize_json_data(value, info)</code> – honour the <code>db_write</code> context flag when
-  deciding whether to serialise the data.</li>
+<li><code>json_str_to_dict(value)</code>: if <code>value</code> is a JSON string, parse it.</li>
+<li><code>validate_json_data(data)</code>: serialize dict/list values for validation flow.</li>
+<li><code>serialize_json_data(data, info)</code>: serializer used by <code>JsonData</code>.</li>
 </ul>
-<p>You can use these helpers directly if you need to customise behaviour in your
-own serializers or background tasks.</p>
+<h2 id="json-update-operators-in-queryset-update">JSON update operators in queryset <code>update(...)</code></h2>
+<ul>
+<li><code>field__jsonb={...}</code>: replace JSONB column.</li>
+<li><code>field__jsonb_set__key=value</code>: set one JSON key.</li>
+<li><code>field__jsonb_remove="key"</code>: remove one JSON key.</li>
+</ul>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">properties__jsonb_set__color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">)</span>
+</code></pre></div>
 
 
 

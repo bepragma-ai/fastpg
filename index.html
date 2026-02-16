@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="reference/json-fields/" class="md-tabs__link">
+        <a href="reference/constants/" class="md-tabs__link">
           
   
   
@@ -427,10 +427,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#key-features" class="md-nav__link">
+  <a href="#what-fastpg-gives-you" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key features
+        What FastPG gives you
       
     </span>
   </a>
@@ -438,38 +438,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#project-status-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installation">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Configuration
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quickstart" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Quickstart
+        Project status notes
       
     </span>
   </a>
@@ -477,10 +449,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#project-layout" class="md-nav__link">
+  <a href="#minimal-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Project layout
+        Minimal example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read next
       
     </span>
   </a>
@@ -780,6 +763,34 @@
   
   
     <li class="md-nav__item">
+      <a href="reference/constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="reference/json-fields/" class="md-nav__link">
         
   
@@ -871,7 +882,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -1140,108 +1151,51 @@
 
 
 <h1 id="fastpg">FastPG</h1>
-<p>FastPG is a lightweight asynchronous ORM for PostgreSQL applications that favour
-explicit SQL while still benefiting from Pydantic validation. The project wraps
-<a href="https://www.encode.io/databases/"><code>databases</code></a> with a Django-inspired query API
-that fits naturally inside FastAPI services.</p>
-<h2 id="key-features">Key features</h2>
+<p>FastPG is a lightweight async ORM for PostgreSQL built on top of <code>pydantic</code> and <code>databases</code>.
+It keeps SQL explicit, but removes repetitive CRUD and serialization plumbing.</p>
+<h2 id="what-fastpg-gives-you">What FastPG gives you</h2>
 <ul>
-<li><strong>Pydantic-first models</strong> – database rows are hydrated directly into
-  subclasses of <code>DatabaseModel</code>, allowing you to re-use the same schemas for
-  request/response modelling in FastAPI.</li>
-<li><strong>Async query builder</strong> – chainable <code>AsyncQuerySet</code> objects expose familiar
-  helpers such as <code>get</code>, <code>filter</code>, <code>count</code>, <code>update</code>, <code>delete</code>, and
-  <code>get_or_create</code> while emitting parameterised SQL under the hood.</li>
-<li><strong>Composable filtering</strong> – the <code>Q</code> helper and Django-style lookup suffixes
-  provide rich filtering, including nested <code>OR</code> conditions, range comparisons,
-  JSON updates, and null handling.</li>
-<li><strong>Relationship loading</strong> – define lightweight relations with <code>Relation</code> and
-  fetch related rows via <code>select_related</code> and <code>filter_related</code> in a single round
-  trip.</li>
-<li><strong>Bulk operations and pagination</strong> – insert many rows at once with optional
-  conflict handling and page any queryset or raw SQL result using the bundled
-  paginator classes.</li>
-<li><strong>Production niceties</strong> – automatic timestamp management, JSON field helpers,
-  configurable logging of SQL execution times, and guard rails around unsafe
-  updates and deletes.</li>
+<li>Pydantic-based models (<code>DatabaseModel</code>) with async CRUD helpers.</li>
+<li>Chainable query builder (<code>AsyncQuerySet</code>) with Django-style lookup operators.</li>
+<li>Lightweight relationship loading (<code>select_related</code>, <code>prefetch_related</code>).</li>
+<li>Bulk inserts with optional PostgreSQL conflict handling.</li>
+<li>JSON field helpers and JSONB update operators.</li>
+<li>Built-in paginators for querysets and raw SQL.</li>
+<li>Transaction helpers and query timing logs.</li>
 </ul>
-<h2 id="installation">Installation</h2>
-<p>FastPG requires Python 3.9 or newer.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/bepragma-ai/fastpg.git
-</code></pre></div>
-<h3 id="configuration">Configuration</h3>
-<p>FastPG is configured in Python via <code>create_fastpg</code>. You can still read
-credentials from environment variables, but you decide how to wire them into
-the <code>databases</code> mapping.</p>
-<h2 id="quickstart">Quickstart</h2>
-<p>Below is a minimal FastAPI application showcasing model declaration,
-connection management, and CRUD helpers.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_fastpg</span><span class="p">,</span> <span class="n">ConnectionType</span><span class="p">,</span> <span class="n">DatabaseModel</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">Customer</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;customers&quot;</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="n">auto_now_add_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">]</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">()</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="n">FAST_PG</span> <span class="o">=</span> <span class="n">create_fastpg</span><span class="p">(</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    <span class="n">databases</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        <span class="s2">&quot;primary&quot;</span><span class="p">:</span> <span class="p">{</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>            <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="n">ConnectionType</span><span class="o">.</span><span class="n">WRITE</span><span class="p">,</span>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>            <span class="s2">&quot;USER&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_USER&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>            <span class="s2">&quot;PASSWORD&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_PASSWORD&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>            <span class="s2">&quot;DB&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_DB&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>            <span class="s2">&quot;HOST&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_HOST&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>            <span class="s2">&quot;PORT&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_WRITE_PORT&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>        <span class="p">},</span>
-<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>        <span class="s2">&quot;replica_1&quot;</span><span class="p">:</span> <span class="p">{</span>
-<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>            <span class="s2">&quot;TYPE&quot;</span><span class="p">:</span> <span class="n">ConnectionType</span><span class="o">.</span><span class="n">READ</span><span class="p">,</span>
-<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>            <span class="s2">&quot;USER&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_USER&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>            <span class="s2">&quot;PASSWORD&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_PASSWORD&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>            <span class="s2">&quot;DB&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_DB&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>            <span class="s2">&quot;HOST&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_HOST&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>            <span class="s2">&quot;PORT&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;POSTGRES_READ_PORT&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>        <span class="p">},</span>
-<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>    <span class="p">},</span>
-<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>    <span class="n">tz_name</span><span class="o">=</span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="p">)</span>
-<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>
-<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="nd">@app</span><span class="o">.</span><span class="n">on_event</span><span class="p">(</span><span class="s2">&quot;startup&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">connect_db</span><span class="p">():</span>
-<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>    <span class="k">await</span> <span class="n">FAST_PG</span><span class="o">.</span><span class="n">db_conn_manager</span><span class="o">.</span><span class="n">connect_all</span><span class="p">()</span>
-<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>
-<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="nd">@app</span><span class="o">.</span><span class="n">on_event</span><span class="p">(</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">close_db</span><span class="p">():</span>
-<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a>    <span class="k">await</span> <span class="n">FAST_PG</span><span class="o">.</span><span class="n">db_conn_manager</span><span class="o">.</span><span class="n">close_all</span><span class="p">()</span>
-<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>
-<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/customers&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_customers</span><span class="p">():</span>
-<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a>    <span class="k">return</span> <span class="k">await</span> <span class="n">Customer</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a>
-<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="nd">@app</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/customers&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_customer</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a>    <span class="k">return</span> <span class="k">await</span> <span class="n">Customer</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">email</span><span class="p">)</span>
-</code></pre></div>
-<h2 id="project-layout">Project layout</h2>
+<h2 id="project-status-notes">Project status notes</h2>
+<p>This documentation reflects the current source in <code>src/fastpg</code>.</p>
 <ul>
-<li><code>fastpg/</code> – the core library (models, query builder, pagination, utilities).</li>
-<li><code>docs/</code> – the MkDocs site containing guides and API reference material.</li>
-<li><code>mkdocs.yml</code> – MkDocs configuration, including the navigation tree and theme.</li>
+<li><code>create(..., on_conflict=...)</code> currently accepts conflict args but does not apply an <code>ON CONFLICT</code> clause.</li>
+<li><code>bulk_create(..., on_conflict=...)</code> does support <code>OnConflict.DO_NOTHING</code> and <code>OnConflict.UPDATE</code>.</li>
+<li><code>update()</code> and <code>delete()</code> should always be chained after <code>filter(...)</code> to ensure a valid <code>WHERE</code> clause.</li>
 </ul>
-<p>Read on for a deeper dive into models, query construction, pagination, and
-advanced patterns. The <a href="reference/settings/">settings reference</a> details the
-Pythonic configuration options and routing rules for connections.</p>
+<h2 id="minimal-example">Minimal example</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">User</span><span class="p">(</span><span class="n">DatabaseModel</span><span class="p">):</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;users&quot;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_users</span><span class="p">():</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">return</span> <span class="k">await</span> <span class="n">User</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</code></pre></div>
+<h2 id="read-next">Read next</h2>
+<ul>
+<li><code>getting-started.md</code></li>
+<li><code>guides/models.md</code></li>
+<li><code>guides/querysets.md</code></li>
+<li><code>guides/relationships.md</code></li>
+<li><code>guides/pagination.md</code></li>
+<li><code>guides/transactions.md</code></li>
+</ul>
 
 
 

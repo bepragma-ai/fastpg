@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../json-fields/" class="md-tabs__link">
+        <a href="../constants/" class="md-tabs__link">
           
   
   
@@ -679,6 +679,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../json-fields/" class="md-nav__link">
         
   
@@ -767,32 +795,77 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#timezone-detection" class="md-nav__link">
+  <a href="#precreateprocessors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Timezone detection
+        PreCreateProcessors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PreCreateProcessors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#model_obj_populate_auto_now_add_fieldsmodel_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        model_obj_populate_auto_now_add_fields(model_obj)
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#creation-hooks" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#model_dict_populate_auto_generated_fieldsmodel_dict-model_cls" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creation hooks
+        model_dict_populate_auto_generated_fields(model_dict, model_cls)
       
     </span>
   </a>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#update-hooks" class="md-nav__link">
+  <a href="#presaveprocessors" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Update hooks
+        PreSaveProcessors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PreSaveProcessors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#model_obj_populate_auto_now_fieldsmodel_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        model_obj_populate_auto_now_fields(model_obj)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-preprocessors-are-used" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where preprocessors are used
       
     </span>
   </a>
@@ -850,7 +923,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -1119,34 +1192,31 @@
 
 
 <h1 id="preprocessors">Preprocessors</h1>
-<p>FastPG applies a handful of pre-save hooks to keep timestamp fields up to date
-without littering your application code with <code>datetime.utcnow()</code> calls.</p>
-<h2 id="timezone-detection">Timezone detection</h2>
-<p>The library uses the <code>tz_name</code> value passed to <code>create_fastpg</code> to determine
-which timezone should be used when populating automatic timestamp fields. If
-the value is missing or invalid, UTC is used as a safe default.</p>
-<h2 id="creation-hooks">Creation hooks</h2>
-<p><code>PreCreateProcessors.model_obj_populate_auto_now_add_fields(model_obj)</code></p>
+<p>FastPG applies lightweight preprocessors around create/save operations.</p>
+<h2 id="precreateprocessors"><code>PreCreateProcessors</code></h2>
+<h3 id="model_obj_populate_auto_now_add_fieldsmodel_obj"><code>model_obj_populate_auto_now_add_fields(model_obj)</code></h3>
 <ul>
-<li>Populates each field listed in <code>Meta.auto_now_add_fields</code> with the current
-  timezone-aware datetime.</li>
-<li>Invoked automatically during <code>create</code> and <code>bulk_create</code> operations before the
-  model is serialised and inserted.</li>
+<li>Reads <code>model_obj.Meta.auto_now_add_fields</code>.</li>
+<li>For each listed field: if current value is <code>None</code>, sets <code>datetime.now(fastpg.TZ)</code>.</li>
 </ul>
-<p><code>PreCreateProcessors.model_dict_populate_auto_generated_fields(model_dict, model_cls)</code></p>
+<h3 id="model_dict_populate_auto_generated_fieldsmodel_dict-model_cls"><code>model_dict_populate_auto_generated_fields(model_dict, model_cls)</code></h3>
 <ul>
-<li>Removes any fields marked in <code>Meta.auto_generated_fields</code> from the payload
-  before inserting, allowing PostgreSQL defaults or sequences to take over.</li>
+<li>Reads <code>model_cls.Meta.auto_generated_fields</code>.</li>
+<li>Deletes those keys from insert payload before SQL execution.</li>
 </ul>
-<h2 id="update-hooks">Update hooks</h2>
-<p><code>PreSaveProcessors.model_obj_populate_auto_now_fields(model_obj)</code></p>
+<h2 id="presaveprocessors"><code>PreSaveProcessors</code></h2>
+<h3 id="model_obj_populate_auto_now_fieldsmodel_obj"><code>model_obj_populate_auto_now_fields(model_obj)</code></h3>
 <ul>
-<li>Populates each field listed in <code>Meta.auto_now_fields</code> prior to calling <code>save</code>.</li>
-<li>Ensures updated timestamps always reflect the time of the update, regardless
-  of what the caller set on the model instance.</li>
+<li>Reads <code>model_obj.Meta.auto_now_fields</code>.</li>
+<li>For each listed field: if current value is <code>None</code>, sets <code>datetime.now(fastpg.TZ)</code>.</li>
 </ul>
-<p>These hooks are automatically wired into the ORM, but they can also be called
-manually if you need similar behaviour in custom scripts.</p>
+<h2 id="where-preprocessors-are-used">Where preprocessors are used</h2>
+<ul>
+<li><code>AsyncQuerySet.create(...)</code></li>
+<li><code>AsyncQuerySet.bulk_create(...)</code></li>
+<li><code>DatabaseModel.save(...)</code></li>
+</ul>
+<p>These helpers fail open when optional <code>Meta</code> lists are not defined.</p>
 
 
 

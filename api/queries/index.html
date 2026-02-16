@@ -273,7 +273,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../reference/json-fields/" class="md-tabs__link">
+        <a href="../../reference/constants/" class="md-tabs__link">
           
   
   
@@ -674,6 +674,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/json-fields/" class="md-nav__link">
         
   
@@ -765,7 +793,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -938,22 +966,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#asyncqueryset" class="md-nav__link">
+  <a href="#asyncquerysetmodel" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AsyncQuerySet
+        AsyncQuerySet(model)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="AsyncQuerySet">
+    <nav class="md-nav" aria-label="AsyncQuerySet(model)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#creation-helpers" class="md-nav__link">
+  <a href="#core-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Creation helpers
+        Core methods
       
     </span>
   </a>
@@ -961,10 +989,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#retrieval-helpers" class="md-nav__link">
+  <a href="#relationship-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Retrieval helpers
+        Relationship methods
       
     </span>
   </a>
@@ -972,10 +1000,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#mutation-helpers" class="md-nav__link">
+  <a href="#mutation-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mutation helpers
+        Mutation methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#await-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Await behavior
       
     </span>
   </a>
@@ -988,10 +1027,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#asyncrawquery" class="md-nav__link">
+  <a href="#asyncrawqueryquery-usingnone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AsyncRawQuery
+        AsyncRawQuery(query, using=None)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AsyncRawQuery(query, using=None)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asyncpaginatorpage_size-queryset-usingnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AsyncPaginator(page_size, queryset, using=None)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rawqueryasyncpaginator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RawQueryAsyncPaginator(...)
       
     </span>
   </a>
@@ -1147,131 +1225,56 @@
 
 
 <h1 id="query-api">Query API</h1>
-<p>The query API comprises <code>AsyncQuerySet</code> for model-bound operations and
-<code>AsyncRawQuery</code> for ad-hoc SQL.</p>
-<h2 id="asyncqueryset">AsyncQuerySet</h2>
-<h3 id="creation-helpers">Creation helpers</h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>create(**kwargs)</code></td>
-<td>Insert a single row and return the model instance.</td>
-</tr>
-<tr>
-<td><code>bulk_create(values, skip_validations=False, on_conflict=None, ...)</code></td>
-<td>Batch insert. Supports <code>OnConflict.DO_NOTHING</code> and <code>OnConflict.UPDATE</code>.</td>
-</tr>
-<tr>
-<td><code>get_or_create(defaults=None, **lookup)</code></td>
-<td>Return an existing row or create one from <code>defaults</code>.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="retrieval-helpers">Retrieval helpers</h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>get(**filters)</code></td>
-<td>Fetch a single row.</td>
-</tr>
-<tr>
-<td><code>filter(*conditions, **filters)</code></td>
-<td>Fetch multiple rows using keyword lookups or <code>Q</code> objects.</td>
-</tr>
-<tr>
-<td><code>all()</code></td>
-<td>Return every row.</td>
-</tr>
-<tr>
-<td><code>count()</code></td>
-<td>Return the number of matching rows.</td>
-</tr>
-<tr>
-<td><code>columns(*names)</code></td>
-<td>Select a subset of columns.</td>
-</tr>
-<tr>
-<td><code>order_by(**clauses)</code></td>
-<td>Accepts a mapping of column → <code>"ASC"</code>/<code>"DESC"</code>.</td>
-</tr>
-<tr>
-<td><code>limit(n)</code> / <code>offset(n)</code></td>
-<td>Apply pagination clauses.</td>
-</tr>
-<tr>
-<td><code>return_as(ReturnType)</code></td>
-<td>Switch between model instances and dictionaries.</td>
-</tr>
-<tr>
-<td><code>select_related(*relation_names)</code></td>
-<td>Join related tables defined in <code>Meta.relations</code>.</td>
-</tr>
-<tr>
-<td><code>filter_related(*conditions, **filters)</code></td>
-<td>Apply filters to the joined tables.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="mutation-helpers">Mutation helpers</h3>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>update(**values)</code></td>
-<td>Update rows matching the current filters. Supports arithmetic (<code>__add</code>, <code>__sub</code>, <code>__mul</code>, <code>__div</code>), JSON (<code>__jsonb</code>, <code>__jsonb_set__path</code>, <code>__jsonb_remove</code>), and interval (<code>__add_time</code>, <code>__sub_time</code>) suffixes.</td>
-</tr>
-<tr>
-<td><code>delete()</code></td>
-<td>Delete rows matching the filters.</td>
-</tr>
-</tbody>
-</table>
-<p>Awaiting a queryset triggers execution. If no terminal method has been called,
-<code>MalformedQuerysetError</code> is raised.</p>
-<h2 id="asyncrawquery">AsyncRawQuery</h2>
-<p><code>AsyncRawQuery</code> wraps raw SQL statements while still providing consistent error
-handling.</p>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>fetch(values)</code></td>
-<td>Execute a SELECT-like statement and return dictionaries.</td>
-</tr>
-<tr>
-<td><code>execute(values)</code></td>
-<td>Execute a modifying statement.</td>
-</tr>
-<tr>
-<td><code>execute_many(list_of_values)</code></td>
-<td>Execute the same statement with multiple sets of parameters.</td>
-</tr>
-</tbody>
-</table>
-<p>Use raw queries when you need window functions, CTEs, or other constructs that
-are easier to express directly in SQL.</p>
+<h2 id="asyncquerysetmodel"><code>AsyncQuerySet(model)</code></h2>
+<p>Main query builder for model operations.</p>
+<h3 id="core-methods">Core methods</h3>
+<ul>
+<li><code>using(conn_name)</code></li>
+<li><code>columns(*columns)</code></li>
+<li><code>get(*conditions, **filters)</code></li>
+<li><code>filter(*conditions, **filters)</code></li>
+<li><code>all()</code></li>
+<li><code>count()</code></li>
+<li><code>order_by(**order_by)</code></li>
+<li><code>limit(fetch_limit)</code></li>
+<li><code>offset(fetch_offset)</code></li>
+<li><code>return_as(return_type)</code></li>
+</ul>
+<h3 id="relationship-methods">Relationship methods</h3>
+<ul>
+<li><code>select_related(*relation_names)</code></li>
+<li><code>filter_related(*conditions, **filters)</code></li>
+<li><code>prefetch_related(*prefetches)</code></li>
+</ul>
+<h3 id="mutation-methods">Mutation methods</h3>
+<ul>
+<li><code>create(on_conflict=None, conflict_target=None, update_fields=None, **kwargs)</code></li>
+<li><code>bulk_create(values, skip_validations=False, on_conflict=None, conflict_target=None, update_fields=None)</code></li>
+<li><code>get_or_create(defaults, **kwargs)</code></li>
+<li><code>update_or_create(defaults, **kwargs)</code></li>
+<li><code>update(**kwargs)</code></li>
+<li><code>delete()</code></li>
+</ul>
+<h3 id="await-behavior">Await behavior</h3>
+<p>Awaiting queryset executes SQL and returns based on action:</p>
+<ul>
+<li><code>get()</code> -&gt; one model/dict, or raises cardinality errors.</li>
+<li><code>filter()</code> / <code>all()</code> -&gt; list.</li>
+<li><code>count()</code> -&gt; integer.</li>
+<li><code>update()</code> / <code>delete()</code> -&gt; affected row count from write query.</li>
+</ul>
+<h2 id="asyncrawqueryquery-usingnone"><code>AsyncRawQuery(query, using=None)</code></h2>
+<p>Raw SQL wrapper with FastPG error handling.</p>
+<h3 id="methods">Methods</h3>
+<ul>
+<li><code>fetch(values)</code> -&gt; list of dict records (read connection)</li>
+<li><code>execute(values)</code> -&gt; execute single write query</li>
+<li><code>execute_many(list_of_values)</code> -&gt; execute write query with many parameter sets</li>
+</ul>
+<h2 id="asyncpaginatorpage_size-queryset-usingnone"><code>AsyncPaginator(page_size, queryset, using=None)</code></h2>
+<p>Paginates an <code>AsyncQuerySet</code> and returns <code>results</code> plus <code>results_paginator</code> metadata.</p>
+<h2 id="rawqueryasyncpaginator"><code>RawQueryAsyncPaginator(...)</code></h2>
+<p>Paginates raw SQL with optional serializer and auto <code>LIMIT/OFFSET</code> handling.</p>
 
 
 

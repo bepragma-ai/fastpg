@@ -275,7 +275,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../json-fields/" class="md-tabs__link">
+        <a href="../constants/" class="md-tabs__link">
           
   
   
@@ -679,6 +679,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants & Helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../json-fields/" class="md-nav__link">
         
   
@@ -795,10 +823,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#configuration-errors" class="md-nav__link">
+  <a href="#connection-and-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Configuration errors
+        Connection and configuration
       
     </span>
   </a>
@@ -806,10 +834,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#query-construction" class="md-nav__link">
+  <a href="#query-construction-and-operators" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Query construction
+        Query construction and operators
       
     </span>
   </a>
@@ -817,10 +845,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-cardinality" class="md-nav__link">
+  <a href="#result-shape-and-cardinality" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Result cardinality
+        Result shape and cardinality
       
     </span>
   </a>
@@ -828,10 +856,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#mutations" class="md-nav__link">
+  <a href="#mutation-safety" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mutations
+        Mutation safety
       
     </span>
   </a>
@@ -850,10 +878,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#database-level-failures" class="md-nav__link">
+  <a href="#database-execution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Database-level failures
+        Database execution
       
     </span>
   </a>
@@ -883,7 +911,7 @@
   <span class="md-ellipsis">
     
   
-    Settings & Logging
+    Settings & Configuration
   
 
     
@@ -1152,48 +1180,44 @@
 
 
 <h1 id="errors">Errors</h1>
-<p>FastPG raises descriptive exceptions to help you handle edge cases gracefully.</p>
-<h2 id="configuration-errors">Configuration errors</h2>
+<p>FastPG defines explicit exception classes in <code>fastpg.errors</code>.</p>
+<h2 id="connection-and-configuration">Connection and configuration</h2>
 <ul>
-<li><code>MalformedMetaError(model_name)</code> – raised when a model's <code>Meta</code> class is
-  missing required attributes such as <code>db_table</code> or <code>primary_key</code>.</li>
-<li><code>MalformedQuerysetError(model_name)</code> – raised when a queryset is awaited
-  without calling one of the terminal methods (<code>get</code>, <code>filter</code>, <code>all</code>, <code>count</code>,
-  <code>update</code>, or <code>delete</code>).</li>
+<li><code>ReadConnectionNotAvailableError</code></li>
+<li><code>MultipleWriteConnectionsError</code></li>
+<li><code>InvalidConnectionNameError</code></li>
+<li><code>FastPGInstanceNotConfiguredError</code></li>
+<li><code>MalformedMetaError</code></li>
+<li><code>MalformedQuerysetError</code></li>
 </ul>
-<h2 id="query-construction">Query construction</h2>
+<h2 id="query-construction-and-operators">Query construction and operators</h2>
 <ul>
-<li><code>InvalidINClauseValueError</code> – raised when the value supplied to <code>__in</code> is not a
-  non-empty list.</li>
-<li><code>UnsupportedOperatorError</code> – raised when an unknown lookup suffix is used in a
-  filter or update expression.</li>
+<li><code>InvalidINClauseValueError</code></li>
+<li><code>UnsupportedOperatorError</code></li>
+<li><code>InvalidRelatedFieldError</code></li>
+<li><code>InvalidPrefetchError</code></li>
 </ul>
-<h2 id="result-cardinality">Result cardinality</h2>
+<h2 id="result-shape-and-cardinality">Result shape and cardinality</h2>
 <ul>
-<li><code>DoesNotExist</code> – thrown by <code>get</code> when no row matches the filters.</li>
-<li><code>MultipleRecordsFound</code> – thrown by <code>get</code> when more than one row matches.</li>
+<li><code>DoesNotExist</code></li>
+<li><code>MultipleRecordsFound</code></li>
 </ul>
-<h2 id="mutations">Mutations</h2>
+<h2 id="mutation-safety">Mutation safety</h2>
 <ul>
-<li><code>DuplicateKeyDatabaseError</code> – wraps PostgreSQL's <code>23505</code> errors during insert
-  or update operations.</li>
-<li><code>NothingToCreateError</code> – raised when <code>bulk_create</code> is called with an empty
-  payload.</li>
-<li><code>UnrestrictedUpdateError</code> / <code>UnrestrictedDeleteError</code> – protect against
-  accidental full-table updates or deletes by requiring a filter clause.</li>
+<li><code>NothingToCreateError</code></li>
+<li><code>UnrestrictedUpdateError</code></li>
+<li><code>UnrestrictedDeleteError</code></li>
 </ul>
 <h2 id="pagination">Pagination</h2>
 <ul>
-<li><code>InvalidPageError</code> – raised when requesting a page number less than 1.</li>
+<li><code>InvalidPageError</code></li>
 </ul>
-<h2 id="database-level-failures">Database-level failures</h2>
+<h2 id="database-execution">Database execution</h2>
 <ul>
-<li><code>DatabaseError</code> – a generic wrapper capturing the underlying exception type
-  and SQLSTATE code. Querysets and raw queries raise this when the database
-  driver fails or returns an error outside of the specialised cases above.</li>
+<li><code>DatabaseError</code></li>
+<li><code>DuplicateKeyDatabaseError</code></li>
 </ul>
-<p>Handle these exceptions in your application code to return meaningful error
-responses or trigger compensating actions.</p>
+<p><code>DatabaseError</code> includes SQLSTATE and driver exception class name when available.</p>
 
 
 
