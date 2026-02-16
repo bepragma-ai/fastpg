@@ -1,35 +1,46 @@
-# JSON fields
+# JSON Fields
 
-FastPG provides utilities for working with JSON columns stored in PostgreSQL.
+FastPG includes JSON helpers in `fastpg.fields`.
 
 ## `JsonData`
 
-Annotate model attributes with `JsonData` to enable automatic serialisation and
-deserialisation. The type is defined as an annotated Pydantic `Json` field with
-custom validators and serializers.
+`JsonData` is an annotated Pydantic type for JSON-compatible values.
 
 ```python
 from fastpg import DatabaseModel, JsonData
 
-class AuditLog(DatabaseModel):
+
+class Product(DatabaseModel):
     id: int | None = None
-    payload: JsonData
+    properties: JsonData = {}
 
     class Meta:
-        db_table = "audit_logs"
+        db_table = "products"
+        primary_key = "id"
+        auto_generated_fields = ["id"]
 ```
 
-When a model instance is persisted, FastPG serialises dictionaries and lists to
-JSON strings using a custom encoder that understands `datetime` objects. When
-reading from the database, JSON strings are converted back to Python objects.
+Behavior:
+
+- For DB writes (`model_dump(context={"db_write": True})`), dict/list values are serialized to JSON.
+- For normal serialization, Python objects are preserved.
 
 ## Helper functions
 
-- `json_str_to_dict(value)` – convert JSON strings into dictionaries; used
-  internally when hydrating models.
-- `validate_json_data(value)` – serialise Python objects before insert/update.
-- `serialize_json_data(value, info)` – honour the `db_write` context flag when
-  deciding whether to serialise the data.
+- `json_str_to_dict(value)`: if `value` is a JSON string, parse it.
+- `validate_json_data(data)`: serialize dict/list values for validation flow.
+- `serialize_json_data(data, info)`: serializer used by `JsonData`.
 
-You can use these helpers directly if you need to customise behaviour in your
-own serializers or background tasks.
+## JSON update operators in queryset `update(...)`
+
+- `field__jsonb={...}`: replace JSONB column.
+- `field__jsonb_set__key=value`: set one JSON key.
+- `field__jsonb_remove="key"`: remove one JSON key.
+
+Example:
+
+```python
+await Product.async_queryset.filter(id=1).update(
+    properties__jsonb_set__color="blue",
+)
+```

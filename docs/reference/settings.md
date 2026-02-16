@@ -1,80 +1,95 @@
-# Settings and logging
+# Settings And Configuration
 
-FastPG uses a Python-first configuration API to define database connections,
-timezone handling, and SQL logging.
+## `create_fastpg(...)`
 
-## Database configuration
-
-Create a FastPG instance with `create_fastpg` and pass a `databases` mapping.
-Each entry is a named connection with a `TYPE` (read/write) and credentials.
+Primary entry point:
 
 ```python
-import os
-from fastpg import create_fastpg, ConnectionType
-
-FAST_PG = create_fastpg(
+create_fastpg(
     name="default",
-    databases={
-        "primary": {
-            "TYPE": ConnectionType.WRITE,
-            "USER": os.environ["POSTGRES_WRITE_USER"],
-            "PASSWORD": os.environ["POSTGRES_WRITE_PASSWORD"],
-            "DB": os.environ["POSTGRES_WRITE_DB"],
-            "HOST": os.environ["POSTGRES_WRITE_HOST"],
-            "PORT": os.environ["POSTGRES_WRITE_PORT"],
-        },
-        "replica_1": {
-            "TYPE": ConnectionType.READ,
-            "USER": os.environ["POSTGRES_READ_USER"],
-            "PASSWORD": os.environ["POSTGRES_READ_PASSWORD"],
-            "DB": os.environ["POSTGRES_READ_DB"],
-            "HOST": os.environ["POSTGRES_READ_HOST"],
-            "PORT": os.environ["POSTGRES_READ_PORT"],
-        },
-    },
+    databases={...},
+    tz_name="UTC",
+    query_logger={"LOG_QUERIES": True, "TITLE": "MY_APP"},
+    db_conn_manager_class=None,
 )
 ```
 
-Connections are established when you call `connect_all()` on the connection
-manager. Each pool uses an asyncpg-powered DSN with a minimum of two
-connections and a maximum of five.
+## Databases config format
 
-## Connection routing
+Each connection entry contains:
 
-FastPG routes reads and writes based on connection type:
+- `TYPE`: `ConnectionType.READ` or `ConnectionType.WRITE`
+- `USER`
+- `PASSWORD`
+- `DB`
+- `HOST`
+- `PORT`
 
-- reads use a random `ConnectionType.READ` connection
-- writes always use the single `ConnectionType.WRITE` connection
-
-You must configure at least one read connection and exactly one write
-connection. FastPG raises errors if a read connection is missing or multiple
-write connections are supplied.
-
-To target a specific connection, use `using()` on a queryset:
+Example:
 
 ```python
-orders = await Order.async_queryset.using("replica_1").filter(status="open")
+from fastpg import ConnectionType
+
+databases = {
+    "default": {
+        "TYPE": ConnectionType.WRITE,
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "DB": "app_db",
+        "HOST": "127.0.0.1",
+        "PORT": 5432,
+    },
+    "replica_1": {
+        "TYPE": ConnectionType.READ,
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "DB": "app_db",
+        "HOST": "127.0.0.1",
+        "PORT": 5433,
+    },
+}
 ```
 
 ## Timezone
 
-Pass `tz_name` to `create_fastpg` to control automatic timestamp fields.
-Unknown values fall back to UTC.
+- `tz_name` controls timezone for automatic timestamp processors.
+- Invalid timezone names fallback to `UTC`.
 
-## SQL logging
+## Query logging
 
-Enable SQL timing logs by passing a `query_logger` dictionary to `create_fastpg`:
+Enable DB timing logs:
 
 ```python
-FAST_PG = create_fastpg(
-    databases=...,
-    query_logger={
-        "LOG_QUERIES": True,
-        "TITLE": "MY_SERVICE",
-    },
-)
+query_logger={
+    "LOG_QUERIES": True,
+    "TITLE": "SHOP_API",
+}
 ```
 
-The logger categorises durations into <1s, 1–5s, 5–10s, and >10s buckets and
-prefixes messages with the configured `TITLE`. Use standard Python logging
-configuration to route these logs to stdout, files, or observability systems.
+When enabled, logs are emitted from `fastpg.utils` and bucketed by elapsed time.
+
+## Registry helpers
+
+FastPG supports multiple named instances:
+
+- `register_fastpg(name, instance)`
+- `create_fastpg(name=...)`
+- `get_fastpg(name=None)`
+- `set_current_fastpg(name)`
+
+`get_fastpg()` without `name` returns the current context-bound instance.
+
+## Connection manager API
+
+`DBConnectionManager` methods:
+
+- `connect_all()`
+- `close_all()`
+- `get_db_conn(conn_name)`
+- `db_for_read()`
+- `db_for_write()`
+
+Validation behavior:
+
+- Raises `ReadConnectionNotAvailableError` if no read connection exists.
+- Raises `MultipleWriteConnectionsError` if more than one write connection is configured.

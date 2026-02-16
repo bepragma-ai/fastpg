@@ -1,12 +1,16 @@
-# Getting started
+# Getting Started
 
-This guide walks through setting up database connections, defining your first
-model, and executing a few queries from a Python REPL or FastAPI application.
+## 1. Install
 
-## 1. Configure connections
+FastPG is currently installed from GitHub:
 
-FastPG uses a Python-first configuration API. Create a FastPG instance with a
-read connection (or replicas) and a single write connection:
+```bash
+pip install git+https://github.com/bepragma-ai/fastpg.git
+```
+
+## 2. Configure FastPG
+
+Create one FastPG instance at app startup.
 
 ```python
 import os
@@ -36,90 +40,87 @@ FAST_PG = create_fastpg(
         },
     },
     tz_name="UTC",
+    query_logger={
+        "LOG_QUERIES": True,
+        "TITLE": "MY_SERVICE",
+    },
 )
 ```
 
-Connect on startup and close on shutdown:
+Connection rules:
+
+- At least one `ConnectionType.READ` connection is required.
+- Only one `ConnectionType.WRITE` connection should be configured.
+- Reads route to a random read connection.
+- Writes always route to the write connection.
+
+## 3. Connect and close pools
 
 ```python
 @app.on_event("startup")
-async def connect_db():
+async def on_startup():
     await FAST_PG.db_conn_manager.connect_all()
 
+
 @app.on_event("shutdown")
-async def close_db():
+async def on_shutdown():
     await FAST_PG.db_conn_manager.close_all()
 ```
 
-For scripts or tests you can manage the lifecycle manually:
-
-```python
-import asyncio
-
-async def bootstrap():
-    await FAST_PG.db_conn_manager.connect_all()
-
-asyncio.run(bootstrap())
-```
-
-FastPG routes reads to a random read connection and writes to the single write
-connection. To target a specific connection for a read, use
-`Customer.async_queryset.using("replica_1")`.
-
-## 2. Declare models
-
-Models inherit from `DatabaseModel` (a `pydantic.BaseModel` subclass). Define a
-nested `Meta` class to configure the backing table, primary key, automatic
-fields, and optional relationships.
+## 4. Define your first model
 
 ```python
 from datetime import datetime
 from fastpg import DatabaseModel
 
+
 class Customer(DatabaseModel):
     id: int | None = None
+    name: str
     email: str
-    is_active: bool = True
     created_at: datetime | None = None
-    updated_at: datetime | None = None
 
     class Meta:
         db_table = "customers"
         primary_key = "id"
         auto_generated_fields = ["id"]
         auto_now_add_fields = ["created_at"]
-        auto_now_fields = ["updated_at"]
 ```
 
-When you call `create` or `save`, FastPG will automatically populate the
-`auto_now*` fields using the timezone chosen in `tz_name`.
-
-## 3. Run queries
-
-Interact with the asynchronous queryset using familiar ORM-style helpers.
+## 5. Run CRUD queries
 
 ```python
-# Insert a row and capture the returned model instance
-customer = await Customer.async_queryset.create(email="ada@example.com")
+# Create
+new_customer = await Customer.async_queryset.create(name="Ada", email="ada@example.com")
 
-# Fetch rows
-first = await Customer.async_queryset.get(id=customer.id)
-active = await Customer.async_queryset.filter(is_active=True)
-count = await Customer.async_queryset.count()
+# Read one
+customer = await Customer.async_queryset.get(id=new_customer.id)
 
-# Update and delete
-await Customer.async_queryset.filter(id=customer.id).update(is_active=False)
-await Customer.async_queryset.filter(id=customer.id).delete()
+# Read many
+customers = await Customer.async_queryset.filter(name__icontains="a")
+
+# Update rows (always filter first)
+updated = await Customer.async_queryset.filter(id=customer.id).update(name="Ada Lovelace")
+
+# Delete rows (always filter first)
+deleted = await Customer.async_queryset.filter(id=customer.id).delete()
 ```
 
-In unit tests you can use `pytest.mark.anyio` or `pytest-asyncio` to run the
-coroutines. The models behave like regular Pydantic models, so you can call
-`.model_dump()` to serialise responses or feed them directly into FastAPI route
-responses.
+## 6. Use model instance helpers
 
-## Next steps
+```python
+customer = await Customer.async_queryset.get(id=1)
+customer.name = "Updated Name"
+await customer.save(columns=["name"])
+await customer.delete()
+```
 
-Read the concept guides for detailed explanations of metadata, filtering,
-relations, and pagination, or jump straight to the API reference for a
-method-by-method breakdown. Connection settings are covered in
-[Settings & Logging](reference/settings.md).
+## 7. Use raw SQL when needed
+
+```python
+from fastpg import AsyncRawQuery
+
+records = await AsyncRawQuery(
+    query="SELECT id, email FROM customers WHERE id > :min_id"
+).fetch(values={"min_id": 10})
+```

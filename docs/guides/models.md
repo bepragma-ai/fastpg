@@ -1,99 +1,70 @@
 # Models
 
-`DatabaseModel` is the heart of FastPG. It builds on `pydantic.BaseModel`, so
-your database records immediately benefit from Pydantic validation, type hints,
-and serialisation helpers.
+`DatabaseModel` extends `pydantic.BaseModel` and is the base class for all FastPG models.
 
-## Declaring a model
+## Model definition
 
 ```python
 from datetime import datetime
 from fastpg import DatabaseModel
 
-class Invoice(DatabaseModel):
+
+class Department(DatabaseModel):
     id: int | None = None
-    customer_id: int
-    total: float
-    status: str = "draft"
-    issued_at: datetime | None = None
-    updated_at: datetime | None = None
+    name: str
+    location: str
+    created_at: datetime | None = None
 
     class Meta:
-        db_table = "invoices"
+        db_table = "departments"
         primary_key = "id"
         auto_generated_fields = ["id"]
-        auto_now_add_fields = ["issued_at"]
-        auto_now_fields = ["updated_at"]
+        auto_now_add_fields = ["created_at"]
 ```
 
-All fields defined on the model map directly to columns in the backing table.
-Default values and `Field` metadata behave just like in a regular Pydantic
-model.
+## `Meta` options
 
-## Meta options
+| Option | Required | Meaning |
+| --- | --- | --- |
+| `db_table` | Yes | Backing PostgreSQL table name. |
+| `primary_key` | No | Primary key column name. |
+| `auto_generated_fields` | No | Fields removed before insert. |
+| `auto_now_add_fields` | No | Fields auto-populated during create/bulk_create if current value is `None`. |
+| `auto_now_fields` | No | Fields auto-populated before `save()` if current value is `None`. |
+| `relations` | No | Mapping of relation name to `Relation(...)`. |
 
-| Attribute | Required | Description |
-|-----------|----------|-------------|
-| `db_table` | ✅ | Name of the table FastPG should query. |
-| `primary_key` | ❌ (defaults to `"id"`) | Column used to uniquely identify rows. |
-| `auto_generated_fields` | ❌ | Fields that should be omitted on insert (e.g. serial IDs). |
-| `auto_now_add_fields` | ❌ | Fields populated with the current timestamp when inserting. |
-| `auto_now_fields` | ❌ | Fields refreshed with the current timestamp on `save()`. |
-| `relations` | ❌ | Mapping of relation name → `Relation` describing joins. |
+## Instance methods
 
-The automatic timestamp hooks draw the timezone from the `tz_name` value passed
-to `create_fastpg`. Invalid or missing values fall back to UTC.
+### `save(columns: list[str] | None = None) -> bool`
 
-## Accessing the queryset
+Updates the current row using `Meta.primary_key` in the `WHERE` clause.
 
-Every `DatabaseModel` exposes an `async_queryset` descriptor that returns an
-`AsyncQuerySet` bound to the model. The queryset is safe to reuse across
-requests because each query call produces a new instance under the hood.
+- Returns `True` if at least one row was updated.
+- If `columns` is omitted, all model fields are included in `SET`.
 
-```python
-invoices = await Invoice.async_queryset.filter(status="sent")
-```
+### `delete() -> bool`
 
-## Instance helpers
+Deletes the current row by `Meta.primary_key`.
 
-Use `save()` to persist modifications to a model instance. Only the columns you
-pass will be updated; if omitted, the method updates every field present on the
-model.
+- Returns `True` if at least one row was deleted.
+
+## JSON fields in models
+
+Use `JsonData` for JSON/JSONB columns:
 
 ```python
-invoice = await Invoice.async_queryset.get(id=123)
-invoice.status = "paid"
-await invoice.save(columns=["status"])
-```
+from fastpg import DatabaseModel, JsonData
 
-`delete()` removes the row matching the model's primary key and returns a
-boolean indicating whether a record was deleted.
 
-```python
-invoice = await Invoice.async_queryset.get(id=123)
-await invoice.delete()
-```
-
-## Working with JSON columns
-
-If a column stores JSON, annotate it with `JsonData` for transparent
-serialisation and deserialisation. FastPG will convert Python objects to JSON
-strings when writing and back into Python objects when reading.
-
-```python
-from fastpg import JsonData
-
-class Event(DatabaseModel):
+class Product(DatabaseModel):
     id: int | None = None
-    payload: JsonData
+    name: str
+    properties: JsonData = {}
 
     class Meta:
-        db_table = "events"
+        db_table = "products"
+        primary_key = "id"
+        auto_generated_fields = ["id"]
 ```
 
-## Relationships
-
-Attach lightweight relationships via the `Meta.relations` dictionary. Each entry
-contains a `Relation` object that specifies how the current table relates to
-another model. See the [relationships guide](relationships.md) for details on
-querying related rows.
+`JsonData` serializes dict/list values for DB writes and preserves Python objects in normal model use.

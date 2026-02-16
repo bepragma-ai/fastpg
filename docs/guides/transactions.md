@@ -1,45 +1,28 @@
 # Transactions
 
-FastPG exposes the underlying [`databases`](https://www.encode.io/databases/connection_pooling/#transactions)
-transaction helpers through the active FastPG instance. Each transaction is
-bound to the connection used by the current async task, so long-lived tasks
-should acquire and release them carefully.
+FastPG exposes transaction helpers through `Transaction`.
 
-## Prerequisites
-
-Ensure the FastPG instance is connected before opening a transaction:
+## Context manager (recommended)
 
 ```python
 from fastpg import Transaction
 
-# elsewhere during startup:
-# await FAST_PG.db_conn_manager.connect_all()
-```
 
-Transactions are always backed by the write connection.
-
-## Context manager (recommended)
-
-Wrap related operations in an `async with` block. The transaction is committed
-when the block exits normally and rolled back if an exception is raised.
-
-```python
-async def create_users(payload: list[dict]):
+async def create_department_and_employees(dept_data, employees_data):
     async with Transaction.atomic():
-        for data in payload:
-            await User.async_queryset.create(**data)
+        department = await Department.async_queryset.create(**dept_data)
+        for emp in employees_data:
+            emp["department_id"] = department.id
+            await Employee.async_queryset.create(**emp)
+    return department
 ```
 
-## Manual control
-
-When you need explicit control over commit/rollback, grab the transaction
-instance and manage it yourself:
+## Manual flow
 
 ```python
 transaction = await Transaction.start()
 try:
-    await User.async_queryset.create(**user_data)
-    await AuditLog.async_queryset.create(event="user.created")
+    await Order.async_queryset.create(customer_id=1, total_amount=99.5, status="PENDING", order_date="2025-01-01")
 except Exception:
     await transaction.rollback()
     raise
@@ -49,13 +32,16 @@ else:
 
 ## Decorator style
 
-Transactions can also wrap async callables using decorator syntax:
-
 ```python
+from fastpg import Transaction
+
+
 @Transaction.decorator()
-async def create_users(request):
-    ...
+async def create_coupon(payload):
+    return await Coupon.async_queryset.create(**payload)
 ```
 
-This pattern is useful for FastAPI dependencies or background tasks where the
-function body should always execute inside a transaction.
+## Notes
+
+- Transactions use the configured write connection.
+- Open connections first (`connect_all()`) before starting transactions.

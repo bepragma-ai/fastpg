@@ -1,12 +1,9 @@
-# Basic usage
+# Basic Usage
 
-The shop demo models provide an end-to-end tour of FastPG. The example below
-shows how to model inventory, load related data, and keep products in sync from a
-bulk import while staying entirely asynchronous. Links in the comments point to
-the relevant guides for deeper reference.
+This example mirrors the `test_project` shop schema.
 
 ```python
-from fastpg import DatabaseModel, AsyncPaginator, OnConflict, OrderBy, ReturnType
+from fastpg import DatabaseModel, JsonData, OnConflict, OrderBy
 
 
 class Category(DatabaseModel):
@@ -16,6 +13,7 @@ class Category(DatabaseModel):
 
     class Meta:
         db_table = "categories"
+        primary_key = "id"
         auto_generated_fields = ["id"]
 
 
@@ -26,55 +24,49 @@ class Product(DatabaseModel):
     category_id: int | None = None
     price: float
     stock_quantity: int
+    properties: JsonData = {}
 
     class Meta:
         db_table = "products"
+        primary_key = "id"
         auto_generated_fields = ["id"]
+```
 
+Bulk upsert-like sync with `bulk_create`:
 
-# Insert or update a catalogue in one call (see Query API → mutation helpers)
+```python
 payload = [
     {
-        "sku": "HAT-001",
-        "name": "Logo Baseball Cap",
+        "sku": "SKU-1",
+        "name": "Cap",
         "category_id": 1,
-        "price": 19.99,
-        "stock_quantity": 50,
+        "price": 15.0,
+        "stock_quantity": 10,
+        "properties": {"color": "black"},
     },
     {
-        "sku": "HAT-002",
-        "name": "Wool Beanie",
+        "sku": "SKU-2",
+        "name": "Tee",
         "category_id": 1,
-        "price": 24.99,
-        "stock_quantity": 80,
+        "price": 20.0,
+        "stock_quantity": 8,
+        "properties": {"size": "L"},
     },
 ]
 
-# [bulk_create](../api/queries.md#mutation-helpers) with conflict handling
 await Product.async_queryset.bulk_create(
-    payload,
+    values=payload,
     on_conflict=OnConflict.UPDATE,
     conflict_target=["sku"],
-    update_fields=["name", "category_id", "price", "stock_quantity"],
+    update_fields=["name", "category_id", "price", "stock_quantity", "properties"],
 )
-
-# Read back the range of products, sorted by price descending
-products = await Product.async_queryset.order_by(price=OrderBy.DESCENDING)
-
-# Pull a single product as a dict for light-weight serialisation
-product_data = await (
-    Product.async_queryset
-    .filter(sku="HAT-001")
-    .return_as(ReturnType.DICT)
-)
-
-# Paginate the catalogue for an API response (see [pagination guide](../guides/pagination.md))
-queryset = Product.async_queryset.all().order_by(name=OrderBy.ASCENDING)
-paginator = AsyncPaginator(page_size=10, queryset=queryset)
-page1 = await paginator.get_page(1)
 ```
 
-`page1["results"]` contains a list of `Product` instances. The paginator
-metadata (total count, page boundaries) lives under `page1["results_paginator"]`,
-which can be returned directly from a FastAPI route. For details on return
-formats, see [`return_as`](../api/queries.md#changing-the-return-format).
+Read and mutate:
+
+```python
+products = await Product.async_queryset.all().order_by(id=OrderBy.ASCENDING)
+
+await Product.async_queryset.filter(id=1).update(stock_quantity__add=5)
+await Product.async_queryset.filter(id=1).update(properties__jsonb_set__color="blue")
+```

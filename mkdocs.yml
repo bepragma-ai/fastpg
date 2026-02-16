@@ -37,10 +37,11 @@ nav:
     - Pagination: guides/pagination.md
     - Transactions: guides/transactions.md
   - Reference:
+    - Constants & Helpers: reference/constants.md
     - JSON Fields: reference/json-fields.md
     - Preprocessors: reference/preprocessors.md
     - Errors: reference/errors.md
-    - Settings & Logging: reference/settings.md
+    - Settings & Configuration: reference/settings.md
   - API Reference:
     - Database Models: api/database-models.md
     - Query API: api/queries.md

@@ -1,204 +1,132 @@
 # Querysets
 
-`AsyncQuerySet` offers a fluent interface for building SQL queries. Each chain of
-methods produces a lazily evaluated queryset that executes when awaited.
+`AsyncQuerySet` builds SQL lazily and executes when awaited.
 
-## Core retrieval methods
+## Execution model
 
-| Method | Description |
-|--------|-------------|
-| `get(**kwargs)` | Fetch a single row. Raises `DoesNotExist` or `MultipleRecordsFound` when the result is not unique. |
-| `filter(**kwargs)` | Return all rows that match the provided filters. |
-| `all()` | Select every row from the table. |
-| `count()` | Return the number of rows matching the filters without materialising the result set. |
+A queryset must end in one of these actions before awaiting:
+
+- `get(...)`
+- `filter(...)`
+- `all()`
+- `count()`
+- `update(...)`
+- `delete()`
+
+Otherwise, awaiting raises `MalformedQuerysetError`.
+
+## Read methods
 
 ```python
-# Fetch a single customer
-from app.schemas.shop import Customer
-
-customer = await Customer.async_queryset.get(id=42)
-
-# Chain filters and ordering
-from fastpg import OrderBy
-
-recent = await (
-    Customer.async_queryset
-    .filter(is_active=True)
-    .order_by(created_at=OrderBy.DESCENDING)
-    .limit(20)
-)
+user = await User.async_queryset.get(id=1)
+users = await User.async_queryset.filter(name__icontains="ada")
+all_users = await User.async_queryset.all()
+total = await User.async_queryset.filter(is_active=True).count()
 ```
 
-Use `columns("id", "email")` to narrow the selected fields, `limit(n)` to
-restrict the number of rows, `offset(n)` for pagination, and `order_by(field="ASC")`
-to control sorting.
+`get(...)` and `filter(...)` should be called with at least one condition (`Q(...)` or keyword filters).
 
-## Lookup expressions
+## Lookup operators
 
-Filters accept Django-style suffixes separated by `__`. A few highlights:
+Supported filter suffixes:
 
-- `field=value` – exact match
-- `field__gt=value`, `field__lt=value`, `field__gte=value`, `field__lte=value`
-- `field__ne=value` – inequality
-- `field__in=[...]` – membership (must be a non-empty list)
-- `field__isnull=True/False`
-- `field__contains`, `field__icontains`, `startswith`, `istartswith`, `endswith`, `iendswith`
+- `__gt`, `__lt`, `__gte`, `__lte`, `__ne`
+- `__in` (requires a non-empty list)
+- `__isnull`
+- `__contains`, `__icontains`
+- `__startswith`, `__istartswith`
+- `__endswith`, `__iendswith`
 
-Combine expressions with `Q` objects to build complex `OR` clauses:
+## Combining filters with `Q`
 
 ```python
 from fastpg import Q
 
-adults = Q(age__gte=18)
-recent = Q(created_at__gte=window_start)
-
-results = await Customer.async_queryset.filter(adults | recent)
+q = Q(city="Boston") | Q(city="New York")
+results = await Customer.async_queryset.filter(q, is_active=True)
 ```
 
-## Mutating queries
-
-- `create(**kwargs)` – insert a row and return the new model instance. FastPG
-  automatically removes auto-generated fields and populates `auto_now_add`
-  fields before writing.
-- `bulk_create(values, skip_validations=False, on_conflict=None, ...)` – insert
-  many rows efficiently. When `on_conflict` is `OnConflict.DO_NOTHING` or
-  `OnConflict.UPDATE`, FastPG will emit the relevant `ON CONFLICT` clause.
-- `get_or_create(defaults=None, **lookup)` – fetch a row matching the lookup or
-  insert a new one using `defaults`.
-- `update_or_create(defaults, **lookup)` – update a row with `defaults` when it
-  exists, or create it when it does not. Returns a tuple of
-  `(instance, created)` where `created` is a boolean.
-- `update(**kwargs)` – set or increment fields. Special suffixes include
-  `__add`, `__sub`, `__mul`, `__div`, `__jsonb`, `__jsonb_set__path[__type]`,
-  `__jsonb_remove` for JSON columns, and `__add_time`/`__sub_time` for
-  timestamp arithmetic.
-- `delete()` – remove rows that match the current filters.
-
-Both `update` and `delete` require a filter; FastPG raises
-`UnrestrictedUpdateError` or `UnrestrictedDeleteError` if you attempt to call
-them without a `WHERE` clause.
-
-### Update suffix examples
-
-Update suffixes let you express common mutations directly in SQL without
-round-tripping values through Python. A few practical examples from the shop
-demo API:
+## Query shaping
 
 ```python
-# Bump inventory without fetching the row first
-await Product.async_queryset.filter(id=product_id).update(
-    stock_quantity__add=5,
-)
+from fastpg import OrderBy, ReturnType
 
-# Remove a JSON field while leaving the rest of the document intact
-await Product.async_queryset.filter(id=product_id).update(
-    properties__jsonb_remove="deprecated_flag",
-)
-
-# Extend or shorten a timestamp by a PostgreSQL interval literal
-await Product.async_queryset.filter(
-    id=product_id,
-    offer_expires_at__isnull=False,
-).update(
-    offer_expires_at__add_time="3 days",   # use __sub_time to shorten
-)
-```
-
-- `__jsonb_remove` subtracts a key (or path) from a JSON/JSONB column.
-- `__add_time` and `__sub_time` apply an interval string (for example, "2 hours"
-  or "5 days") to timestamp fields without recalculating them in Python.
-
-### Upsert with `update_or_create`
-
-`update_or_create` is helpful when an API payload might refer to an existing
-record by natural keys but you still want a single call to update or insert it.
-It combines a lookup, update, and create into one step and returns a tuple of
-the resulting model instance and a `created` flag.
-
-```python
-product, created = await Product.async_queryset.update_or_create(
-    id=payload["id"],
-    sku=payload["sku"],
-    defaults={
-        "name": payload["name"],
-        "category_id": payload["category_id"],
-        "price": payload["price"],
-        "stock_quantity": payload["stock_quantity"],
-    },
-)
-
-if created:
-    log.info("Inserted a new product")
-else:
-    log.info("Updated existing product %s", product.id)
-```
-
-The shop demo endpoint `update_or_create_product` in
-`test_project/app/api/endpoints/shop_api.py` uses this pattern when syncing
-products.
-
-## Changing the return format
-
-By default, querysets yield model instances. Call
-`return_as(ReturnType.MODEL_INSTANCE)` explicitly when you want to ensure nested
-relations are hydrated as models, or `return_as(ReturnType.DICT)` to obtain a
-list of dictionaries for lightweight serialisation.
-
-```python
-from fastpg import ReturnType
-
-raw_rows = await (
-    Customer.async_queryset
-    .filter(is_active=True)
+rows = await (
+    Product.async_queryset
+    .columns("id", "name", "price")
+    .filter(price__gte=100)
+    .order_by(price=OrderBy.DESCENDING)
+    .limit(20)
+    .offset(0)
     .return_as(ReturnType.DICT)
 )
 ```
 
-## Related lookups
+## Writes
 
-When `Meta.relations` is defined, you can fetch related rows in a single
-round-trip using `select_related()` and `filter_related()`. For large collections
-reach for `prefetch_related()` with a `Prefetch` descriptor.
+### `create(**kwargs)`
+
+Creates one row and returns a model instance.
+
+- `auto_now_add_fields` are set before insert when field value is `None`.
+- `auto_generated_fields` are excluded from insert values.
+- Current implementation always performs plain `INSERT ... RETURNING`; passed `on_conflict` args are currently not applied.
+
+### `bulk_create(values, skip_validations=False, on_conflict=None, ...)`
+
+Creates many rows.
+
+- Raises `NothingToCreateError` if `values` is empty.
+- Supports:
+  - `OnConflict.DO_NOTHING`
+  - `OnConflict.UPDATE` (requires `conflict_target` and `update_fields`)
+
+### `get_or_create(defaults, **lookup)` and `update_or_create(defaults, **lookup)`
+
+Return tuple `(obj, created)`.
+
+## `update(...)` operators
+
+Standard set update:
 
 ```python
-from fastpg import Prefetch
-from app.schemas.shop import OrderItem
+await Product.async_queryset.filter(id=1).update(name="New Name")
+```
 
+Special suffixes:
 
-orders = await (
-    Customer.async_queryset
-    .select_related("orders")
-    .filter(id=1)
-    .filter_related(orders__status="open")
-    .prefetch_related(
-        Prefetch("line_items", OrderItem.async_queryset.select_related("product").all())
-    )
+- Arithmetic: `__add`, `__sub`, `__mul`, `__div`
+- Time interval: `__add_time`, `__sub_time`
+- JSONB replace: `__jsonb`
+- JSONB key set: `__jsonb_set__key_name`
+- JSONB key remove: `__jsonb_remove`
+
+Example:
+
+```python
+await Product.async_queryset.filter(id=1).update(
+    stock_quantity__add=5,
+    properties__jsonb_set__color="blue",
 )
 ```
 
-The related records are hydrated into the attribute named after the relation.
-See the [relationships guide](relationships.md) for a detailed example.
+## `delete()`
 
-## Routing reads
-
-FastPG routes reads to a random read connection by default. To pin a queryset to
-a specific connection (for example, a replica), use `using()`:
+Deletes rows matching current filters.
 
 ```python
-recent_orders = await Order.async_queryset.using("replica_1").filter(status="open")
+deleted_count = await Product.async_queryset.filter(id=1).delete()
 ```
 
-## Executing custom SQL
+## Important safety note
 
-For cases where the queryset API is too limiting, use `execute_raw_query()` to
-run arbitrary SQL and still benefit from the queryset execution helpers.
+Always call `filter(...)` before `update(...)` or `delete(...)`.
+That guarantees valid `WHERE` conditions in generated SQL.
+
+## Connection selection
+
+`using(conn_name)` overrides read connection for the query:
 
 ```python
-rows = await Customer.async_queryset.execute_raw_query(
-    "SELECT id, email FROM customers WHERE created_at >= :start",
-    {"start": window_start},
-)
+items = await Product.async_queryset.using("replica_1").all()
 ```
-
-Alternatively, instantiate `AsyncRawQuery` directly for standalone read or write
-operations outside of a model context.

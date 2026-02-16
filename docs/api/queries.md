@@ -1,53 +1,60 @@
 # Query API
 
-The query API comprises `AsyncQuerySet` for model-bound operations and
-`AsyncRawQuery` for ad-hoc SQL.
+## `AsyncQuerySet(model)`
 
-## AsyncQuerySet
+Main query builder for model operations.
 
-### Creation helpers
+### Core methods
 
-| Method | Purpose |
-|--------|---------|
-| `create(**kwargs)` | Insert a single row and return the model instance. |
-| `bulk_create(values, skip_validations=False, on_conflict=None, ...)` | Batch insert. Supports `OnConflict.DO_NOTHING` and `OnConflict.UPDATE`. |
-| `get_or_create(defaults=None, **lookup)` | Return an existing row or create one from `defaults`. |
+- `using(conn_name)`
+- `columns(*columns)`
+- `get(*conditions, **filters)`
+- `filter(*conditions, **filters)`
+- `all()`
+- `count()`
+- `order_by(**order_by)`
+- `limit(fetch_limit)`
+- `offset(fetch_offset)`
+- `return_as(return_type)`
 
-### Retrieval helpers
+### Relationship methods
 
-| Method | Purpose |
-|--------|---------|
-| `get(**filters)` | Fetch a single row. |
-| `filter(*conditions, **filters)` | Fetch multiple rows using keyword lookups or `Q` objects. |
-| `all()` | Return every row. |
-| `count()` | Return the number of matching rows. |
-| `columns(*names)` | Select a subset of columns. |
-| `order_by(**clauses)` | Accepts a mapping of column → `"ASC"`/`"DESC"`. |
-| `limit(n)` / `offset(n)` | Apply pagination clauses. |
-| `return_as(ReturnType)` | Switch between model instances and dictionaries. |
-| `select_related(*relation_names)` | Join related tables defined in `Meta.relations`. |
-| `filter_related(*conditions, **filters)` | Apply filters to the joined tables. |
+- `select_related(*relation_names)`
+- `filter_related(*conditions, **filters)`
+- `prefetch_related(*prefetches)`
 
-### Mutation helpers
+### Mutation methods
 
-| Method | Purpose |
-|--------|---------|
-| `update(**values)` | Update rows matching the current filters. Supports arithmetic (`__add`, `__sub`, `__mul`, `__div`), JSON (`__jsonb`, `__jsonb_set__path`, `__jsonb_remove`), and interval (`__add_time`, `__sub_time`) suffixes. |
-| `delete()` | Delete rows matching the filters. |
+- `create(on_conflict=None, conflict_target=None, update_fields=None, **kwargs)`
+- `bulk_create(values, skip_validations=False, on_conflict=None, conflict_target=None, update_fields=None)`
+- `get_or_create(defaults, **kwargs)`
+- `update_or_create(defaults, **kwargs)`
+- `update(**kwargs)`
+- `delete()`
 
-Awaiting a queryset triggers execution. If no terminal method has been called,
-`MalformedQuerysetError` is raised.
+### Await behavior
 
-## AsyncRawQuery
+Awaiting queryset executes SQL and returns based on action:
 
-`AsyncRawQuery` wraps raw SQL statements while still providing consistent error
-handling.
+- `get()` -> one model/dict, or raises cardinality errors.
+- `filter()` / `all()` -> list.
+- `count()` -> integer.
+- `update()` / `delete()` -> affected row count from write query.
 
-| Method | Purpose |
-|--------|---------|
-| `fetch(values)` | Execute a SELECT-like statement and return dictionaries. |
-| `execute(values)` | Execute a modifying statement. |
-| `execute_many(list_of_values)` | Execute the same statement with multiple sets of parameters. |
+## `AsyncRawQuery(query, using=None)`
 
-Use raw queries when you need window functions, CTEs, or other constructs that
-are easier to express directly in SQL.
+Raw SQL wrapper with FastPG error handling.
+
+### Methods
+
+- `fetch(values)` -> list of dict records (read connection)
+- `execute(values)` -> execute single write query
+- `execute_many(list_of_values)` -> execute write query with many parameter sets
+
+## `AsyncPaginator(page_size, queryset, using=None)`
+
+Paginates an `AsyncQuerySet` and returns `results` plus `results_paginator` metadata.
+
+## `RawQueryAsyncPaginator(...)`
+
+Paginates raw SQL with optional serializer and auto `LIMIT/OFFSET` handling.

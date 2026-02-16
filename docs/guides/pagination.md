@@ -1,70 +1,60 @@
 # Pagination
 
-FastPG includes two helper classes for paginating results: `AsyncPaginator` for
-querysets and `RawQueryAsyncPaginator` for raw SQL queries. Both expose a common
-API that returns a payload containing the results and metadata about the current
-page.
+FastPG provides two paginator classes:
 
-## Paginating querysets
+- `AsyncPaginator` for `AsyncQuerySet`
+- `RawQueryAsyncPaginator` for raw SQL
 
-```python
-from fastpg import AsyncPaginator
-
-queryset = Customer.async_queryset.filter(is_active=True).order_by(created_at="DESC")
-paginator = AsyncPaginator(page_size=20, queryset=queryset)
-
-first_page = await paginator.get_page(page=1)
-second_page = await paginator.get_next_page()
-```
-
-The response structure looks like this:
+Both return the same shape:
 
 ```json
 {
-  "results": [...],
+  "results": [],
   "results_paginator": {
     "number": 1,
     "page_size": 20,
-    "has_next": true,
+    "has_next": false,
     "has_previous": false,
     "start_index": 0,
-    "end_index": 20
+    "end_index": 0
   }
 }
 ```
 
-`get_next_page()` and `get_previous_page()` automatically adjust the current
-page number and call `get_page()` internally. If you request a page number less
-than 1, the paginator raises `InvalidPageError`. When a page contains no
-results, `start_index` and `end_index` are set to `null`.
+## Queryset pagination
 
-## Paginating raw SQL
+```python
+from fastpg import AsyncPaginator, OrderBy
 
-Sometimes you may want to page the results of a handcrafted SQL statement. Use
-`RawQueryAsyncPaginator` with a query string that contains `{limit}` and
-`{offset}` placeholders.
+queryset = Product.async_queryset.all().order_by(id=OrderBy.ASCENDING)
+paginator = AsyncPaginator(page_size=25, queryset=queryset)
+
+page1 = await paginator.get_page(page=1)
+page2 = await paginator.get_next_page()
+```
+
+Rules:
+
+- `page` must be `>= 1`, else `InvalidPageError`.
+- `get_page()` applies `limit(page_size)` and computed `offset(...)`.
+- Pass `using="conn_name"` to execute on a specific read connection.
+
+## Raw SQL pagination
 
 ```python
 from fastpg import RawQueryAsyncPaginator
 
-query = """
-SELECT id, email
-FROM customers
-WHERE created_at >= :start
-ORDER BY created_at DESC
-LIMIT {limit} OFFSET {offset}
-"""
-
 paginator = RawQueryAsyncPaginator(
     page_size=50,
-    query=query,
-    values={"start": window_start},
+    query="SELECT id, sku FROM products ORDER BY id",
+    values={},
+    serializer=lambda rows: [{"id": r["id"], "sku": r["sku"]} for r in rows],
 )
-page = await paginator.get_page(1)
+
+page = await paginator.get_page(page=1)
 ```
 
-Optionally provide a `serializer` callable to transform the records returned
-from the database before they are included in the paginator payload. See the
-[API reference](../api/queries.md#asyncqueryset) for return types and
-[RawQueryAsyncPaginator](../api/queries.md#asyncrawquery) for configuration
-details.
+`RawQueryAsyncPaginator` behavior:
+
+- `auto_offset_and_limit=True` (default): appends `LIMIT ... OFFSET ...` automatically.
+- `auto_offset_and_limit=False`: your query must include `{page_size}` and `{offset}` placeholders.

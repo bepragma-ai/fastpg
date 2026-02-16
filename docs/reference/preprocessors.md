@@ -1,35 +1,30 @@
 # Preprocessors
 
-FastPG applies a handful of pre-save hooks to keep timestamp fields up to date
-without littering your application code with `datetime.utcnow()` calls.
+FastPG applies lightweight preprocessors around create/save operations.
 
-## Timezone detection
+## `PreCreateProcessors`
 
-The library uses the `tz_name` value passed to `create_fastpg` to determine
-which timezone should be used when populating automatic timestamp fields. If
-the value is missing or invalid, UTC is used as a safe default.
+### `model_obj_populate_auto_now_add_fields(model_obj)`
 
-## Creation hooks
+- Reads `model_obj.Meta.auto_now_add_fields`.
+- For each listed field: if current value is `None`, sets `datetime.now(fastpg.TZ)`.
 
-`PreCreateProcessors.model_obj_populate_auto_now_add_fields(model_obj)`
+### `model_dict_populate_auto_generated_fields(model_dict, model_cls)`
 
-- Populates each field listed in `Meta.auto_now_add_fields` with the current
-  timezone-aware datetime.
-- Invoked automatically during `create` and `bulk_create` operations before the
-  model is serialised and inserted.
+- Reads `model_cls.Meta.auto_generated_fields`.
+- Deletes those keys from insert payload before SQL execution.
 
-`PreCreateProcessors.model_dict_populate_auto_generated_fields(model_dict, model_cls)`
+## `PreSaveProcessors`
 
-- Removes any fields marked in `Meta.auto_generated_fields` from the payload
-  before inserting, allowing PostgreSQL defaults or sequences to take over.
+### `model_obj_populate_auto_now_fields(model_obj)`
 
-## Update hooks
+- Reads `model_obj.Meta.auto_now_fields`.
+- For each listed field: if current value is `None`, sets `datetime.now(fastpg.TZ)`.
 
-`PreSaveProcessors.model_obj_populate_auto_now_fields(model_obj)`
+## Where preprocessors are used
 
-- Populates each field listed in `Meta.auto_now_fields` prior to calling `save`.
-- Ensures updated timestamps always reflect the time of the update, regardless
-  of what the caller set on the model instance.
+- `AsyncQuerySet.create(...)`
+- `AsyncQuerySet.bulk_create(...)`
+- `DatabaseModel.save(...)`
 
-These hooks are automatically wired into the ORM, but they can also be called
-manually if you need similar behaviour in custom scripts.
+These helpers fail open when optional `Meta` lists are not defined.
