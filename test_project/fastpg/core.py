@@ -441,8 +441,6 @@ class AsyncQuerySet:
                     table_name=self.table,
                     sqlstate=sqlstate,
                     message=str(e))
-            print('++++++++++++++++++++++++++++++++++++++++++++')
-            print(self.write_connection)
             raise DatabaseError(
                 name=type(e).__name__,
                 sqlstate=sqlstate,
@@ -771,8 +769,16 @@ class DatabaseModel(BaseModel):
     def async_queryset(cls):
         cls.write_connection = get_fastpg().db_conn_manager.db_for_write()
         return AsyncQuerySet(model=cls)
-    
+
+    async def pre_save(self) -> None:
+        pass
+
+    async def post_save(self) -> None:
+        pass
+
     async def save(self, columns:List[str]=None) -> bool:
+        await self.pre_save()
+
         PreSaveProcessors.model_obj_populate_auto_now_fields(self)
 
         values = {}
@@ -808,6 +814,9 @@ class DatabaseModel(BaseModel):
                 name=type(e).__name__,
                 sqlstate=sqlstate,
                 message=str(e))
+
+        if updated_count:
+            await self.post_save()
 
         return bool(updated_count)
 
