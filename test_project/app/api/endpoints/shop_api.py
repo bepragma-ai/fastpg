@@ -149,7 +149,7 @@ async def delete_department(
 
 
 @router.post('/department/update', status_code=200)
-async def post_department(
+async def update_department(
     name:str,
     request:Request,
     response:Response,
