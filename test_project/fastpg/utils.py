@@ -2,7 +2,7 @@ import re
 import time
 import random
 import functools
-from typing import Optional
+from typing import Optional, List, Dict, Any, Tuple
 
 from .constants import OPERATORS
 from .errors import (
@@ -157,6 +157,17 @@ class Q:
 
     def __repr__(self):
         return f"{self.where_clause} {self.params}"
+
+
+class InClauseParam:
+
+    def __init__(self, values:List[Any]) -> None:
+        self.values = values
+    
+    def render(self, name:str) -> Tuple[str, Dict[str, Any]]:
+        param_names = ','.join(f':{name}_{idx}' for idx, v in enumerate(self.values))
+        param_values = {f'{name}_{idx}': v for idx, v in enumerate(self.values)}
+        return param_names, param_values
 
 
 def async_sql_logger(func):

@@ -1,6 +1,7 @@
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, Body
 
 from fastpg import (
     OrderBy,
@@ -8,6 +9,8 @@ from fastpg import (
     ReturnType,
     OnConflict,
     Transaction,
+    AsyncRawQuery,
+    InClauseParam,
 )
 
 from app.schemas.shop import (
@@ -297,10 +300,29 @@ async def get_customers(
 async def get_orders(
     response:Response,
 ):
-    orders = await Order.async_queryset.prefetch_related(
+    return await Order.async_queryset.prefetch_related(
         Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
     ).all()
-    return orders
+
+
+@router.post('/orders/by-ids', status_code=200)
+async def get_orders_by_ids(
+    response:Response,
+    order_ids:List[int] = Body(..., embed=True),
+    customer_ids:List[int] = Body(..., embed=True),
+    total_amount:int = Body(..., embed=True),
+):
+    query = AsyncRawQuery(
+        query=f"""
+            SELECT * FROM {Order.Meta.db_table}
+            WHERE
+                id IN (:order_ids)
+                AND customer_id IN (:customer_ids)
+                AND total_amount >= :total_amount;""")
+    return await query.fetch(values={
+        'total_amount': total_amount,
+        'customer_ids': InClauseParam(customer_ids),
+        'order_ids': InClauseParam(order_ids)})
 
 
 @router.get('/order', status_code=200)
