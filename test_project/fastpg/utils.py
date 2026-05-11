@@ -165,9 +165,11 @@ class InClauseParam:
         self.values = values
     
     def render(self, name:str) -> Tuple[str, Dict[str, Any]]:
-        param_names = ','.join(f':{name}_{idx}' for idx, v in enumerate(self.values))
-        param_values = {f'{name}_{idx}': v for idx, v in enumerate(self.values)}
-        return param_names, param_values
+        if self.values:
+            param_names = ','.join(f':{name}_{idx}' for idx, v in enumerate(self.values))
+            param_values = {f'{name}_{idx}': v for idx, v in enumerate(self.values)}
+            return param_names, param_values
+        raise InvalidINClauseValueError(f'A valid list of values is required for param "{name}"')
 
 
 def async_sql_logger(func):

@@ -56,11 +56,15 @@ class DatabaseError(Exception):
 
 class DuplicateKeyDatabaseError(DatabaseError):
 
-    def __init__(self, table_name:str, sqlstate:int, message:str) -> None:
+    def __init__(self, table_name:str|None, sqlstate:int, message:str) -> None:
         self.table_name = table_name
         self.sqlstate = sqlstate
-        self.message = f'(SQLSTATE {sqlstate}): {message} of table "{table_name}"'
-        super().__init__(self.table_name, self.sqlstate, self.message)
+        if self.table_name:
+            self.message = f'(SQLSTATE {sqlstate}): {message} of table "{self.table_name}"'
+            super().__init__(self.table_name, self.sqlstate, self.message)
+        else:
+            self.message = f'(SQLSTATE {sqlstate}): {message}'
+            super().__init__('', self.sqlstate, self.message)
 
 
 class InvalidINClauseValueError(Exception):
