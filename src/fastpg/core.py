@@ -17,6 +17,7 @@ from .utils import (
     Relation,
     Prefetch,
     Q,
+    InClauseParam,
 )
 
 from .fields import CustomJsonEncoder
@@ -680,17 +681,28 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, using:str=None):
+    def __init__(self, query:str, using:str|None=None):
         self.query = query
+        self.values = None
         fastpg = get_fastpg()
         if using:
             self.read_connection = fastpg.db_conn_manager.get_db_conn(using)
         else:
             self.read_connection = fastpg.db_conn_manager.db_for_read()
         self.write_connection = fastpg.db_conn_manager.db_for_write()
+    
+    def render_in_clauses(self, values:Dict[str, Any]) -> Dict[str, Any]:
+        _values = {**values}
+        for param_name, param_val in values.items():
+            if isinstance(param_val, InClauseParam):
+                in_clause_param_names, in_clause_param_values = param_val.render(param_name)
+                self.query = self.query.replace(f':{param_name}', in_clause_param_names)
+                del _values[param_name]
+                _values = {**_values, **in_clause_param_values}
+        return _values
 
-    async def fetch(self, values:dict[str, Any]) -> List[Record]:
-        self.values = values
+    async def fetch(self, values:Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.values = self.render_in_clauses(values)
         try:
             records = await self.read_connection.fetch_all(
                 query=self.query, values=self.values)
@@ -705,8 +717,8 @@ class AsyncRawQuery:
                 message=str(e))
         return [dict(record) for record in records]
     
-    async def execute(self, values:dict[str, Any]) -> List[Record]:
-        self.values = values
+    async def execute(self, values:Dict[str, Any]) -> List[Record]:
+        self.values = self.render_in_clauses(values)
         try:
             return await self.write_connection.execute(
                 query=self.query, values=self.values)
@@ -719,7 +731,7 @@ class AsyncRawQuery:
                 raise e
             if sqlstate == '23505':
                 raise DuplicateKeyDatabaseError(
-                    table_name=self.table,
+                    table_name=None,
                     sqlstate=sqlstate,
                     message=str(e))
             raise DatabaseError(
@@ -727,8 +739,10 @@ class AsyncRawQuery:
                 sqlstate=sqlstate,
                 message=str(e))
     
-    async def execute_many(self, list_of_values: List[Dict]) -> list[Record]:
-        self.values = list_of_values
+    async def execute_many(self, list_of_values: List[Dict[str, Any]]) -> List[Record]:
+        self.values = []
+        for v in list_of_values:
+            self.values.append(self.render_in_clauses(v))
         try:
             return await self.write_connection.execute_many(
                 query=self.query, list_of_values=self.values)
@@ -741,7 +755,7 @@ class AsyncRawQuery:
                 raise e
             if sqlstate == '23505':
                 raise DuplicateKeyDatabaseError(
-                    table_name=self.table,
+                    table_name=None,
                     sqlstate=sqlstate,
                     message=str(e))
             raise DatabaseError(
