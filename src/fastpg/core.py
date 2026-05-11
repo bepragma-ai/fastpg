@@ -17,6 +17,7 @@ from .utils import (
     Relation,
     Prefetch,
     Q,
+    InClauseParam,
 )
 
 from .fields import CustomJsonEncoder
@@ -680,17 +681,29 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, using:str=None):
+    def __init__(self, query:str, using:str|None=None):
         self.query = query
+        self.values:Dict = {}
         fastpg = get_fastpg()
         if using:
             self.read_connection = fastpg.db_conn_manager.get_db_conn(using)
         else:
             self.read_connection = fastpg.db_conn_manager.db_for_read()
         self.write_connection = fastpg.db_conn_manager.db_for_write()
+    
+    def render_in_clauses(self) -> None:
+        _values = {**self.values}
+        for param_name, param_val in self.values.items():
+            if isinstance(param_val, InClauseParam):
+                in_clause_param_names, in_clause_param_values = param_val.render(param_name)
+                self.query = self.query.replace(f':{param_name}', in_clause_param_names)
+                del _values[param_name]
+                _values = {**_values, **in_clause_param_values}
+        self.values = {**_values}
 
-    async def fetch(self, values:dict[str, Any]) -> List[Record]:
+    async def fetch(self, values:dict[str, Any]) -> List[Dict[str, Any]]:
         self.values = values
+        self.render_in_clauses()
         try:
             records = await self.read_connection.fetch_all(
                 query=self.query, values=self.values)

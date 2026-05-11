@@ -19,6 +19,7 @@ from .constants import ReturnType
 from .utils import Prefetch
 from .utils import Relation
 from .utils import Q
+from .utils import InClauseParam
 
 from .fields import (
     JsonData,
@@ -68,6 +69,7 @@ __all__ = [
     "Prefetch",
     "Relation",
     "Q",
+    "InClauseParam",
     "DatabaseModel",
     "AsyncQuerySet",
     "AsyncRawQuery",
