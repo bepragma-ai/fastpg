@@ -986,18 +986,7 @@
     </span>
   </a>
   
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#relationship-methods" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Relationship methods
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Relationship methods">
+    <nav class="md-nav" aria-label="Core methods">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1256,24 +1245,28 @@
 <h2 id="asyncquerysetmodel"><code>AsyncQuerySet(model)</code></h2>
 <p>Main query builder for model operations.</p>
 <h3 id="core-methods">Core methods</h3>
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
-- <code>using(conn_name)</code>
-- <code>columns(*columns)</code>
-- <code>get(*conditions, **filters)</code>
-- <code>filter(*conditions, **filters)</code>
-- <code>all()</code>
-- <code>count()</code>
-- <code>order_by(**order_by)</code>
-- <code>limit(fetch_limit)</code>
-- <code>offset(fetch_offset)</code>
-- <code>return_as(return_type)</code></p>
-<h3 id="relationship-methods">Relationship methods</h3>
-<p>=======
-| Method | Purpose |
-|--------|---------|
-| <code>create(**kwargs)</code> | Insert a single row and return the model instance. |
-| <code>bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)</code> | Batch insert. Pass <code>OnConflict.DO_NOTHING</code> to ignore duplicates or <code>OnConflict.UPDATE</code> to upsert matching rows. |
-| <code>get_or_create(defaults=None, **lookup)</code> | Return an existing row or create one from <code>defaults</code>. |</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>create(**kwargs)</code></td>
+<td>Insert a single row and return the model instance.</td>
+</tr>
+<tr>
+<td><code>bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)</code></td>
+<td>Batch insert. Pass <code>OnConflict.DO_NOTHING</code> to ignore duplicates or <code>OnConflict.UPDATE</code> to upsert matching rows.</td>
+</tr>
+<tr>
+<td><code>get_or_create(defaults=None, **lookup)</code></td>
+<td>Return an existing row or create one from <code>defaults</code>.</td>
+</tr>
+</tbody>
+</table>
 <h4 id="bulk_create"><code>bulk_create</code></h4>
 <p><code>bulk_create()</code> accepts a list of dictionaries and writes them with a single
 statement template executed through <code>execute_many()</code>.</p>
@@ -1327,21 +1320,6 @@ statement template executed through <code>execute_many()</code>.</p>
 <a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="retrieval-helpers">Retrieval helpers</h3>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<blockquote>
-<p>origin/main</p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
 <ul>
 <li><code>select_related(*relation_names)</code></li>
 <li><code>filter_related(*conditions, **filters)</code></li>
