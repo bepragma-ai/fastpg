@@ -74,6 +74,9 @@ class Order(DatabaseModel):
         db_table = 'orders'
         primary_key = 'id'
         auto_generated_fields = ['id']
+        relations = {
+            'customer': Relation(Customer, foreign_field='customer_id'),
+        }
 
 
 class OrderItem(DatabaseModel):
