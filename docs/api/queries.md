@@ -6,20 +6,6 @@ Main query builder for model operations.
 
 ### Core methods
 
-<<<<<<< HEAD
-- `using(conn_name)`
-- `columns(*columns)`
-- `get(*conditions, **filters)`
-- `filter(*conditions, **filters)`
-- `all()`
-- `count()`
-- `order_by(**order_by)`
-- `limit(fetch_limit)`
-- `offset(fetch_offset)`
-- `return_as(return_type)`
-
-### Relationship methods
-=======
 | Method | Purpose |
 |--------|---------|
 | `create(**kwargs)` | Insert a single row and return the model instance. |
@@ -82,7 +68,6 @@ await Product.async_queryset.bulk_create(
 ```
 
 ### Retrieval helpers
->>>>>>> origin/main
 
 - `select_related(*relation_names)`
 - `filter_related(*conditions, **filters)`
