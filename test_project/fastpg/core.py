@@ -447,7 +447,6 @@ class AsyncQuerySet:
     ):
         """
         Usage
-        await db.bulk_create(values=payload, on_conflict=None)
         await db.bulk_create(values=payload, on_conflict=OnConflict.DO_NOTHING)
         await db.bulk_create(
             values=payload,
