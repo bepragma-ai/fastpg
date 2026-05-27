@@ -387,9 +387,6 @@ class AsyncQuerySet:
 
     async def create(
         self,
-        on_conflict:str=None,  # Options: None | "ignore" | "update"
-        conflict_target:list[str]=None,  # Required for "update"
-        update_fields:list[str]=None,    # Required for "update"
         **kwargs
     ):
         """
@@ -417,16 +414,6 @@ class AsyncQuerySet:
         # Base query
         query = f'INSERT INTO {self.table} ({columns}) VALUES ({placeholders})'
 
-        # Add ON CONFLICT logic
-        # if on_conflict == "ignore":
-        #     query += " ON CONFLICT DO NOTHING"
-        # elif on_conflict == "update":
-        #     if not conflict_target or not update_fields:
-        #         raise ValueError("conflict_target and update_fields must be provided for ON CONFLICT UPDATE.")
-        #     target = ', '.join(conflict_target)
-        #     updates = ', '.join(f"{field} = EXCLUDED.{field}" for field in update_fields)
-        #     query += f" ON CONFLICT ({target}) DO UPDATE SET {updates}"
-
         query += f" RETURNING {primary_key_field} AS new_id"
 
         try:
@@ -453,17 +440,18 @@ class AsyncQuerySet:
     async def bulk_create(
         self,
         values:list[dict],
+        on_conflict:str,
+        conflict_target:list[str]|None=None,  # Required for "update"
+        update_fields:list[str]|None=None,     # Required for "update"
         skip_validations:bool=False,
-        on_conflict:str=None,
-        conflict_target:list[str]=None,  # Required for "update"
-        update_fields:list[str]=None     # Required for "update"
     ):
         """
+        Usage
         await db.bulk_create(values=payload, on_conflict=OnConflict.DO_NOTHING)
         await db.bulk_create(
             values=payload,
             on_conflict=OnConflict.UPDATE,
-            conflict_target=["id"],  # or other unique constraint
+            conflict_target=["id"],  # or other unique constraint columns
             update_fields=["name", "email"]
         )
         """
@@ -502,7 +490,7 @@ class AsyncQuerySet:
             query += " ON CONFLICT DO NOTHING"
         elif on_conflict == OnConflict.UPDATE:
             if not conflict_target or not update_fields:
-                raise ValueError("conflict_target and update_fields must be provided for ON CONFLICT UPDATE.")
+                raise TypeError("conflict_target and update_fields must be provided for OnConflict.UPDATE")
             target = ', '.join(conflict_target)
             updates = ', '.join(f"{field} = EXCLUDED.{field}" for field in update_fields)
             query += f" ON CONFLICT ({target}) DO UPDATE SET {updates}"
