@@ -17,6 +17,7 @@ from .utils import (
     Relation,
     Prefetch,
     Q,
+    InClauseParam,
 )
 
 from .fields import CustomJsonEncoder
@@ -386,9 +387,6 @@ class AsyncQuerySet:
 
     async def create(
         self,
-        on_conflict:str=None,  # Options: None | "ignore" | "update"
-        conflict_target:list[str]=None,  # Required for "update"
-        update_fields:list[str]=None,    # Required for "update"
         **kwargs
     ):
         """
@@ -416,16 +414,6 @@ class AsyncQuerySet:
         # Base query
         query = f'INSERT INTO {self.table} ({columns}) VALUES ({placeholders})'
 
-        # Add ON CONFLICT logic
-        # if on_conflict == "ignore":
-        #     query += " ON CONFLICT DO NOTHING"
-        # elif on_conflict == "update":
-        #     if not conflict_target or not update_fields:
-        #         raise ValueError("conflict_target and update_fields must be provided for ON CONFLICT UPDATE.")
-        #     target = ', '.join(conflict_target)
-        #     updates = ', '.join(f"{field} = EXCLUDED.{field}" for field in update_fields)
-        #     query += f" ON CONFLICT ({target}) DO UPDATE SET {updates}"
-
         query += f" RETURNING {primary_key_field} AS new_id"
 
         try:
@@ -441,8 +429,6 @@ class AsyncQuerySet:
                     table_name=self.table,
                     sqlstate=sqlstate,
                     message=str(e))
-            print('++++++++++++++++++++++++++++++++++++++++++++')
-            print(self.write_connection)
             raise DatabaseError(
                 name=type(e).__name__,
                 sqlstate=sqlstate,
@@ -454,17 +440,18 @@ class AsyncQuerySet:
     async def bulk_create(
         self,
         values:list[dict],
+        on_conflict:str,
+        conflict_target:list[str]|None=None,  # Required for "update"
+        update_fields:list[str]|None=None,     # Required for "update"
         skip_validations:bool=False,
-        on_conflict:str=None,
-        conflict_target:list[str]=None,  # Required for "update"
-        update_fields:list[str]=None     # Required for "update"
     ):
         """
+        Usage
         await db.bulk_create(values=payload, on_conflict=OnConflict.DO_NOTHING)
         await db.bulk_create(
             values=payload,
             on_conflict=OnConflict.UPDATE,
-            conflict_target=["id"],  # or other unique constraint
+            conflict_target=["id"],  # or other unique constraint columns
             update_fields=["name", "email"]
         )
         """
@@ -503,7 +490,7 @@ class AsyncQuerySet:
             query += " ON CONFLICT DO NOTHING"
         elif on_conflict == OnConflict.UPDATE:
             if not conflict_target or not update_fields:
-                raise ValueError("conflict_target and update_fields must be provided for ON CONFLICT UPDATE.")
+                raise TypeError("conflict_target and update_fields must be provided for OnConflict.UPDATE")
             target = ', '.join(conflict_target)
             updates = ', '.join(f"{field} = EXCLUDED.{field}" for field in update_fields)
             query += f" ON CONFLICT ({target}) DO UPDATE SET {updates}"
@@ -682,17 +669,28 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, using:str=None):
+    def __init__(self, query:str, using:str|None=None):
         self.query = query
+        self.values = None
         fastpg = get_fastpg()
         if using:
             self.read_connection = fastpg.db_conn_manager.get_db_conn(using)
         else:
             self.read_connection = fastpg.db_conn_manager.db_for_read()
         self.write_connection = fastpg.db_conn_manager.db_for_write()
+    
+    def render_in_clauses(self, values:Dict[str, Any]) -> Dict[str, Any]:
+        _values = {**values}
+        for param_name, param_val in values.items():
+            if isinstance(param_val, InClauseParam):
+                in_clause_param_names, in_clause_param_values = param_val.render(param_name)
+                self.query = self.query.replace(f':{param_name}', in_clause_param_names)
+                del _values[param_name]
+                _values = {**_values, **in_clause_param_values}
+        return _values
 
-    async def fetch(self, values:dict[str, Any]) -> List[Record]:
-        self.values = values
+    async def fetch(self, values:Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.values = self.render_in_clauses(values)
         try:
             records = await self.read_connection.fetch_all(
                 query=self.query, values=self.values)
@@ -707,8 +705,8 @@ class AsyncRawQuery:
                 message=str(e))
         return [dict(record) for record in records]
     
-    async def execute(self, values:dict[str, Any]) -> List[Record]:
-        self.values = values
+    async def execute(self, values:Dict[str, Any]) -> List[Record]:
+        self.values = self.render_in_clauses(values)
         try:
             return await self.write_connection.execute(
                 query=self.query, values=self.values)
@@ -721,7 +719,7 @@ class AsyncRawQuery:
                 raise e
             if sqlstate == '23505':
                 raise DuplicateKeyDatabaseError(
-                    table_name=self.table,
+                    table_name=None,
                     sqlstate=sqlstate,
                     message=str(e))
             raise DatabaseError(
@@ -729,8 +727,10 @@ class AsyncRawQuery:
                 sqlstate=sqlstate,
                 message=str(e))
     
-    async def execute_many(self, list_of_values: List[Dict]) -> list[Record]:
-        self.values = list_of_values
+    async def execute_many(self, list_of_values: List[Dict[str, Any]]) -> List[Record]:
+        self.values = []
+        for v in list_of_values:
+            self.values.append(self.render_in_clauses(v))
         try:
             return await self.write_connection.execute_many(
                 query=self.query, list_of_values=self.values)
@@ -743,7 +743,7 @@ class AsyncRawQuery:
                 raise e
             if sqlstate == '23505':
                 raise DuplicateKeyDatabaseError(
-                    table_name=self.table,
+                    table_name=None,
                     sqlstate=sqlstate,
                     message=str(e))
             raise DatabaseError(
@@ -771,8 +771,16 @@ class DatabaseModel(BaseModel):
     def async_queryset(cls):
         cls.write_connection = get_fastpg().db_conn_manager.db_for_write()
         return AsyncQuerySet(model=cls)
-    
+
+    async def pre_save(self) -> None:
+        pass
+
+    async def post_save(self) -> None:
+        pass
+
     async def save(self, columns:List[str]=None) -> bool:
+        await self.pre_save()
+
         PreSaveProcessors.model_obj_populate_auto_now_fields(self)
 
         values = {}
@@ -808,6 +816,9 @@ class DatabaseModel(BaseModel):
                 name=type(e).__name__,
                 sqlstate=sqlstate,
                 message=str(e))
+
+        if updated_count:
+            await self.post_save()
 
         return bool(updated_count)
 

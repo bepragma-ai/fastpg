@@ -5,6 +5,8 @@ from enum import Enum
 
 from fastpg import DatabaseModel, Relation, JsonData
 
+from app.utils.color_print import print_yellow
+
 import pytz
 IST_TZ = pytz.timezone("Asia/Kolkata")
 
@@ -72,6 +74,9 @@ class Order(DatabaseModel):
         db_table = 'orders'
         primary_key = 'id'
         auto_generated_fields = ['id']
+        relations = {
+            'customer': Relation(Customer, foreign_field='customer_id'),
+        }
 
 
 class OrderItem(DatabaseModel):
@@ -96,6 +101,14 @@ class Department(DatabaseModel):
     name:str
     location:str
     created_at:datetime|None = None
+
+    async def pre_save(self) -> None:
+        print_yellow('I am inside pre_save()')
+        print_yellow(self.model_dump())
+    
+    async def post_save(self) -> None:
+        print_yellow('I am inside post_save()')
+        print_yellow(self.model_dump())
 
     class Meta:
         db_table = 'departments'

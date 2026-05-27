@@ -28,6 +28,7 @@ CREATE TABLE employees (
     salary DECIMAL(10, 2),
     hire_date DATE
 );
+CREATE INDEX idx_employees_dept ON employees(department_id);
 
 -- Categories table
 CREATE TABLE categories (
@@ -50,6 +51,7 @@ CREATE TABLE products (
     offer_expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX idx_products_cat ON products(category_id);
 
 -- Customers table
 CREATE TABLE customers (
@@ -69,6 +71,7 @@ CREATE TABLE orders (
     total_amount DECIMAL(10, 2),
     status VARCHAR(50)
 );
+CREATE INDEX idx_orders_customer ON orders(customer_id);
 
 -- Order Items table (many-to-many relationship between orders and products)
 CREATE TABLE order_items (
@@ -78,6 +81,9 @@ CREATE TABLE order_items (
     quantity INTEGER NOT NULL,
     unit_price DECIMAL(10, 2)
 );
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_order_items_product ON order_items(product_id);
+CREATE UNIQUE INDEX unique_order_product ON order_items (order_id, product_id);
 
 -- Sales Reports table
 CREATE TABLE coupons (
@@ -156,13 +162,6 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
 -- Order 6 items
 (6, 7, 1, 49.99),
 (6, 6, 1, 19.99);
-
--- Create some useful indexes
-CREATE INDEX idx_employees_dept ON employees(department_id);
-CREATE INDEX idx_products_cat ON products(category_id);
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_order_items_order ON order_items(order_id);
-CREATE INDEX idx_order_items_product ON order_items(product_id);
 
 -- Display summary
 SELECT 'Database initialized successfully!' as message;

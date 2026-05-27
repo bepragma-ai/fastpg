@@ -1,6 +1,7 @@
+from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, Body, HTTPException
 
 from fastpg import (
     OrderBy,
@@ -8,6 +9,9 @@ from fastpg import (
     ReturnType,
     OnConflict,
     Transaction,
+    AsyncRawQuery,
+    InClauseParam,
+    DoesNotExist,
 )
 
 from app.schemas.shop import (
@@ -149,7 +153,7 @@ async def delete_department(
 
 
 @router.post('/department/update', status_code=200)
-async def post_department(
+async def update_department(
     name:str,
     request:Request,
     response:Response,
@@ -293,14 +297,76 @@ async def get_customers(
     return await Customer.async_queryset.all()
 
 
+@router.post('/orders/create', status_code=200)
+async def create_order(
+    request:Request,
+):
+    data = await request.json()
+    async with Transaction.atomic():
+        order = await Order.async_queryset.create(
+            customer_id=data['customer_id'],
+            order_date=data['order_date'],
+            total_amount=data['total_amount'],
+            status=data['status'])
+        await OrderItem.async_queryset.bulk_create([{
+                'order_id': order.id,
+                'product_id': item['product_id'],
+                'quantity': item['quantity'],
+                'unit_price': item['unit_price']} for item in data['order_items']],
+            on_conflict=OnConflict.DO_NOTHING)
+    return {'order_id': order.id}
+
+
+@router.post('/orders/{order_id}/items/update', status_code=200)
+async def add_order_items(
+    order_id:int,
+    request:Request,
+):
+    try:
+        order = await Order.async_queryset.get(id=order_id)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, detail=f'Order does not exist')
+
+    data = await request.json()
+    await OrderItem.async_queryset.bulk_create([{
+            'order_id': order.id,
+            'product_id': item['product_id'],
+            'quantity': item['quantity'],
+            'unit_price': item['unit_price']} for item in data['order_items']],
+        on_conflict=OnConflict.UPDATE,
+        conflict_target=['order_id', 'product_id'],
+        update_fields=['quantity', 'unit_price'])
+    return {}
+
+
 @router.get('/orders', status_code=200)
 async def get_orders(
     response:Response,
 ):
-    orders = await Order.async_queryset.prefetch_related(
+    return await Order.async_queryset.prefetch_related(
         Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
     ).all()
-    return orders
+
+
+@router.post('/orders/by-ids', status_code=200)
+async def get_orders_by_ids(
+    response:Response,
+    order_ids:List[int] = Body(..., embed=True),
+    customer_ids:List[int] = Body(..., embed=True),
+    total_amount:int = Body(..., embed=True),
+):
+    query = AsyncRawQuery(
+        query=f"""
+            SELECT * FROM {Order.Meta.db_table}
+            WHERE
+                id IN (:order_ids)
+                AND customer_id IN (:customer_ids)
+                AND total_amount >= :total_amount;""")
+    return await query.fetch(values={
+        'total_amount': total_amount,
+        'customer_ids': InClauseParam(customer_ids),
+        'order_ids': InClauseParam(order_ids)})
 
 
 @router.get('/order', status_code=200)
@@ -308,9 +374,13 @@ async def get_order(
     response:Response,
     id:int,
 ):
-    order = await Order.async_queryset.prefetch_related(
-        Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
-    ).get(id=id)
+    try:
+        order = await Order.async_queryset.prefetch_related(
+            Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
+        ).get(id=id)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, detail=f'Order does not exist')
     return order
 
 
