@@ -862,10 +862,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#databases-config-format" class="md-nav__link">
+  <a href="#database-config-format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Databases config format
+        Database Config Format
       
     </span>
   </a>
@@ -887,7 +887,7 @@
   <a href="#query-logging" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Query logging
+        Query Logging
       
     </span>
   </a>
@@ -898,7 +898,7 @@
   <a href="#registry-helpers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Registry helpers
+        Registry Helpers
       
     </span>
   </a>
@@ -906,10 +906,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#connection-manager-api" class="md-nav__link">
+  <a href="#dbconnectionmanager" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connection manager API
+        DBConnectionManager
       
     </span>
   </a>
@@ -1182,16 +1182,19 @@
 <h1 id="settings-and-configuration">Settings And Configuration</h1>
 <h2 id="create_fastpg"><code>create_fastpg(...)</code></h2>
 <p>Primary entry point:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">create_fastpg</span><span class="p">(</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">databases</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">},</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">tz_name</span><span class="o">=</span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">query_logger</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;LOG_QUERIES&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;TITLE&quot;</span><span class="p">:</span> <span class="s2">&quot;MY_APP&quot;</span><span class="p">},</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">db_conn_manager_class</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_fastpg</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">create_fastpg</span><span class="p">(</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">databases</span><span class="o">=</span><span class="p">{</span><span class="o">...</span><span class="p">},</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">tz_name</span><span class="o">=</span><span class="s2">&quot;UTC&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">query_logger</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;LOG_QUERIES&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;TITLE&quot;</span><span class="p">:</span> <span class="s2">&quot;MY_APP&quot;</span><span class="p">},</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">db_conn_manager_class</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
 </code></pre></div>
-<h2 id="databases-config-format">Databases config format</h2>
-<p>Each connection entry contains:</p>
+<p>FastPG does not load environment variables by itself. Your application is responsible for building the <code>databases</code> config dict.</p>
+<h2 id="database-config-format">Database Config Format</h2>
+<p>Each configured connection uses:</p>
 <ul>
 <li><code>TYPE</code>: <code>ConnectionType.READ</code> or <code>ConnectionType.WRITE</code></li>
 <li><code>USER</code></li>
@@ -1222,20 +1225,25 @@
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="p">},</span>
 <a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="p">}</span>
 </code></pre></div>
+<p>Validation behavior:</p>
+<ul>
+<li>At least one read connection is required.</li>
+<li>More than one write connection raises <code>MultipleWriteConnectionsError</code>.</li>
+</ul>
 <h2 id="timezone">Timezone</h2>
 <ul>
-<li><code>tz_name</code> controls timezone for automatic timestamp processors.</li>
-<li>Invalid timezone names fallback to <code>UTC</code>.</li>
+<li><code>tz_name</code> controls the timezone used by auto timestamp preprocessors.</li>
+<li>Invalid timezone names fall back to <code>UTC</code>.</li>
 </ul>
-<h2 id="query-logging">Query logging</h2>
-<p>Enable DB timing logs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">query_logger</span><span class="o">=</span><span class="p">{</span>
+<h2 id="query-logging">Query Logging</h2>
+<p>Enable DB timing logs with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">query_logger</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="s2">&quot;LOG_QUERIES&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="s2">&quot;TITLE&quot;</span><span class="p">:</span> <span class="s2">&quot;SHOP_API&quot;</span><span class="p">,</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
 </code></pre></div>
-<p>When enabled, logs are emitted from <code>fastpg.utils</code> and bucketed by elapsed time.</p>
-<h2 id="registry-helpers">Registry helpers</h2>
+<p>When enabled, FastPG logs through <code>fastpg.utils</code> and prefixes entries with the configured title plus an elapsed-time bucket.</p>
+<h2 id="registry-helpers">Registry Helpers</h2>
 <p>FastPG supports multiple named instances:</p>
 <ul>
 <li><code>register_fastpg(name, instance)</code></li>
@@ -1243,9 +1251,9 @@
 <li><code>get_fastpg(name=None)</code></li>
 <li><code>set_current_fastpg(name)</code></li>
 </ul>
-<p><code>get_fastpg()</code> without <code>name</code> returns the current context-bound instance.</p>
-<h2 id="connection-manager-api">Connection manager API</h2>
-<p><code>DBConnectionManager</code> methods:</p>
+<p><code>get_fastpg()</code> without a name uses the current context-bound instance.</p>
+<h2 id="dbconnectionmanager"><code>DBConnectionManager</code></h2>
+<p>Methods:</p>
 <ul>
 <li><code>connect_all()</code></li>
 <li><code>close_all()</code></li>
@@ -1253,10 +1261,10 @@
 <li><code>db_for_read()</code></li>
 <li><code>db_for_write()</code></li>
 </ul>
-<p>Validation behavior:</p>
+<p>Routing behavior:</p>
 <ul>
-<li>Raises <code>ReadConnectionNotAvailableError</code> if no read connection exists.</li>
-<li>Raises <code>MultipleWriteConnectionsError</code> if more than one write connection is configured.</li>
+<li><code>db_for_read()</code> randomly selects one configured read connection.</li>
+<li><code>db_for_write()</code> always returns the single configured write connection.</li>
 </ul>
 
 

@@ -862,10 +862,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-preprocessors-are-used" class="md-nav__link">
+  <a href="#where-they-are-used" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where preprocessors are used
+        Where They Are Used
       
     </span>
   </a>
@@ -1192,31 +1192,31 @@
 
 
 <h1 id="preprocessors">Preprocessors</h1>
-<p>FastPG applies lightweight preprocessors around create/save operations.</p>
+<p>FastPG applies small preprocessing helpers around create and save operations.</p>
 <h2 id="precreateprocessors"><code>PreCreateProcessors</code></h2>
 <h3 id="model_obj_populate_auto_now_add_fieldsmodel_obj"><code>model_obj_populate_auto_now_add_fields(model_obj)</code></h3>
 <ul>
 <li>Reads <code>model_obj.Meta.auto_now_add_fields</code>.</li>
-<li>For each listed field: if current value is <code>None</code>, sets <code>datetime.now(fastpg.TZ)</code>.</li>
+<li>For each listed field, sets <code>datetime.now(fastpg.TZ)</code> only when the current value is <code>None</code>.</li>
 </ul>
 <h3 id="model_dict_populate_auto_generated_fieldsmodel_dict-model_cls"><code>model_dict_populate_auto_generated_fields(model_dict, model_cls)</code></h3>
 <ul>
 <li>Reads <code>model_cls.Meta.auto_generated_fields</code>.</li>
-<li>Deletes those keys from insert payload before SQL execution.</li>
+<li>Deletes those keys from the insert payload before SQL execution.</li>
 </ul>
 <h2 id="presaveprocessors"><code>PreSaveProcessors</code></h2>
 <h3 id="model_obj_populate_auto_now_fieldsmodel_obj"><code>model_obj_populate_auto_now_fields(model_obj)</code></h3>
 <ul>
 <li>Reads <code>model_obj.Meta.auto_now_fields</code>.</li>
-<li>For each listed field: if current value is <code>None</code>, sets <code>datetime.now(fastpg.TZ)</code>.</li>
+<li>For each listed field, sets <code>datetime.now(fastpg.TZ)</code> only when the current value is <code>None</code>.</li>
 </ul>
-<h2 id="where-preprocessors-are-used">Where preprocessors are used</h2>
+<h2 id="where-they-are-used">Where They Are Used</h2>
 <ul>
 <li><code>AsyncQuerySet.create(...)</code></li>
 <li><code>AsyncQuerySet.bulk_create(...)</code></li>
 <li><code>DatabaseModel.save(...)</code></li>
 </ul>
-<p>These helpers fail open when optional <code>Meta</code> lists are not defined.</p>
+<p>If the optional <code>Meta</code> lists are missing, these helpers simply do nothing.</p>
 
 
 

@@ -978,38 +978,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#core-methods" class="md-nav__link">
+  <a href="#query-construction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core methods
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Core methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#bulk_create" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        bulk_create
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#retrieval-helpers" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Retrieval helpers
+        Query Construction
       
     </span>
   </a>
@@ -1017,10 +989,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#mutation-methods" class="md-nav__link">
+  <a href="#relationship-helpers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mutation methods
+        Relationship Helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#write-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Write Helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#raw-execution-helper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Raw Execution Helper
       
     </span>
   </a>
@@ -1031,7 +1025,7 @@
   <a href="#await-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Await behavior
+        Await Behavior
       
     </span>
   </a>
@@ -1060,6 +1054,17 @@
     <span class="md-ellipsis">
       
         Methods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inclauseparam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InClauseParam
       
     </span>
   </a>
@@ -1243,8 +1248,82 @@
 
 <h1 id="query-api">Query API</h1>
 <h2 id="asyncquerysetmodel"><code>AsyncQuerySet(model)</code></h2>
-<p>Main query builder for model operations.</p>
-<h3 id="core-methods">Core methods</h3>
+<p>Primary query builder for model reads and writes.</p>
+<h3 id="query-construction">Query Construction</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>using(conn_name)</code></td>
+<td>Override the read connection for this queryset.</td>
+</tr>
+<tr>
+<td><code>columns(*columns)</code></td>
+<td>Limit selected columns.</td>
+</tr>
+<tr>
+<td><code>get(*args, **kwargs)</code></td>
+<td>Fetch one matching row.</td>
+</tr>
+<tr>
+<td><code>filter(*args, **kwargs)</code></td>
+<td>Fetch many matching rows.</td>
+</tr>
+<tr>
+<td><code>all()</code></td>
+<td>Fetch all rows.</td>
+</tr>
+<tr>
+<td><code>count()</code></td>
+<td>Count rows, optionally after existing filters were added.</td>
+</tr>
+<tr>
+<td><code>order_by(**order_by)</code></td>
+<td>Add <code>ORDER BY</code>.</td>
+</tr>
+<tr>
+<td><code>limit(fetch_limit)</code></td>
+<td>Add <code>LIMIT</code>.</td>
+</tr>
+<tr>
+<td><code>offset(fetch_offset)</code></td>
+<td>Add <code>OFFSET</code>.</td>
+</tr>
+<tr>
+<td><code>return_as(return_type)</code></td>
+<td>Return model instances or dicts for read queries.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="relationship-helpers">Relationship Helpers</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>select_related(*relation_names)</code></td>
+<td>Join one configured relation and hydrate it.</td>
+</tr>
+<tr>
+<td><code>filter_related(*args, **kwargs)</code></td>
+<td>Add <code>WHERE</code> clauses for the joined related table.</td>
+</tr>
+<tr>
+<td><code>prefetch_related(*prefetches)</code></td>
+<td>Fetch child collections in follow-up queries.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="write-helpers">Write Helpers</h3>
 <table>
 <thead>
 <tr>
@@ -1255,105 +1334,77 @@
 <tbody>
 <tr>
 <td><code>create(**kwargs)</code></td>
-<td>Insert a single row and return the model instance.</td>
+<td>Insert one row and return the model instance.</td>
 </tr>
 <tr>
 <td><code>bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)</code></td>
-<td>Batch insert. Pass <code>OnConflict.DO_NOTHING</code> to ignore duplicates or <code>OnConflict.UPDATE</code> to upsert matching rows.</td>
+<td>Batch insert or upsert.</td>
 </tr>
 <tr>
-<td><code>get_or_create(defaults=None, **lookup)</code></td>
-<td>Return an existing row or create one from <code>defaults</code>.</td>
+<td><code>get_or_create(defaults, **kwargs)</code></td>
+<td>Fetch one row or create it.</td>
+</tr>
+<tr>
+<td><code>update_or_create(defaults, **kwargs)</code></td>
+<td>Update an existing row or create it.</td>
+</tr>
+<tr>
+<td><code>update(**kwargs)</code></td>
+<td>Build an update query for the current filtered queryset.</td>
+</tr>
+<tr>
+<td><code>delete()</code></td>
+<td>Build a delete query for the current filtered queryset.</td>
 </tr>
 </tbody>
 </table>
-<h4 id="bulk_create"><code>bulk_create</code></h4>
-<p><code>bulk_create()</code> accepts a list of dictionaries and writes them with a single
-statement template executed through <code>execute_many()</code>.</p>
+<h3 id="raw-execution-helper">Raw Execution Helper</h3>
 <ul>
-<li><code>values</code> must be a non-empty <code>list[dict]</code>. An empty list raises <code>NothingToCreateError</code>.</li>
-<li><code>on_conflict</code> controls whether FastPG emits an <code>ON CONFLICT</code> clause. Pass
-  <code>None</code> explicitly for a plain batch insert, <code>OnConflict.DO_NOTHING</code> to ignore
-  duplicates, or <code>OnConflict.UPDATE</code> to perform an upsert.</li>
-<li><code>conflict_target</code> and <code>update_fields</code> are required when
-  <code>on_conflict=OnConflict.UPDATE</code>.</li>
-<li><code>skip_validations=True</code> bypasses Pydantic validation with
-  <code>model_construct()</code>, but FastPG still fills <code>auto_now_add</code> and
-  auto-generated fields before writing.</li>
+<li><code>execute_raw_query(query, values)</code>
+  Runs a raw read query through the queryset's current read connection and returns serialized results.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">OnConflict</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># Plain batch insert</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">await</span> <span class="n">OrderItem</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">[</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="p">{</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            <span class="s2">&quot;order_id&quot;</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="s2">&quot;product_id&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="s2">&quot;unit_price&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;unit_price&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="p">}</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;order_items&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">],</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">on_conflict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">)</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># Ignore duplicates when an order item already exists</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="k">await</span> <span class="n">OrderItem</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="p">[</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>        <span class="p">{</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>            <span class="s2">&quot;order_id&quot;</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>            <span class="s2">&quot;product_id&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;product_id&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>            <span class="s2">&quot;quantity&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;quantity&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>            <span class="s2">&quot;unit_price&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;unit_price&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>        <span class="p">}</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;order_items&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="p">],</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="n">on_conflict</span><span class="o">=</span><span class="n">OnConflict</span><span class="o">.</span><span class="n">DO_NOTHING</span><span class="p">,</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="p">)</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="c1"># Upsert products by SKU, matching the shop demo API</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="n">products_batch</span><span class="p">,</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="n">on_conflict</span><span class="o">=</span><span class="n">OnConflict</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    <span class="n">conflict_target</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>    <span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;category_id&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">,</span> <span class="s2">&quot;stock_quantity&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="p">)</span>
-</code></pre></div>
-<h3 id="retrieval-helpers">Retrieval helpers</h3>
+<h3 id="await-behavior">Await Behavior</h3>
+<p>Awaiting the queryset executes SQL and returns:</p>
 <ul>
-<li><code>select_related(*relation_names)</code></li>
-<li><code>filter_related(*conditions, **filters)</code></li>
-<li><code>prefetch_related(*prefetches)</code></li>
-</ul>
-<h3 id="mutation-methods">Mutation methods</h3>
-<ul>
-<li><code>create(on_conflict=None, conflict_target=None, update_fields=None, **kwargs)</code></li>
-<li><code>bulk_create(values, skip_validations=False, on_conflict=None, conflict_target=None, update_fields=None)</code></li>
-<li><code>get_or_create(defaults, **kwargs)</code></li>
-<li><code>update_or_create(defaults, **kwargs)</code></li>
-<li><code>update(**kwargs)</code></li>
-<li><code>delete()</code></li>
-</ul>
-<h3 id="await-behavior">Await behavior</h3>
-<p>Awaiting queryset executes SQL and returns based on action:</p>
-<ul>
-<li><code>get()</code> -&gt; one model/dict, or raises cardinality errors.</li>
-<li><code>filter()</code> / <code>all()</code> -&gt; list.</li>
-<li><code>count()</code> -&gt; integer.</li>
-<li><code>update()</code> / <code>delete()</code> -&gt; affected row count from write query.</li>
+<li><code>get()</code> -&gt; one model instance or dict</li>
+<li><code>filter()</code> / <code>all()</code> -&gt; list</li>
+<li><code>count()</code> -&gt; integer</li>
+<li><code>update()</code> / <code>delete()</code> -&gt; write-query result, typically an affected-row count</li>
 </ul>
 <h2 id="asyncrawqueryquery-usingnone"><code>AsyncRawQuery(query, using=None)</code></h2>
-<p>Raw SQL wrapper with FastPG error handling.</p>
+<p>Wrapper for hand-written SQL with FastPG error handling.</p>
 <h3 id="methods">Methods</h3>
 <ul>
-<li><code>fetch(values)</code> -&gt; list of dict records (read connection)</li>
-<li><code>execute(values)</code> -&gt; execute single write query</li>
-<li><code>execute_many(list_of_values)</code> -&gt; execute write query with many parameter sets</li>
+<li><code>fetch(values)</code> -&gt; list of dict records using a read connection</li>
+<li><code>execute(values)</code> -&gt; execute one write query using the write connection</li>
+<li><code>execute_many(list_of_values)</code> -&gt; execute the same write query for many parameter sets</li>
 </ul>
+<h3 id="inclauseparam"><code>InClauseParam</code></h3>
+<p>Use <code>InClauseParam([...])</code> inside raw-query values when a named parameter should expand into an <code>IN (...)</code> clause:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncRawQuery</span><span class="p">,</span> <span class="n">InClauseParam</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="n">AsyncRawQuery</span><span class="p">(</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">query</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="s2">        SELECT * FROM orders</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s2">        WHERE id IN (:order_ids)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s2">          AND customer_id IN (:customer_ids)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s2">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">values</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="s2">&quot;order_ids&quot;</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="s2">&quot;customer_ids&quot;</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">]),</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">}</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
+</code></pre></div>
 <h2 id="asyncpaginatorpage_size-queryset-usingnone"><code>AsyncPaginator(page_size, queryset, using=None)</code></h2>
-<p>Paginates an <code>AsyncQuerySet</code> and returns <code>results</code> plus <code>results_paginator</code> metadata.</p>
+<p>Paginator for <code>AsyncQuerySet</code>.</p>
+<ul>
+<li><code>get_page(page=1, context=None)</code></li>
+<li><code>get_next_page()</code></li>
+<li><code>get_previous_page()</code></li>
+</ul>
 <h2 id="rawqueryasyncpaginator"><code>RawQueryAsyncPaginator(...)</code></h2>
-<p>Paginates raw SQL with optional serializer and auto <code>LIMIT/OFFSET</code> handling.</p>
+<p>Paginator for raw SQL with optional serializer and optional automatic <code>LIMIT</code> / <code>OFFSET</code> handling.</p>
 
 
 

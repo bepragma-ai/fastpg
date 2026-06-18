@@ -599,7 +599,7 @@
   <a href="#define-a-relation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Define a relation
+        Define a Relation
       
     </span>
   </a>
@@ -618,6 +618,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#filter_related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        filter_related(...)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#prefetch_related" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -629,10 +640,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#choosing-strategy" class="md-nav__link">
+  <a href="#choosing-a-strategy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Choosing strategy
+        Choosing a Strategy
       
     </span>
   </a>
@@ -1158,8 +1169,8 @@
 
 
 <h1 id="relationships">Relationships</h1>
-<p>FastPG relationships are explicit and lightweight.</p>
-<h2 id="define-a-relation">Define a relation</h2>
+<p>FastPG relationships are explicit. You describe them in <code>Meta.relations</code> and opt into loading strategies per query.</p>
+<h2 id="define-a-relation">Define a Relation</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span><span class="p">,</span> <span class="n">Relation</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -1184,40 +1195,58 @@
 <a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>            <span class="s2">&quot;department&quot;</span><span class="p">:</span> <span class="n">Relation</span><span class="p">(</span><span class="n">Department</span><span class="p">,</span> <span class="n">foreign_field</span><span class="o">=</span><span class="s2">&quot;department_id&quot;</span><span class="p">),</span>
 <a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="p">}</span>
 </code></pre></div>
-<p><code>foreign_field</code> is the field on the base model table (<code>t.foreign_field = r.related_id_field</code>).</p>
+<p><code>foreign_field</code> is the column on the base model. FastPG renders the join as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">t</span><span class="p">.</span><span class="n">department_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">id</span>
+</code></pre></div>
+<p>If you omit <code>related_name</code>, FastPG derives one from the related model class name in snake case.</p>
 <h2 id="select_related"><code>select_related(...)</code></h2>
-<p>Performs a left join and hydrates one related object per base row.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">employee</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;department&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<p><code>select_related()</code> performs a <code>LEFT JOIN</code> and hydrates one related object per base row.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">employee</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;department&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div>
-<p>Current implementation uses the first relation name passed to <code>select_related(...)</code>.</p>
-<p>Use <code>filter_related(...)</code> to filter related table columns:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;department&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="o">.</span><span class="n">filter_related</span><span class="p">(</span><span class="n">department__name</span><span class="o">=</span><span class="s2">&quot;Engineering&quot;</span><span class="p">)</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="o">.</span><span class="n">all</span><span class="p">()</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
-</code></pre></div>
-<h2 id="prefetch_related"><code>prefetch_related(...)</code></h2>
-<p>Loads child collections in a second query and attaches them to each base object.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span><span class="p">,</span> <span class="n">ReturnType</span>
+<p>Current behavior:</p>
+<ul>
+<li>Only one relation is used.</li>
+<li>If multiple names are passed, FastPG uses the first one.</li>
+<li>Missing relation names raise <code>InvalidRelatedFieldError</code>.</li>
+</ul>
+<h2 id="filter_related"><code>filter_related(...)</code></h2>
+<p>Use <code>filter_related()</code> after <code>select_related()</code> to add <code>WHERE</code> conditions against the joined table:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderBy</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">Department</span><span class="o">.</span><span class="n">async_queryset</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;employees&quot;</span><span class="p">,</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()))</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="o">.</span><span class="n">all</span><span class="p">()</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="o">.</span><span class="n">return_as</span><span class="p">(</span><span class="n">ReturnType</span><span class="o">.</span><span class="n">DICT</span><span class="p">)</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;department&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">salary__gte</span><span class="o">=</span><span class="mi">50000</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="o">.</span><span class="n">filter_related</span><span class="p">(</span><span class="n">department__name</span><span class="o">=</span><span class="s2">&quot;Engineering&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">salary</span><span class="o">=</span><span class="n">OrderBy</span><span class="o">.</span><span class="n">DESCENDING</span><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
 </code></pre></div>
-<p>Requirements for prefetch:</p>
+<p>Related-field filters use the relation name as the prefix, for example <code>department__name=...</code>.</p>
+<h2 id="prefetch_related"><code>prefetch_related(...)</code></h2>
+<p><code>prefetch_related()</code> runs the base query first, then executes additional filtered queries and attaches child collections to each base object.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span><span class="p">,</span> <span class="n">ReturnType</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">Department</span><span class="o">.</span><span class="n">async_queryset</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;employees&quot;</span><span class="p">,</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()))</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="o">.</span><span class="n">return_as</span><span class="p">(</span><span class="n">ReturnType</span><span class="o">.</span><span class="n">DICT</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span>
+</code></pre></div>
+<p>Requirements:</p>
 <ul>
-<li>Prefetch queryset model must define a relation that points back to the base model.</li>
+<li>The prefetched queryset model must define a <code>Relation(...)</code> back to the base model.</li>
 <li>Otherwise FastPG raises <code>InvalidPrefetchError</code>.</li>
 </ul>
-<h2 id="choosing-strategy">Choosing strategy</h2>
+<p>Behavior:</p>
 <ul>
-<li>Use <code>select_related</code> for one-to-one or many-to-one style joins.</li>
-<li>Use <code>prefetch_related</code> for one-to-many collections.</li>
+<li>For model-instance results, FastPG sets an attribute named by <code>dataset_name</code>.</li>
+<li>For <code>ReturnType.DICT</code>, FastPG inserts a new key with that dataset name.</li>
+</ul>
+<h2 id="choosing-a-strategy">Choosing a Strategy</h2>
+<ul>
+<li>Use <code>select_related</code> for many-to-one or one-to-one style joins.</li>
+<li>Use <code>prefetch_related</code> for one-to-many child collections.</li>
 </ul>
 
 

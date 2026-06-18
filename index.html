@@ -427,10 +427,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#what-fastpg-gives-you" class="md-nav__link">
+  <a href="#what-it-includes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        What FastPG gives you
+        What It Includes
       
     </span>
   </a>
@@ -438,10 +438,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#project-status-notes" class="md-nav__link">
+  <a href="#important-implementation-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Project status notes
+        Important Implementation Notes
       
     </span>
   </a>
@@ -452,7 +452,7 @@
   <a href="#minimal-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Minimal example
+        Minimal Example
       
     </span>
   </a>
@@ -463,7 +463,7 @@
   <a href="#read-next" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Read next
+        Read Next
       
     </span>
   </a>
@@ -1151,26 +1151,24 @@
 
 
 <h1 id="fastpg">FastPG</h1>
-<p>FastPG is a lightweight async ORM for PostgreSQL built on top of <code>pydantic</code> and <code>databases</code>.
-It keeps SQL explicit, but removes repetitive CRUD and serialization plumbing.</p>
-<h2 id="what-fastpg-gives-you">What FastPG gives you</h2>
+<p>FastPG is a lightweight async ORM layer for PostgreSQL applications, especially FastAPI services. It uses <code>pydantic</code> models for schema validation and the <code>databases</code> package for async I/O, while keeping the generated SQL straightforward.</p>
+<h2 id="what-it-includes">What It Includes</h2>
 <ul>
-<li>Pydantic-based models (<code>DatabaseModel</code>) with async CRUD helpers.</li>
-<li>Chainable query builder (<code>AsyncQuerySet</code>) with Django-style lookup operators.</li>
-<li>Lightweight relationship loading (<code>select_related</code>, <code>prefetch_related</code>).</li>
-<li>Bulk inserts with optional PostgreSQL conflict handling.</li>
-<li>JSON field helpers and JSONB update operators.</li>
-<li>Built-in paginators for querysets and raw SQL.</li>
-<li>Transaction helpers and query timing logs.</li>
+<li><code>DatabaseModel</code> for model definitions and instance-level <code>save()</code> / <code>delete()</code></li>
+<li><code>AsyncQuerySet</code> for lazy read and write queries</li>
+<li><code>Relation</code> and <code>Prefetch</code> for explicit relationship loading</li>
+<li><code>AsyncRawQuery</code> for hand-written SQL with FastPG error wrapping</li>
+<li><code>AsyncPaginator</code> and <code>RawQueryAsyncPaginator</code></li>
+<li><code>Transaction</code> helpers for the configured write connection</li>
 </ul>
-<h2 id="project-status-notes">Project status notes</h2>
-<p>This documentation reflects the current source in <code>src/fastpg</code>.</p>
+<h2 id="important-implementation-notes">Important Implementation Notes</h2>
 <ul>
-<li><code>create(..., on_conflict=...)</code> currently accepts conflict args but does not apply an <code>ON CONFLICT</code> clause.</li>
-<li><code>bulk_create(..., on_conflict=...)</code> does support <code>OnConflict.DO_NOTHING</code> and <code>OnConflict.UPDATE</code>.</li>
-<li><code>update()</code> and <code>delete()</code> should always be chained after <code>filter(...)</code> to ensure a valid <code>WHERE</code> clause.</li>
+<li>FastPG requires at least one <code>READ</code> connection and exactly one <code>WRITE</code> connection.</li>
+<li>Single-row <code>create()</code> only performs <code>INSERT ... RETURNING</code>; conflict handling exists on <code>bulk_create()</code>, not on <code>create()</code>.</li>
+<li><code>update()</code> and <code>delete()</code> should always be chained after <code>filter(...)</code>. The safe pattern is required by the current implementation.</li>
+<li><code>select_related()</code> uses one relation at a time and only the first supplied relation name is used.</li>
 </ul>
-<h2 id="minimal-example">Minimal example</h2>
+<h2 id="minimal-example">Minimal Example</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -1187,7 +1185,7 @@ It keeps SQL explicit, but removes repetitive CRUD and serialization plumbing.</
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_users</span><span class="p">():</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">return</span> <span class="k">await</span> <span class="n">User</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 </code></pre></div>
-<h2 id="read-next">Read next</h2>
+<h2 id="read-next">Read Next</h2>
 <ul>
 <li><code>getting-started.md</code></li>
 <li><code>guides/models.md</code></li>

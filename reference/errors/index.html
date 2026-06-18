@@ -823,10 +823,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#connection-and-configuration" class="md-nav__link">
+  <a href="#configuration-and-connection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Connection and configuration
+        Configuration And Connection
       
     </span>
   </a>
@@ -834,10 +834,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#query-construction-and-operators" class="md-nav__link">
+  <a href="#query-construction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Query construction and operators
+        Query Construction
       
     </span>
   </a>
@@ -845,10 +845,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#result-shape-and-cardinality" class="md-nav__link">
+  <a href="#result-cardinality" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Result shape and cardinality
+        Result Cardinality
       
     </span>
   </a>
@@ -856,21 +856,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#mutation-safety" class="md-nav__link">
+  <a href="#write-and-pagination" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mutation safety
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pagination" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pagination
+        Write And Pagination
       
     </span>
   </a>
@@ -881,7 +870,7 @@
   <a href="#database-execution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Database execution
+        Database Execution
       
     </span>
   </a>
@@ -1181,7 +1170,7 @@
 
 <h1 id="errors">Errors</h1>
 <p>FastPG defines explicit exception classes in <code>fastpg.errors</code>.</p>
-<h2 id="connection-and-configuration">Connection and configuration</h2>
+<h2 id="configuration-and-connection">Configuration And Connection</h2>
 <ul>
 <li><code>ReadConnectionNotAvailableError</code></li>
 <li><code>MultipleWriteConnectionsError</code></li>
@@ -1190,34 +1179,31 @@
 <li><code>MalformedMetaError</code></li>
 <li><code>MalformedQuerysetError</code></li>
 </ul>
-<h2 id="query-construction-and-operators">Query construction and operators</h2>
+<h2 id="query-construction">Query Construction</h2>
 <ul>
 <li><code>InvalidINClauseValueError</code></li>
 <li><code>UnsupportedOperatorError</code></li>
 <li><code>InvalidRelatedFieldError</code></li>
 <li><code>InvalidPrefetchError</code></li>
 </ul>
-<h2 id="result-shape-and-cardinality">Result shape and cardinality</h2>
+<h2 id="result-cardinality">Result Cardinality</h2>
 <ul>
 <li><code>DoesNotExist</code></li>
 <li><code>MultipleRecordsFound</code></li>
 </ul>
-<h2 id="mutation-safety">Mutation safety</h2>
+<h2 id="write-and-pagination">Write And Pagination</h2>
 <ul>
 <li><code>NothingToCreateError</code></li>
 <li><code>UnrestrictedUpdateError</code></li>
 <li><code>UnrestrictedDeleteError</code></li>
-</ul>
-<h2 id="pagination">Pagination</h2>
-<ul>
 <li><code>InvalidPageError</code></li>
 </ul>
-<h2 id="database-execution">Database execution</h2>
+<h2 id="database-execution">Database Execution</h2>
 <ul>
 <li><code>DatabaseError</code></li>
 <li><code>DuplicateKeyDatabaseError</code></li>
 </ul>
-<p><code>DatabaseError</code> includes SQLSTATE and driver exception class name when available.</p>
+<p><code>DatabaseError</code> wraps the driver error details and includes the SQLSTATE when one is available.</p>
 
 
 

@@ -1079,10 +1079,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#select-related-related-filtering" class="md-nav__link">
+  <a href="#select-related-with-related-filtering" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Select related + related filtering
+        Select Related With Related Filtering
       
     </span>
   </a>
@@ -1093,7 +1093,7 @@
   <a href="#prefetch-child-collections" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prefetch child collections
+        Prefetch Child Collections
       
     </span>
   </a>
@@ -1101,10 +1101,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#transaction-patterns" class="md-nav__link">
+  <a href="#raw-sql-with-in-parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Transaction patterns
+        Raw SQL With IN Parameters
       
     </span>
   </a>
@@ -1112,10 +1112,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#update-or-create" class="md-nav__link">
+  <a href="#transaction-pattern" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Update-or-create
+        Transaction Pattern
       
     </span>
   </a>
@@ -1123,10 +1123,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#queryset-pagination-for-api-responses" class="md-nav__link">
+  <a href="#update_or_create" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Queryset pagination for API responses
+        update_or_create
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#queryset-pagination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Queryset Pagination
       
     </span>
   </a>
@@ -1167,16 +1178,16 @@
 
 
 <h1 id="advanced-usage">Advanced Usage</h1>
-<p>Examples below come directly from <code>test_project/app/api/endpoints/shop_api.py</code> patterns.</p>
-<h2 id="select-related-related-filtering">Select related + related filtering</h2>
+<p>These patterns come directly from <code>test_project/app/api/endpoints/shop_api.py</code>.</p>
+<h2 id="select-related-with-related-filtering">Select Related With Related Filtering</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderBy</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">employees</span> <span class="o">=</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;department&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">employees</span> <span class="o">=</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;department&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">employees</span> <span class="o">=</span> <span class="n">employees</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">salary__gte</span><span class="o">=</span><span class="mi">50000</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">employees</span> <span class="o">=</span> <span class="n">employees</span><span class="o">.</span><span class="n">filter_related</span><span class="p">(</span><span class="n">department__name</span><span class="o">=</span><span class="s2">&quot;Engineering&quot;</span><span class="p">)</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="n">employees</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">salary</span><span class="o">=</span><span class="n">OrderBy</span><span class="o">.</span><span class="n">DESCENDING</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="prefetch-child-collections">Prefetch child collections</h2>
+<h2 id="prefetch-child-collections">Prefetch Child Collections</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span><span class="p">,</span> <span class="n">ReturnType</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="p">(</span>
@@ -1186,35 +1197,52 @@
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="o">.</span><span class="n">return_as</span><span class="p">(</span><span class="n">ReturnType</span><span class="o">.</span><span class="n">DICT</span><span class="p">)</span>
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
 </code></pre></div>
-<h2 id="transaction-patterns">Transaction patterns</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transaction</span>
+<h2 id="raw-sql-with-in-parameters">Raw SQL With <code>IN</code> Parameters</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncRawQuery</span><span class="p">,</span> <span class="n">InClauseParam</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_department_with_employees</span><span class="p">(</span><span class="n">dept</span><span class="p">,</span> <span class="n">employees</span><span class="p">):</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">Transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">department</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Department</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">dept</span><span class="p">)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">for</span> <span class="n">emp</span> <span class="ow">in</span> <span class="n">employees</span><span class="p">:</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>            <span class="n">emp</span><span class="p">[</span><span class="s2">&quot;department_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">department</span><span class="o">.</span><span class="n">id</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>            <span class="k">await</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">emp</span><span class="p">)</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="k">return</span> <span class="n">department</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="n">AsyncRawQuery</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">query</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s2">        SELECT * FROM orders</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="s2">        WHERE id IN (:order_ids)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="s2">          AND customer_id IN (:customer_ids)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="s2">          AND total_amount &gt;= :total_amount</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="s2">    &quot;&quot;&quot;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">values</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="s2">&quot;order_ids&quot;</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="s2">&quot;customer_ids&quot;</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">]),</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="s2">&quot;total_amount&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="p">}</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="p">)</span>
 </code></pre></div>
-<h2 id="update-or-create">Update-or-create</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">product</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">update_or_create</span><span class="p">(</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">sku</span><span class="o">=</span><span class="s2">&quot;SKU-1&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Renamed&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="mf">12.0</span><span class="p">,</span> <span class="s2">&quot;stock_quantity&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">},</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
+<h2 id="transaction-pattern">Transaction Pattern</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Transaction</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_department_with_employees</span><span class="p">(</span><span class="n">dept</span><span class="p">,</span> <span class="n">employees</span><span class="p">):</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">async</span> <span class="k">with</span> <span class="n">Transaction</span><span class="o">.</span><span class="n">atomic</span><span class="p">():</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">department</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Department</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">dept</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="k">for</span> <span class="n">emp</span> <span class="ow">in</span> <span class="n">employees</span><span class="p">:</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>            <span class="n">emp</span><span class="p">[</span><span class="s2">&quot;department_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">department</span><span class="o">.</span><span class="n">id</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>            <span class="k">await</span> <span class="n">Employee</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="o">**</span><span class="n">emp</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">return</span> <span class="n">department</span>
 </code></pre></div>
-<h2 id="queryset-pagination-for-api-responses">Queryset pagination for API responses</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncPaginator</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">paginator</span> <span class="o">=</span> <span class="n">AsyncPaginator</span><span class="p">(</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">page_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">queryset</span><span class="o">=</span><span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">page</span> <span class="o">=</span> <span class="k">await</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">return</span> <span class="n">page</span>
+<h2 id="update_or_create"><code>update_or_create</code></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">product</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="k">await</span> <span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">update_or_create</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="nb">id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">sku</span><span class="o">=</span><span class="s2">&quot;SKU-1&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Renamed&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">:</span> <span class="mf">12.0</span><span class="p">,</span> <span class="s2">&quot;stock_quantity&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">},</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span>
+</code></pre></div>
+<h2 id="queryset-pagination">Queryset Pagination</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncPaginator</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">paginator</span> <span class="o">=</span> <span class="n">AsyncPaginator</span><span class="p">(</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">page_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">queryset</span><span class="o">=</span><span class="n">Product</span><span class="o">.</span><span class="n">async_queryset</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">page</span> <span class="o">=</span> <span class="k">await</span> <span class="n">paginator</span><span class="o">.</span><span class="n">get_page</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div>
 
 

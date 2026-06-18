@@ -739,15 +739,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#enumsconstants" class="md-nav__link">
+  <a href="#constants" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Enums/constants
+        Constants
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Enums/constants">
+    <nav class="md-nav" aria-label="Constants">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -803,12 +803,12 @@
   <a href="#relationship-helpers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Relationship helpers
+        Relationship Helpers
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Relationship helpers">
+    <nav class="md-nav" aria-label="Relationship Helpers">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -839,15 +839,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#query-helper" class="md-nav__link">
+  <a href="#query-helpers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Query helper
+        Query Helpers
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Query helper">
+    <nav class="md-nav" aria-label="Query Helpers">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -855,6 +855,17 @@
     <span class="md-ellipsis">
       
         Q(...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inclauseparamvalues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InClauseParam(values)
       
     </span>
   </a>
@@ -1242,7 +1253,7 @@
 
 
 <h1 id="constants-and-helpers">Constants And Helpers</h1>
-<h2 id="enumsconstants">Enums/constants</h2>
+<h2 id="constants">Constants</h2>
 <h3 id="connectiontype"><code>ConnectionType</code></h3>
 <ul>
 <li><code>ConnectionType.READ</code></li>
@@ -1250,27 +1261,41 @@
 </ul>
 <h3 id="orderby"><code>OrderBy</code></h3>
 <ul>
-<li><code>OrderBy.ASCENDING</code> (<code>"ASC"</code>)</li>
-<li><code>OrderBy.DESCENDING</code> (<code>"DESC"</code>)</li>
+<li><code>OrderBy.ASCENDING</code></li>
+<li><code>OrderBy.DESCENDING</code></li>
 </ul>
+<p>These render to <code>ASC</code> and <code>DESC</code>.</p>
 <h3 id="onconflict"><code>OnConflict</code></h3>
 <ul>
 <li><code>OnConflict.DO_NOTHING</code></li>
 <li><code>OnConflict.UPDATE</code></li>
 </ul>
+<p>Used by <code>bulk_create(...)</code>.</p>
 <h3 id="returntype"><code>ReturnType</code></h3>
 <ul>
 <li><code>ReturnType.MODEL_INSTANCE</code></li>
 <li><code>ReturnType.DICT</code></li>
 </ul>
-<h2 id="relationship-helpers">Relationship helpers</h2>
+<p>Used by queryset <code>return_as(...)</code>.</p>
+<h2 id="relationship-helpers">Relationship Helpers</h2>
 <h3 id="relationrelated_model-foreign_field-related_namenone"><code>Relation(related_model, foreign_field, related_name=None)</code></h3>
-<p>Defines join metadata for <code>select_related</code>.</p>
+<p>Stores join metadata for <code>select_related(...)</code>.</p>
+<ul>
+<li><code>related_model</code> is the joined model class.</li>
+<li><code>foreign_field</code> is the foreign-key column on the base model.</li>
+<li><code>related_name</code> overrides the attribute/key name attached to the result.</li>
+</ul>
 <h3 id="prefetchdataset_name-queryset"><code>Prefetch(dataset_name, queryset)</code></h3>
-<p>Defines prefetch metadata for <code>prefetch_related</code>.</p>
-<h2 id="query-helper">Query helper</h2>
+<p>Stores child-collection metadata for <code>prefetch_related(...)</code>.</p>
+<ul>
+<li><code>dataset_name</code> becomes the attached attribute or dict key.</li>
+<li><code>queryset</code> is the child model queryset to execute for the prefetch.</li>
+</ul>
+<h2 id="query-helpers">Query Helpers</h2>
 <h3 id="q"><code>Q(...)</code></h3>
-<p>Builds reusable SQL where fragments with supported lookup operators and supports <code>&amp;</code> / <code>|</code> composition.</p>
+<p>Builds reusable SQL <code>WHERE</code> fragments and supports <code>&amp;</code> / <code>|</code> composition.</p>
+<h3 id="inclauseparamvalues"><code>InClauseParam(values)</code></h3>
+<p>Expands a single named raw-query parameter into multiple bound values for <code>IN (...)</code> clauses.</p>
 
 
 

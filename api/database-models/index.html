@@ -953,7 +953,18 @@
   <a href="#class-attributes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Class attributes
+        Class Attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hooks
       
     </span>
   </a>
@@ -973,10 +984,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#async-def-savecolumns-liststr-none-none-bool" class="md-nav__link">
+  <a href="#async-savecolumns-liststr-none-none-bool" class="md-nav__link">
     <span class="md-ellipsis">
       
-        async def save(columns: list[str] | None = None) -&gt; bool
+        async save(columns: list[str] | None = None) -&gt; bool
       
     </span>
   </a>
@@ -984,10 +995,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#async-def-delete-bool" class="md-nav__link">
+  <a href="#async-delete-bool" class="md-nav__link">
     <span class="md-ellipsis">
       
-        async def delete() -&gt; bool
+        async delete() -&gt; bool
       
     </span>
   </a>
@@ -1003,7 +1014,7 @@
   <a href="#required-meta-members" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Required Meta members
+        Required Meta Members
       
     </span>
   </a>
@@ -1014,7 +1025,7 @@
   <a href="#optional-meta-members" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Optional Meta members
+        Optional Meta Members
       
     </span>
   </a>
@@ -1244,22 +1255,35 @@
 <h1 id="database-models-api">Database Models API</h1>
 <h2 id="databasemodel"><code>DatabaseModel</code></h2>
 <p>Base class for all FastPG models.</p>
-<h3 id="class-attributes">Class attributes</h3>
+<h3 id="class-attributes">Class Attributes</h3>
 <ul>
-<li><code>async_queryset</code>: descriptor returning a new <code>AsyncQuerySet(model=cls)</code>.</li>
-<li><code>write_connection</code>: populated from the current FastPG instance.</li>
+<li><code>async_queryset</code>
+  Returns a fresh <code>AsyncQuerySet(model=cls)</code> bound to the current FastPG instance.</li>
+<li><code>write_connection</code>
+  Set from <code>get_fastpg().db_conn_manager.db_for_write()</code> when <code>async_queryset</code> is accessed.</li>
 </ul>
+<h3 id="hooks">Hooks</h3>
+<ul>
+<li><code>async pre_save() -&gt; None</code></li>
+<li><code>async post_save() -&gt; None</code></li>
+</ul>
+<p>Both are no-op by default and can be overridden on the model class.</p>
 <h3 id="methods">Methods</h3>
-<h4 id="async-def-savecolumns-liststr-none-none-bool"><code>async def save(columns: list[str] | None = None) -&gt; bool</code></h4>
-<p>Updates current row by primary key and returns whether any row changed.</p>
-<h4 id="async-def-delete-bool"><code>async def delete() -&gt; bool</code></h4>
-<p>Deletes current row by primary key and returns whether any row was deleted.</p>
-<h3 id="required-meta-members">Required <code>Meta</code> members</h3>
+<h4 id="async-savecolumns-liststr-none-none-bool"><code>async save(columns: list[str] | None = None) -&gt; bool</code></h4>
+<p>Updates the current row by primary key.</p>
+<ul>
+<li>Calls <code>pre_save()</code> before the update query.</li>
+<li>Applies <code>auto_now_fields</code> when the current field value is <code>None</code>.</li>
+<li>Calls <code>post_save()</code> only when at least one row is updated.</li>
+</ul>
+<h4 id="async-delete-bool"><code>async delete() -&gt; bool</code></h4>
+<p>Deletes the current row by primary key and returns whether the delete affected a row.</p>
+<h3 id="required-meta-members">Required <code>Meta</code> Members</h3>
 <ul>
 <li><code>db_table</code></li>
 <li><code>primary_key</code></li>
 </ul>
-<h3 id="optional-meta-members">Optional <code>Meta</code> members</h3>
+<h3 id="optional-meta-members">Optional <code>Meta</code> Members</h3>
 <ul>
 <li><code>auto_generated_fields</code></li>
 <li><code>auto_now_add_fields</code></li>
@@ -1267,9 +1291,9 @@
 <li><code>relations</code></li>
 </ul>
 <h2 id="queryset_property"><code>queryset_property</code></h2>
-<p>Descriptor used internally for <code>DatabaseModel.async_queryset</code>.</p>
+<p>Descriptor used internally to expose <code>DatabaseModel.async_queryset</code> as a class-level accessor.</p>
 <h2 id="transaction"><code>Transaction</code></h2>
-<p>Utility class exposing write-connection transaction helpers.</p>
+<p>Utility wrapper around the current FastPG write connection transaction.</p>
 <h3 id="methods_1">Methods</h3>
 <ul>
 <li><code>Transaction.atomic()</code></li>
