@@ -1,6 +1,6 @@
 # Constants And Helpers
 
-## Enums/constants
+## Constants
 
 ### `ConnectionType`
 
@@ -9,31 +9,48 @@
 
 ### `OrderBy`
 
-- `OrderBy.ASCENDING` (`"ASC"`)
-- `OrderBy.DESCENDING` (`"DESC"`)
+- `OrderBy.ASCENDING`
+- `OrderBy.DESCENDING`
+
+These render to `ASC` and `DESC`.
 
 ### `OnConflict`
 
 - `OnConflict.DO_NOTHING`
 - `OnConflict.UPDATE`
 
+Used by `bulk_create(...)`.
+
 ### `ReturnType`
 
 - `ReturnType.MODEL_INSTANCE`
 - `ReturnType.DICT`
 
-## Relationship helpers
+Used by queryset `return_as(...)`.
+
+## Relationship Helpers
 
 ### `Relation(related_model, foreign_field, related_name=None)`
 
-Defines join metadata for `select_related`.
+Stores join metadata for `select_related(...)`.
+
+- `related_model` is the joined model class.
+- `foreign_field` is the foreign-key column on the base model.
+- `related_name` overrides the attribute/key name attached to the result.
 
 ### `Prefetch(dataset_name, queryset)`
 
-Defines prefetch metadata for `prefetch_related`.
+Stores child-collection metadata for `prefetch_related(...)`.
 
-## Query helper
+- `dataset_name` becomes the attached attribute or dict key.
+- `queryset` is the child model queryset to execute for the prefetch.
+
+## Query Helpers
 
 ### `Q(...)`
 
-Builds reusable SQL where fragments with supported lookup operators and supports `&` / `|` composition.
+Builds reusable SQL `WHERE` fragments and supports `&` / `|` composition.
+
+### `InClauseParam(values)`
+
+Expands a single named raw-query parameter into multiple bound values for `IN (...)` clauses.

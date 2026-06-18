@@ -1,11 +1,11 @@
 # Pagination
 
-FastPG provides two paginator classes:
+FastPG provides:
 
 - `AsyncPaginator` for `AsyncQuerySet`
 - `RawQueryAsyncPaginator` for raw SQL
 
-Both return the same shape:
+Both return this shape:
 
 ```json
 {
@@ -21,25 +21,33 @@ Both return the same shape:
 }
 ```
 
-## Queryset pagination
+## `AsyncPaginator`
 
 ```python
 from fastpg import AsyncPaginator, OrderBy
 
-queryset = Product.async_queryset.all().order_by(id=OrderBy.ASCENDING)
-paginator = AsyncPaginator(page_size=25, queryset=queryset)
+paginator = AsyncPaginator(
+    page_size=25,
+    queryset=Product.async_queryset.all().order_by(id=OrderBy.ASCENDING),
+)
 
 page1 = await paginator.get_page(page=1)
 page2 = await paginator.get_next_page()
 ```
 
-Rules:
+Behavior:
 
-- `page` must be `>= 1`, else `InvalidPageError`.
-- `get_page()` applies `limit(page_size)` and computed `offset(...)`.
-- Pass `using="conn_name"` to execute on a specific read connection.
+- `page` must be `>= 1`, otherwise `InvalidPageError`.
+- `get_page()` applies `limit(page_size)` and `offset((page - 1) * page_size)`.
+- Pass `using="replica_1"` to run on a specific read connection.
 
-## Raw SQL pagination
+Metadata notes:
+
+- `has_next` is inferred from whether the current page returned exactly `page_size` rows.
+- `start_index` is zero-based.
+- `end_index` is `start_index + object_count`.
+
+## `RawQueryAsyncPaginator`
 
 ```python
 from fastpg import RawQueryAsyncPaginator
@@ -54,7 +62,8 @@ paginator = RawQueryAsyncPaginator(
 page = await paginator.get_page(page=1)
 ```
 
-`RawQueryAsyncPaginator` behavior:
+Behavior:
 
-- `auto_offset_and_limit=True` (default): appends `LIMIT ... OFFSET ...` automatically.
-- `auto_offset_and_limit=False`: your query must include `{page_size}` and `{offset}` placeholders.
+- `auto_offset_and_limit=True` appends `LIMIT ... OFFSET ...`.
+- `auto_offset_and_limit=False` expects `{page_size}` and `{offset}` placeholders inside your query string.
+- `serializer` runs after the raw fetch and before the paginator response is built.

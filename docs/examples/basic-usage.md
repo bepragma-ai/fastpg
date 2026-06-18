@@ -1,9 +1,9 @@
 # Basic Usage
 
-This example mirrors the `test_project` shop schema.
+This example follows the same patterns used in `test_project`.
 
 ```python
-from fastpg import DatabaseModel, JsonData, OnConflict, OrderBy
+from fastpg import DatabaseModel, JsonData
 
 
 class Category(DatabaseModel):
@@ -32,9 +32,27 @@ class Product(DatabaseModel):
         auto_generated_fields = ["id"]
 ```
 
-Bulk upsert-like sync with `bulk_create`:
+Create and fetch:
 
 ```python
+product = await Product.async_queryset.create(
+    sku="SKU-1",
+    name="Cap",
+    category_id=1,
+    price=15.0,
+    stock_quantity=10,
+    properties={"color": "black"},
+)
+
+same_product = await Product.async_queryset.get(id=product.id)
+products = await Product.async_queryset.all()
+```
+
+Bulk upsert:
+
+```python
+from fastpg import OnConflict
+
 payload = [
     {
         "sku": "SKU-1",
@@ -62,11 +80,9 @@ await Product.async_queryset.bulk_create(
 )
 ```
 
-Read and mutate:
+Update fields in place:
 
 ```python
-products = await Product.async_queryset.all().order_by(id=OrderBy.ASCENDING)
-
 await Product.async_queryset.filter(id=1).update(stock_quantity__add=5)
 await Product.async_queryset.filter(id=1).update(properties__jsonb_set__color="blue")
 ```

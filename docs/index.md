@@ -1,27 +1,24 @@
 # FastPG
 
-FastPG is a lightweight async ORM for PostgreSQL built on top of `pydantic` and `databases`.
-It keeps SQL explicit, but removes repetitive CRUD and serialization plumbing.
+FastPG is a lightweight async ORM layer for PostgreSQL applications, especially FastAPI services. It uses `pydantic` models for schema validation and the `databases` package for async I/O, while keeping the generated SQL straightforward.
 
-## What FastPG gives you
+## What It Includes
 
-- Pydantic-based models (`DatabaseModel`) with async CRUD helpers.
-- Chainable query builder (`AsyncQuerySet`) with Django-style lookup operators.
-- Lightweight relationship loading (`select_related`, `prefetch_related`).
-- Bulk inserts with optional PostgreSQL conflict handling.
-- JSON field helpers and JSONB update operators.
-- Built-in paginators for querysets and raw SQL.
-- Transaction helpers and query timing logs.
+- `DatabaseModel` for model definitions and instance-level `save()` / `delete()`
+- `AsyncQuerySet` for lazy read and write queries
+- `Relation` and `Prefetch` for explicit relationship loading
+- `AsyncRawQuery` for hand-written SQL with FastPG error wrapping
+- `AsyncPaginator` and `RawQueryAsyncPaginator`
+- `Transaction` helpers for the configured write connection
 
-## Project status notes
+## Important Implementation Notes
 
-This documentation reflects the current source in `src/fastpg`.
+- FastPG requires at least one `READ` connection and exactly one `WRITE` connection.
+- Single-row `create()` only performs `INSERT ... RETURNING`; conflict handling exists on `bulk_create()`, not on `create()`.
+- `update()` and `delete()` should always be chained after `filter(...)`. The safe pattern is required by the current implementation.
+- `select_related()` uses one relation at a time and only the first supplied relation name is used.
 
-- `create(..., on_conflict=...)` currently accepts conflict args but does not apply an `ON CONFLICT` clause.
-- `bulk_create(..., on_conflict=...)` does support `OnConflict.DO_NOTHING` and `OnConflict.UPDATE`.
-- `update()` and `delete()` should always be chained after `filter(...)` to ensure a valid `WHERE` clause.
-
-## Minimal example
+## Minimal Example
 
 ```python
 from fastpg import DatabaseModel
@@ -41,7 +38,7 @@ async def list_users():
     return await User.async_queryset.all()
 ```
 
-## Read next
+## Read Next
 
 - `getting-started.md`
 - `guides/models.md`

@@ -2,109 +2,95 @@
 
 ## `AsyncQuerySet(model)`
 
-Main query builder for model operations.
+Primary query builder for model reads and writes.
 
-### Core methods
+### Query Construction
 
 | Method | Purpose |
-|--------|---------|
-| `create(**kwargs)` | Insert a single row and return the model instance. |
-| `bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)` | Batch insert. Pass `OnConflict.DO_NOTHING` to ignore duplicates or `OnConflict.UPDATE` to upsert matching rows. |
-| `get_or_create(defaults=None, **lookup)` | Return an existing row or create one from `defaults`. |
+| --- | --- |
+| `using(conn_name)` | Override the read connection for this queryset. |
+| `columns(*columns)` | Limit selected columns. |
+| `get(*args, **kwargs)` | Fetch one matching row. |
+| `filter(*args, **kwargs)` | Fetch many matching rows. |
+| `all()` | Fetch all rows. |
+| `count()` | Count rows, optionally after existing filters were added. |
+| `order_by(**order_by)` | Add `ORDER BY`. |
+| `limit(fetch_limit)` | Add `LIMIT`. |
+| `offset(fetch_offset)` | Add `OFFSET`. |
+| `return_as(return_type)` | Return model instances or dicts for read queries. |
 
-#### `bulk_create`
+### Relationship Helpers
 
-`bulk_create()` accepts a list of dictionaries and writes them with a single
-statement template executed through `execute_many()`.
+| Method | Purpose |
+| --- | --- |
+| `select_related(*relation_names)` | Join one configured relation and hydrate it. |
+| `filter_related(*args, **kwargs)` | Add `WHERE` clauses for the joined related table. |
+| `prefetch_related(*prefetches)` | Fetch child collections in follow-up queries. |
 
-- `values` must be a non-empty `list[dict]`. An empty list raises `NothingToCreateError`.
-- `on_conflict` controls whether FastPG emits an `ON CONFLICT` clause. Pass
-  `None` explicitly for a plain batch insert, `OnConflict.DO_NOTHING` to ignore
-  duplicates, or `OnConflict.UPDATE` to perform an upsert.
-- `conflict_target` and `update_fields` are required when
-  `on_conflict=OnConflict.UPDATE`.
-- `skip_validations=True` bypasses Pydantic validation with
-  `model_construct()`, but FastPG still fills `auto_now_add` and
-  auto-generated fields before writing.
+### Write Helpers
 
-```python
-from fastpg import OnConflict
+| Method | Purpose |
+| --- | --- |
+| `create(**kwargs)` | Insert one row and return the model instance. |
+| `bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)` | Batch insert or upsert. |
+| `get_or_create(defaults, **kwargs)` | Fetch one row or create it. |
+| `update_or_create(defaults, **kwargs)` | Update an existing row or create it. |
+| `update(**kwargs)` | Build an update query for the current filtered queryset. |
+| `delete()` | Build a delete query for the current filtered queryset. |
 
-# Plain batch insert
-await OrderItem.async_queryset.bulk_create(
-    [
-        {
-            "order_id": order.id,
-            "product_id": item["product_id"],
-            "quantity": item["quantity"],
-            "unit_price": item["unit_price"],
-        }
-        for item in data["order_items"]
-    ],
-    on_conflict=None,
-)
+### Raw Execution Helper
 
-# Ignore duplicates when an order item already exists
-await OrderItem.async_queryset.bulk_create(
-    [
-        {
-            "order_id": order.id,
-            "product_id": item["product_id"],
-            "quantity": item["quantity"],
-            "unit_price": item["unit_price"],
-        }
-        for item in data["order_items"]
-    ],
-    on_conflict=OnConflict.DO_NOTHING,
-)
+- `execute_raw_query(query, values)`
+  Runs a raw read query through the queryset's current read connection and returns serialized results.
 
-# Upsert products by SKU, matching the shop demo API
-await Product.async_queryset.bulk_create(
-    products_batch,
-    on_conflict=OnConflict.UPDATE,
-    conflict_target=["sku"],
-    update_fields=["name", "category_id", "price", "stock_quantity"],
-)
-```
+### Await Behavior
 
-### Retrieval helpers
+Awaiting the queryset executes SQL and returns:
 
-- `select_related(*relation_names)`
-- `filter_related(*conditions, **filters)`
-- `prefetch_related(*prefetches)`
-
-### Mutation methods
-
-- `create(on_conflict=None, conflict_target=None, update_fields=None, **kwargs)`
-- `bulk_create(values, skip_validations=False, on_conflict=None, conflict_target=None, update_fields=None)`
-- `get_or_create(defaults, **kwargs)`
-- `update_or_create(defaults, **kwargs)`
-- `update(**kwargs)`
-- `delete()`
-
-### Await behavior
-
-Awaiting queryset executes SQL and returns based on action:
-
-- `get()` -> one model/dict, or raises cardinality errors.
-- `filter()` / `all()` -> list.
-- `count()` -> integer.
-- `update()` / `delete()` -> affected row count from write query.
+- `get()` -> one model instance or dict
+- `filter()` / `all()` -> list
+- `count()` -> integer
+- `update()` / `delete()` -> write-query result, typically an affected-row count
 
 ## `AsyncRawQuery(query, using=None)`
 
-Raw SQL wrapper with FastPG error handling.
+Wrapper for hand-written SQL with FastPG error handling.
 
 ### Methods
 
-- `fetch(values)` -> list of dict records (read connection)
-- `execute(values)` -> execute single write query
-- `execute_many(list_of_values)` -> execute write query with many parameter sets
+- `fetch(values)` -> list of dict records using a read connection
+- `execute(values)` -> execute one write query using the write connection
+- `execute_many(list_of_values)` -> execute the same write query for many parameter sets
+
+### `InClauseParam`
+
+Use `InClauseParam([...])` inside raw-query values when a named parameter should expand into an `IN (...)` clause:
+
+```python
+from fastpg import AsyncRawQuery, InClauseParam
+
+rows = await AsyncRawQuery(
+    query="""
+        SELECT * FROM orders
+        WHERE id IN (:order_ids)
+          AND customer_id IN (:customer_ids)
+    """
+).fetch(
+    values={
+        "order_ids": InClauseParam([1, 2, 3]),
+        "customer_ids": InClauseParam([10, 11]),
+    }
+)
+```
 
 ## `AsyncPaginator(page_size, queryset, using=None)`
 
-Paginates an `AsyncQuerySet` and returns `results` plus `results_paginator` metadata.
+Paginator for `AsyncQuerySet`.
+
+- `get_page(page=1, context=None)`
+- `get_next_page()`
+- `get_previous_page()`
 
 ## `RawQueryAsyncPaginator(...)`
 
-Paginates raw SQL with optional serializer and auto `LIMIT/OFFSET` handling.
+Paginator for raw SQL with optional serializer and optional automatic `LIMIT` / `OFFSET` handling.

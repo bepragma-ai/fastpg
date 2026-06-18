@@ -5,6 +5,8 @@
 Primary entry point:
 
 ```python
+from fastpg import create_fastpg
+
 create_fastpg(
     name="default",
     databases={...},
@@ -14,9 +16,11 @@ create_fastpg(
 )
 ```
 
-## Databases config format
+FastPG does not load environment variables by itself. Your application is responsible for building the `databases` config dict.
 
-Each connection entry contains:
+## Database Config Format
+
+Each configured connection uses:
 
 - `TYPE`: `ConnectionType.READ` or `ConnectionType.WRITE`
 - `USER`
@@ -50,25 +54,30 @@ databases = {
 }
 ```
 
+Validation behavior:
+
+- At least one read connection is required.
+- More than one write connection raises `MultipleWriteConnectionsError`.
+
 ## Timezone
 
-- `tz_name` controls timezone for automatic timestamp processors.
-- Invalid timezone names fallback to `UTC`.
+- `tz_name` controls the timezone used by auto timestamp preprocessors.
+- Invalid timezone names fall back to `UTC`.
 
-## Query logging
+## Query Logging
 
-Enable DB timing logs:
+Enable DB timing logs with:
 
 ```python
-query_logger={
+query_logger = {
     "LOG_QUERIES": True,
     "TITLE": "SHOP_API",
 }
 ```
 
-When enabled, logs are emitted from `fastpg.utils` and bucketed by elapsed time.
+When enabled, FastPG logs through `fastpg.utils` and prefixes entries with the configured title plus an elapsed-time bucket.
 
-## Registry helpers
+## Registry Helpers
 
 FastPG supports multiple named instances:
 
@@ -77,11 +86,11 @@ FastPG supports multiple named instances:
 - `get_fastpg(name=None)`
 - `set_current_fastpg(name)`
 
-`get_fastpg()` without `name` returns the current context-bound instance.
+`get_fastpg()` without a name uses the current context-bound instance.
 
-## Connection manager API
+## `DBConnectionManager`
 
-`DBConnectionManager` methods:
+Methods:
 
 - `connect_all()`
 - `close_all()`
@@ -89,7 +98,7 @@ FastPG supports multiple named instances:
 - `db_for_read()`
 - `db_for_write()`
 
-Validation behavior:
+Routing behavior:
 
-- Raises `ReadConnectionNotAvailableError` if no read connection exists.
-- Raises `MultipleWriteConnectionsError` if more than one write connection is configured.
+- `db_for_read()` randomly selects one configured read connection.
+- `db_for_write()` always returns the single configured write connection.

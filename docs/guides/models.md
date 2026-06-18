@@ -1,8 +1,8 @@
 # Models
 
-`DatabaseModel` extends `pydantic.BaseModel` and is the base class for all FastPG models.
+All FastPG models inherit from `DatabaseModel`, which extends `pydantic.BaseModel`.
 
-## Model definition
+## Model Definition
 
 ```python
 from datetime import datetime
@@ -22,35 +22,61 @@ class Department(DatabaseModel):
         auto_now_add_fields = ["created_at"]
 ```
 
-## `Meta` options
+## `Meta` Options
 
 | Option | Required | Meaning |
 | --- | --- | --- |
-| `db_table` | Yes | Backing PostgreSQL table name. |
-| `primary_key` | No | Primary key column name. |
-| `auto_generated_fields` | No | Fields removed before insert. |
-| `auto_now_add_fields` | No | Fields auto-populated during create/bulk_create if current value is `None`. |
-| `auto_now_fields` | No | Fields auto-populated before `save()` if current value is `None`. |
+| `db_table` | Yes | PostgreSQL table name. |
+| `primary_key` | Yes | Primary key column used by `save()`, `delete()`, `count()`, and insert return handling. |
+| `auto_generated_fields` | No | Fields removed from insert payloads before `create()` and `bulk_create()`. |
+| `auto_now_add_fields` | No | Fields filled with `datetime.now(fastpg.TZ)` during create flows when the current value is `None`. |
+| `auto_now_fields` | No | Fields filled with `datetime.now(fastpg.TZ)` before `save()` when the current value is `None`. |
 | `relations` | No | Mapping of relation name to `Relation(...)`. |
 
-## Instance methods
+## Class-Level Accessor
+
+`async_queryset` is a descriptor on the model class:
+
+```python
+rows = await Department.async_queryset.all()
+```
+
+Each access returns a fresh `AsyncQuerySet` bound to the current FastPG instance.
+
+## Instance Hooks
+
+Override these when you need model-specific save hooks:
+
+```python
+class Department(DatabaseModel):
+    ...
+
+    async def pre_save(self) -> None:
+        ...
+
+    async def post_save(self) -> None:
+        ...
+```
+
+`save()` calls `pre_save()` before the update query and `post_save()` only if the update succeeds.
+
+## Instance Methods
 
 ### `save(columns: list[str] | None = None) -> bool`
 
-Updates the current row using `Meta.primary_key` in the `WHERE` clause.
+Updates the row identified by `Meta.primary_key`.
 
-- Returns `True` if at least one row was updated.
-- If `columns` is omitted, all model fields are included in `SET`.
+- Returns `True` when at least one row is updated.
+- If `columns` is omitted, FastPG includes every field from `model_dump(...)` in the `SET` clause.
+- `auto_now_fields` are only filled when the current field value is `None`.
 
 ### `delete() -> bool`
 
-Deletes the current row by `Meta.primary_key`.
+Deletes the row identified by `Meta.primary_key` and returns whether a row was deleted.
 
-- Returns `True` if at least one row was deleted.
+## JSON Columns
 
-## JSON fields in models
-
-Use `JsonData` for JSON/JSONB columns:
+Use `JsonData` for JSON or JSONB-backed fields:
 
 ```python
 from fastpg import DatabaseModel, JsonData
@@ -67,4 +93,4 @@ class Product(DatabaseModel):
         auto_generated_fields = ["id"]
 ```
 
-`JsonData` serializes dict/list values for DB writes and preserves Python objects in normal model use.
+`JsonData` keeps Python dict/list values in normal model use and serializes them when FastPG prepares DB writes.

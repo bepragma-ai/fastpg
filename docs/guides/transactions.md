@@ -1,8 +1,8 @@
 # Transactions
 
-FastPG exposes transaction helpers through `Transaction`.
+FastPG exposes write-side transaction helpers through `Transaction`.
 
-## Context manager (recommended)
+## Context Manager
 
 ```python
 from fastpg import Transaction
@@ -17,12 +17,19 @@ async def create_department_and_employees(dept_data, employees_data):
     return department
 ```
 
-## Manual flow
+This is the safest pattern and matches the sample FastAPI project.
+
+## Manual Flow
 
 ```python
 transaction = await Transaction.start()
 try:
-    await Order.async_queryset.create(customer_id=1, total_amount=99.5, status="PENDING", order_date="2025-01-01")
+    await Order.async_queryset.create(
+        customer_id=1,
+        order_date="2025-01-01",
+        total_amount=99.5,
+        status="PENDING",
+    )
 except Exception:
     await transaction.rollback()
     raise
@@ -30,7 +37,7 @@ else:
     await transaction.commit()
 ```
 
-## Decorator style
+## Decorator Style
 
 ```python
 from fastpg import Transaction
@@ -43,5 +50,6 @@ async def create_coupon(payload):
 
 ## Notes
 
-- Transactions use the configured write connection.
-- Open connections first (`connect_all()`) before starting transactions.
+- Transactions are taken from the configured write connection.
+- Call `connect_all()` before using transaction helpers.
+- `Transaction.atomic()` returns the underlying transaction context manager.

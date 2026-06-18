@@ -2,27 +2,35 @@
 
 ## 1. Install
 
-FastPG is currently installed from GitHub:
+From a local checkout:
+
+```bash
+pip install -e .
+```
+
+From GitHub:
 
 ```bash
 pip install git+https://github.com/bepragma-ai/fastpg.git
 ```
 
+FastPG targets Python `>=3.8`.
+
 ## 2. Configure FastPG
 
-Create one FastPG instance at app startup.
+Create one FastPG instance during app startup:
 
 ```python
 import os
 from fastapi import FastAPI
-from fastpg import create_fastpg, ConnectionType
+from fastpg import ConnectionType, create_fastpg
 
 app = FastAPI()
 
 FAST_PG = create_fastpg(
-    name="default",
+    name="api",
     databases={
-        "primary": {
+        "default": {
             "TYPE": ConnectionType.WRITE,
             "USER": os.environ["POSTGRES_WRITE_USER"],
             "PASSWORD": os.environ["POSTGRES_WRITE_PASSWORD"],
@@ -50,11 +58,13 @@ FAST_PG = create_fastpg(
 Connection rules:
 
 - At least one `ConnectionType.READ` connection is required.
-- Only one `ConnectionType.WRITE` connection should be configured.
-- Reads route to a random read connection.
-- Writes always route to the write connection.
+- Exactly one `ConnectionType.WRITE` connection is expected.
+- Reads go through a randomly chosen read connection.
+- Writes always use the configured write connection.
 
-## 3. Connect and close pools
+If you register more than one FastPG instance, switch the active one with `set_current_fastpg(name)`.
+
+## 3. Open and Close Connections
 
 ```python
 @app.on_event("startup")
@@ -67,7 +77,7 @@ async def on_shutdown():
     await FAST_PG.db_conn_manager.close_all()
 ```
 
-## 4. Define your first model
+## 4. Define a Model
 
 ```python
 from datetime import datetime
@@ -87,26 +97,31 @@ class Customer(DatabaseModel):
         auto_now_add_fields = ["created_at"]
 ```
 
-## 5. Run CRUD queries
+## 5. Run CRUD Queries
 
 ```python
 # Create
-new_customer = await Customer.async_queryset.create(name="Ada", email="ada@example.com")
+new_customer = await Customer.async_queryset.create(
+    name="Ada",
+    email="ada@example.com",
+)
 
 # Read one
 customer = await Customer.async_queryset.get(id=new_customer.id)
 
 # Read many
-customers = await Customer.async_queryset.filter(name__icontains="a")
+customers = await Customer.async_queryset.filter(name__icontains="ada")
 
-# Update rows (always filter first)
-updated = await Customer.async_queryset.filter(id=customer.id).update(name="Ada Lovelace")
+# Update rows
+updated = await Customer.async_queryset.filter(id=customer.id).update(
+    name="Ada Lovelace",
+)
 
-# Delete rows (always filter first)
+# Delete rows
 deleted = await Customer.async_queryset.filter(id=customer.id).delete()
 ```
 
-## 6. Use model instance helpers
+## 6. Use Instance Helpers
 
 ```python
 customer = await Customer.async_queryset.get(id=1)
@@ -115,7 +130,7 @@ await customer.save(columns=["name"])
 await customer.delete()
 ```
 
-## 7. Use raw SQL when needed
+## 7. Drop to Raw SQL
 
 ```python
 from fastpg import AsyncRawQuery
