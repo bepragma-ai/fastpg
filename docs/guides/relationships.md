@@ -1,8 +1,8 @@
 # Relationships
 
-FastPG relationships are explicit and lightweight.
+FastPG relationships are explicit. You describe them in `Meta.relations` and opt into loading strategies per query.
 
-## Define a relation
+## Define a Relation
 
 ```python
 from fastpg import DatabaseModel, Relation
@@ -30,32 +30,49 @@ class Employee(DatabaseModel):
         }
 ```
 
-`foreign_field` is the field on the base model table (`t.foreign_field = r.related_id_field`).
+`foreign_field` is the column on the base model. FastPG renders the join as:
+
+```sql
+t.department_id = r.id
+```
+
+If you omit `related_name`, FastPG derives one from the related model class name in snake case.
 
 ## `select_related(...)`
 
-Performs a left join and hydrates one related object per base row.
+`select_related()` performs a `LEFT JOIN` and hydrates one related object per base row.
 
 ```python
 employee = await Employee.async_queryset.select_related("department").get(id=1)
 ```
 
-Current implementation uses the first relation name passed to `select_related(...)`.
+Current behavior:
 
-Use `filter_related(...)` to filter related table columns:
+- Only one relation is used.
+- If multiple names are passed, FastPG uses the first one.
+- Missing relation names raise `InvalidRelatedFieldError`.
+
+## `filter_related(...)`
+
+Use `filter_related()` after `select_related()` to add `WHERE` conditions against the joined table:
 
 ```python
+from fastpg import OrderBy
+
 rows = await (
     Employee.async_queryset
     .select_related("department")
+    .filter(salary__gte=50000)
     .filter_related(department__name="Engineering")
-    .all()
+    .order_by(salary=OrderBy.DESCENDING)
 )
 ```
 
+Related-field filters use the relation name as the prefix, for example `department__name=...`.
+
 ## `prefetch_related(...)`
 
-Loads child collections in a second query and attaches them to each base object.
+`prefetch_related()` runs the base query first, then executes additional filtered queries and attaches child collections to each base object.
 
 ```python
 from fastpg import Prefetch, ReturnType
@@ -68,12 +85,17 @@ rows = await (
 )
 ```
 
-Requirements for prefetch:
+Requirements:
 
-- Prefetch queryset model must define a relation that points back to the base model.
+- The prefetched queryset model must define a `Relation(...)` back to the base model.
 - Otherwise FastPG raises `InvalidPrefetchError`.
 
-## Choosing strategy
+Behavior:
 
-- Use `select_related` for one-to-one or many-to-one style joins.
-- Use `prefetch_related` for one-to-many collections.
+- For model-instance results, FastPG sets an attribute named by `dataset_name`.
+- For `ReturnType.DICT`, FastPG inserts a new key with that dataset name.
+
+## Choosing a Strategy
+
+- Use `select_related` for many-to-one or one-to-one style joins.
+- Use `prefetch_related` for one-to-many child collections.

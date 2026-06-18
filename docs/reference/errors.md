@@ -2,7 +2,7 @@
 
 FastPG defines explicit exception classes in `fastpg.errors`.
 
-## Connection and configuration
+## Configuration And Connection
 
 - `ReadConnectionNotAvailableError`
 - `MultipleWriteConnectionsError`
@@ -11,31 +11,28 @@ FastPG defines explicit exception classes in `fastpg.errors`.
 - `MalformedMetaError`
 - `MalformedQuerysetError`
 
-## Query construction and operators
+## Query Construction
 
 - `InvalidINClauseValueError`
 - `UnsupportedOperatorError`
 - `InvalidRelatedFieldError`
 - `InvalidPrefetchError`
 
-## Result shape and cardinality
+## Result Cardinality
 
 - `DoesNotExist`
 - `MultipleRecordsFound`
 
-## Mutation safety
+## Write And Pagination
 
 - `NothingToCreateError`
 - `UnrestrictedUpdateError`
 - `UnrestrictedDeleteError`
-
-## Pagination
-
 - `InvalidPageError`
 
-## Database execution
+## Database Execution
 
 - `DatabaseError`
 - `DuplicateKeyDatabaseError`
 
-`DatabaseError` includes SQLSTATE and driver exception class name when available.
+`DatabaseError` wraps the driver error details and includes the SQLSTATE when one is available.

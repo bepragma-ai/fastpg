@@ -1,19 +1,19 @@
 # Advanced Usage
 
-Examples below come directly from `test_project/app/api/endpoints/shop_api.py` patterns.
+These patterns come directly from `test_project/app/api/endpoints/shop_api.py`.
 
-## Select related + related filtering
+## Select Related With Related Filtering
 
 ```python
 from fastpg import OrderBy
 
-employees = Employee.async_queryset.select_related("department").all()
+employees = Employee.async_queryset.select_related("department")
 employees = employees.filter(salary__gte=50000)
 employees = employees.filter_related(department__name="Engineering")
 rows = await employees.order_by(salary=OrderBy.DESCENDING)
 ```
 
-## Prefetch child collections
+## Prefetch Child Collections
 
 ```python
 from fastpg import Prefetch, ReturnType
@@ -26,7 +26,28 @@ rows = await (
 )
 ```
 
-## Transaction patterns
+## Raw SQL With `IN` Parameters
+
+```python
+from fastpg import AsyncRawQuery, InClauseParam
+
+rows = await AsyncRawQuery(
+    query="""
+        SELECT * FROM orders
+        WHERE id IN (:order_ids)
+          AND customer_id IN (:customer_ids)
+          AND total_amount >= :total_amount
+    """
+).fetch(
+    values={
+        "order_ids": InClauseParam([1, 2, 3]),
+        "customer_ids": InClauseParam([10, 11]),
+        "total_amount": 100,
+    }
+)
+```
+
+## Transaction Pattern
 
 ```python
 from fastpg import Transaction
@@ -41,7 +62,7 @@ async def create_department_with_employees(dept, employees):
     return department
 ```
 
-## Update-or-create
+## `update_or_create`
 
 ```python
 product, created = await Product.async_queryset.update_or_create(
@@ -51,7 +72,7 @@ product, created = await Product.async_queryset.update_or_create(
 )
 ```
 
-## Queryset pagination for API responses
+## Queryset Pagination
 
 ```python
 from fastpg import AsyncPaginator
@@ -62,5 +83,4 @@ paginator = AsyncPaginator(
 )
 
 page = await paginator.get_page(1)
-return page
 ```

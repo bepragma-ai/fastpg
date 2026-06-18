@@ -1,67 +1,115 @@
 # FastPG
 
-FastPG is a lightweight asynchronous ORM built on top of [Pydantic](https://docs.pydantic.dev/latest/) and the
-[`databases`](https://www.encode.io/databases/) library. It provides a minimal but convenient layer for building
-and executing SQL queries in FastAPI projects while keeping explicit SQL within reach.
+FastPG is a lightweight async ORM layer for PostgreSQL applications, especially FastAPI services. It combines `pydantic` models with the `databases` package and keeps the generated SQL simple and explicit.
 
 ## Features
 
-- Async query building backed by Pydantic models
-- Pagination helpers for query sets and raw SQL
-- Configurable preprocessing hooks and logging utilities
-- Simple API inspired by Django's ORM
+- Pydantic-backed database models with async CRUD helpers
+- Lazy `AsyncQuerySet` API with Django-style lookup suffixes
+- Explicit relationship loading with `select_related` and `prefetch_related`
+- Bulk inserts with PostgreSQL conflict handling
+- Raw SQL support with FastPG error wrapping
+- Built-in paginators and transaction helpers
 
 ## Installation
 
-FastPG requires Python 3.9 or later. Install directly from GitHub:
+FastPG requires Python `>=3.8`.
+
+From a local checkout:
+
+```bash
+pip install -e .
+```
+
+From GitHub:
 
 ```bash
 pip install git+https://github.com/bepragma-ai/fastpg.git
 ```
 
-Or pin it in ``requirements.txt``:
+Or pin it in `requirements.txt`:
 
 ```text
 fastpg @ git+https://github.com/bepragma-ai/fastpg.git
 ```
 
-### Verify the install
-
-```python
-from fastpg import __version__
-
-print(__version__)
-```
-
 ## Configuration
 
-Set the environment variables below (see the [settings reference](https://bepragma-ai.github.io/fastpg/reference/settings/) for details):
+FastPG does not read environment variables on its own. Your application should build the database config and register a FastPG instance explicitly:
 
-- ``FASTPG_TZ`` – timezone used for auto timestamp fields (default: ``UTC``)
-- ``POSTGRES_READ_USER`` / ``POSTGRES_WRITE_USER`` – PostgreSQL user for each pool
-- ``POSTGRES_READ_PASSWORD`` / ``POSTGRES_WRITE_PASSWORD`` – user password
-- ``POSTGRES_READ_DB`` / ``POSTGRES_WRITE_DB`` – database name
-- ``POSTGRES_READ_HOST`` / ``POSTGRES_WRITE_HOST`` – database host
-- ``POSTGRES_READ_PORT`` / ``POSTGRES_WRITE_PORT`` – database port
+```python
+import os
+from fastpg import ConnectionType, create_fastpg
+
+
+FAST_PG = create_fastpg(
+    name="api",
+    databases={
+        "default": {
+            "TYPE": ConnectionType.WRITE,
+            "USER": os.environ["POSTGRES_WRITE_USER"],
+            "PASSWORD": os.environ["POSTGRES_WRITE_PASSWORD"],
+            "DB": os.environ["POSTGRES_WRITE_DB"],
+            "HOST": os.environ["POSTGRES_WRITE_HOST"],
+            "PORT": os.environ["POSTGRES_WRITE_PORT"],
+        },
+        "replica_1": {
+            "TYPE": ConnectionType.READ,
+            "USER": os.environ["POSTGRES_READ_USER"],
+            "PASSWORD": os.environ["POSTGRES_READ_PASSWORD"],
+            "DB": os.environ["POSTGRES_READ_DB"],
+            "HOST": os.environ["POSTGRES_READ_HOST"],
+            "PORT": os.environ["POSTGRES_READ_PORT"],
+        },
+    },
+    tz_name="UTC",
+    query_logger={
+        "LOG_QUERIES": True,
+        "TITLE": "MY_SERVICE",
+    },
+)
+```
+
+Connection rules:
+
+- At least one `READ` connection is required.
+- Exactly one `WRITE` connection should be configured.
+- Reads are routed to a random read connection.
+- Writes always use the write connection.
+
+Open and close connections with `FAST_PG.db_conn_manager.connect_all()` and `close_all()` during app startup and shutdown.
 
 ## Quickstart
-
-Declare a model and execute a simple query with `AsyncQuerySet`:
 
 ```python
 from fastpg import DatabaseModel
 
 
 class User(DatabaseModel):
-    id: int
+    id: int | None = None
     name: str
 
     class Meta:
         db_table = "users"
+        primary_key = "id"
+        auto_generated_fields = ["id"]
 
 
-async def list_users():
-    return await User.async_queryset.all()
+async def create_and_list_users():
+    user = await User.async_queryset.create(name="Ada")
+    rows = await User.async_queryset.all()
+    return user, rows
 ```
 
-The [Getting Started guide](https://bepragma-ai.github.io/fastpg/getting-started/) covers connection management, automatic timestamps, and CRUD helpers. More examples and API details are available throughout the [docs site](https://bepragma-ai.github.io/fastpg/).
+Important implementation notes:
+
+- `create()` performs a plain `INSERT ... RETURNING`.
+- `bulk_create()` is where `OnConflict.DO_NOTHING` and `OnConflict.UPDATE` apply.
+- `update()` and `delete()` should be chained after `filter(...)`.
+
+## Documentation
+
+- Getting started: [docs/getting-started.md](docs/getting-started.md)
+- Guides: [docs/guides](docs/guides)
+- API reference: [docs/api](docs/api)
+- Reference: [docs/reference](docs/reference)

@@ -1,6 +1,6 @@
 # JSON Fields
 
-FastPG includes JSON helpers in `fastpg.fields`.
+FastPG exposes JSON helpers in `fastpg.fields`.
 
 ## `JsonData`
 
@@ -22,20 +22,26 @@ class Product(DatabaseModel):
 
 Behavior:
 
-- For DB writes (`model_dump(context={"db_write": True})`), dict/list values are serialized to JSON.
-- For normal serialization, Python objects are preserved.
+- Dicts and lists are serialized to JSON strings during DB writes.
+- Normal model usage keeps Python values as dict/list objects.
+- `CustomJsonEncoder` serializes `datetime` values with `isoformat()`.
 
-## Helper functions
+## Helper Functions
 
-- `json_str_to_dict(value)`: if `value` is a JSON string, parse it.
-- `validate_json_data(data)`: serialize dict/list values for validation flow.
-- `serialize_json_data(data, info)`: serializer used by `JsonData`.
+- `json_str_to_dict(value)`
+  Parses JSON strings returned from the database and leaves non-string values unchanged.
+- `validate_json_data(data)`
+  Converts dict/list values to JSON during validation.
+- `serialize_json_data(data, info)`
+  Returns JSON strings only when `info.context["db_write"]` is truthy.
 
-## JSON update operators in queryset `update(...)`
+## JSONB Update Operators
 
-- `field__jsonb={...}`: replace JSONB column.
-- `field__jsonb_set__key=value`: set one JSON key.
-- `field__jsonb_remove="key"`: remove one JSON key.
+FastPG supports these queryset update forms:
+
+- `field__jsonb={...}`
+- `field__jsonb_set__key=value`
+- `field__jsonb_remove="key"`
 
 Example:
 
