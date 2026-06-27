@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date, datetime
-
 from enum import Enum
+from uuid import UUID
 
 from fastpg import DatabaseModel, Relation, JsonData
 
@@ -22,12 +22,11 @@ class Category(DatabaseModel):
         auto_generated_fields = ['id']
 
 
-class OfferTypes(str, Enum):
-    PERCENTAGE = 'percent'
-    FIXED = 'fixed'
-
-
 class Product(DatabaseModel):
+    class OfferTypes(str, Enum):
+        PERCENTAGE = 'percent'
+        FIXED = 'fixed'
+
     id:int|None = None
     sku:str
     name:str
@@ -134,15 +133,16 @@ class Employee(DatabaseModel):
         }
 
 
-class CouponTypes(str, Enum):
-    PERCENTAGE = 'percentage'
-    FIXED = 'fixed'
-
-
 class Coupon(DatabaseModel):
+    class CouponTypes(str, Enum):
+        PERCENTAGE = 'percentage'
+        FIXED = 'fixed'
+
+    unique_id:UUID
     code:str
     value:float
     value_type:CouponTypes
+    properties:JsonData = {}
 
     class Meta:
         db_table = 'coupons'

@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
+import uuid
 
 from fastapi import APIRouter, Request, Response, Body, HTTPException
 
@@ -12,6 +13,7 @@ from fastpg import (
     AsyncRawQuery,
     InClauseParam,
     DoesNotExist,
+    DuplicateKeyDatabaseError,
 )
 
 from app.schemas.shop import (
@@ -23,7 +25,6 @@ from app.schemas.shop import (
     Department,
     Employee,
     Coupon,
-    OfferTypes,
 )
 
 import pytz
@@ -209,9 +210,13 @@ async def update_or_create_product(
     del data['id']
     del data['sku']
 
-    product, created = await Product.async_queryset.update_or_create(
-        id=id, sku=sku,
-        defaults=data)
+    try:
+        product, created = await Product.async_queryset.update_or_create(
+            id=id, sku=sku,
+            defaults=data)
+    except DuplicateKeyDatabaseError as e:
+        raise HTTPException(
+            status_code=400, detail=e.message)
     return {
         'product': product,
         'created': created
@@ -275,17 +280,17 @@ async def update_product_offer(
     if action == 'reset':
         updated = await Product.async_queryset.filter(id=product_id).update(
             has_offer=True,
-            offer_type=OfferTypes.PERCENTAGE,
+            offer_type=Product.OfferTypes.PERCENTAGE,
             offer_expires_at=datetime.now().astimezone(IST_TZ) + timedelta(days=value))
     elif action == 'extend':
         updated = await Product.async_queryset.filter(id=product_id, offer_expires_at__isnull=False).update(
             has_offer=True,
-            offer_type=OfferTypes.PERCENTAGE,
+            offer_type=Product.OfferTypes.PERCENTAGE,
             offer_expires_at__add_time=value)
     elif action == 'shorten':
         updated = await Product.async_queryset.filter(id=product_id, offer_expires_at__isnull=False).update(
             has_offer=True,
-            offer_type=OfferTypes.PERCENTAGE,
+            offer_type=Product.OfferTypes.PERCENTAGE,
             offer_expires_at__sub_time=value)
     return {'updated': updated}
 
@@ -384,6 +389,13 @@ async def get_order(
     return order
 
 
+@router.get('/coupons/all', status_code=200)
+async def get_all_coupons(
+    response:Response,
+):
+    return await Coupon.async_queryset.all()
+
+
 @router.post('/coupons/get_or_create', status_code=200)
 async def get_or_create_coupon(
     coupon:Coupon,
@@ -392,6 +404,7 @@ async def get_or_create_coupon(
     coupon, created = await Coupon.async_queryset.get_or_create(
         code=coupon.code,
         defaults={
+            'unique_id': coupon.unique_id,
             'value': coupon.value,
             'value_type': coupon.value_type
         })
@@ -399,3 +412,23 @@ async def get_or_create_coupon(
         'coupon': coupon,
         'newly_created': created
     }
+
+
+@router.post('/coupons/update', status_code=200)
+async def update_coupon(
+    coupon_code:str,
+    response:Response,
+):
+    try:
+        coupon = await Coupon.async_queryset.get(code=coupon_code)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, detail=f'Coupon does not exist')
+    
+    coupon.unique_id = uuid.uuid4()
+    coupon.value = 250
+    coupon.value_type = Coupon.CouponTypes.FIXED
+    coupon.properties['unique_id'] = coupon.unique_id
+
+    await coupon.save()
+    return coupon

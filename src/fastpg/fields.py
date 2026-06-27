@@ -1,5 +1,5 @@
 import json
-from uuid import uuid4
+from uuid import UUID
 from datetime import datetime
 from typing import Any, Annotated, Dict
 
@@ -24,6 +24,8 @@ class CustomJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
+        if isinstance(obj, UUID):
+            return str(obj)
         return json.JSONEncoder.default(self, obj)
 
 def validate_json_data(data:Any) -> str|Dict:

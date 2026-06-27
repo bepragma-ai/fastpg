@@ -88,8 +88,10 @@ CREATE UNIQUE INDEX unique_order_product ON order_items (order_id, product_id);
 -- Sales Reports table
 CREATE TABLE coupons (
     code VARCHAR(100) NOT NULL PRIMARY KEY,
+    unique_id UUID,
     value DECIMAL(10, 2) NOT NULL,
-    value_type VARCHAR(100) NOT NULL
+    value_type VARCHAR(100) NOT NULL,
+    properties JSONB
 );
 
 -- Insert Departments (created_at will auto-populate)
