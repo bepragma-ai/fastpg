@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import Optional, List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import uuid
 
@@ -22,6 +22,7 @@ from app.schemas.shop import (
     Customer,
     Order,
     OrderItem,
+    Location,
     Department,
     Employee,
     Coupon,
@@ -37,15 +38,17 @@ router = APIRouter()
 @router.get('/employees', status_code=200)
 async def get_employees(
     response:Response,
-    department:str|None = None,
-    salary:float|None = None,
+    department:Optional[str] = None,
+    location:Optional[str] = None,
+    salary:Optional[float] = None,
 ):
-    employees = Employee.async_queryset.select_related('department').all()
-    if salary or department:
-        if salary:
-            employees = employees.filter(salary__gte=salary)
-        if department:
-            employees = employees.filter_related(department__name=department)
+    employees = Employee.async_queryset.select_related('department', 'location').all()
+    if salary:
+        employees = employees.filter(salary__gte=salary)
+    if department:
+        employees = employees.filter_related(department__name=department)
+    if location:
+        employees = employees.filter_related(location__office__icontains=location)
     return await employees.order_by(salary=OrderBy.DESCENDING)
 
 
@@ -55,6 +58,51 @@ async def get_employee(
     id:int,
 ):
     return await Employee.async_queryset.select_related('department').get(id=id)
+
+
+@router.post('/employee/create', status_code=200)
+async def create_employee(
+    request:Request,
+    response:Response,
+):
+    data = await request.json()
+    department = data.pop('department')
+    location = data.pop('location')
+    async with Transaction.atomic():
+        department = await Department.async_queryset.create(**department)
+        location = await Location.async_queryset.create(**location)
+        employee = await Employee.async_queryset.create(
+            department_id=department.id,
+            location_id=location.id,
+            **data)
+
+    return await Employee.async_queryset.select_related('department', 'location').get(
+        id=employee.id).return_as(ReturnType.DICT)
+
+
+@router.get('/locations', status_code=200)
+async def get_locations(
+    response:Response,
+):
+    return await Location.async_queryset.prefetch_related(
+        Prefetch('employees', Employee.async_queryset.all())
+    ).all()
+
+
+@router.get('/location', status_code=200)
+async def get_location(
+    response:Response,
+    id:int,
+    salary:Optional[float] = None
+):
+    if salary:
+        employees_query = Employee.async_queryset.filter(salary__gt=salary)
+    else:
+        employees_query = Employee.async_queryset.all()
+    location = await Location.async_queryset.prefetch_related(
+        Prefetch('employees', employees_query)
+    ).get(id=id).return_as(ReturnType.DICT)
+    return location
 
 
 @router.get('/departments', status_code=200)
@@ -383,6 +431,20 @@ async def get_order(
         order = await Order.async_queryset.prefetch_related(
             Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
         ).get(id=id)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, detail=f'Order does not exist')
+    return order
+
+
+@router.get('/order-item', status_code=200)
+async def get_order_item(
+    response:Response,
+    id:int,
+):
+    try:
+        # order = await OrderItem.async_queryset.select_related('order', 'product').get(id=id)
+        order = await OrderItem.async_queryset.select_related('order', 'product').all().filter_related(order__status='completed', product__price__lte=999)
     except DoesNotExist:
         raise HTTPException(
             status_code=404, detail=f'Order does not exist')

@@ -71,16 +71,27 @@ class Profile(DatabaseModel):
         primary_key = "id"
 
 
+class Team(DatabaseModel):
+    id: int
+    name: str
+
+    class Meta:
+        db_table = "teams"
+        primary_key = "id"
+
+
 class User(DatabaseModel):
     id: int
     name: str
     profile_id: Optional[int] = None
+    team_id: Optional[int] = None
 
     class Meta:
         db_table = "users"
         primary_key = "id"
         relations = {
-            "profile": Relation(Profile, foreign_field="profile_id", related_name="profile")
+            "profile": Relation(Profile, foreign_field="profile_id", related_name="profile"),
+            "team": Relation(Team, foreign_field="team_id", related_name="team"),
         }
 
 
@@ -202,6 +213,7 @@ async def test_select_related_hydrates_related_object():
             "t_id": 1,
             "t_name": "A",
             "t_profile_id": 10,
+            "t_team_id": None,
             "r_id": 10,
             "r_bio": "bio",
         }
@@ -210,3 +222,33 @@ async def test_select_related_hydrates_related_object():
     result = await User.async_queryset.select_related("profile").get(id=1)
     assert isinstance(result.profile, Profile)
     assert result.profile.bio == "bio"
+
+
+@pytest.mark.asyncio
+async def test_select_related_hydrates_multiple_related_objects():
+    records = [{
+        "t_id": 1,
+        "t_name": "A",
+        "t_profile_id": 10,
+        "t_team_id": 20,
+        "r_id": 10,
+        "r_bio": "bio",
+        "r1_id": 20,
+        "r1_name": "Core",
+    }]
+    instance = _make_fastpg(read_records=records)
+
+    result = await (
+        User.async_queryset
+        .select_related("profile", "team")
+        .filter_related(profile__bio="bio", team__name="Core")
+        .get(id=1)
+    )
+
+    assert isinstance(result.profile, Profile)
+    assert isinstance(result.team, Team)
+    assert result.team.name == "Core"
+    assert "LEFT JOIN profiles r" in instance.db_conn_manager.read_conn.last_query
+    assert "LEFT JOIN teams r1" in instance.db_conn_manager.read_conn.last_query
+    assert "r.bio =" in instance.db_conn_manager.read_conn.last_query
+    assert "r1.name =" in instance.db_conn_manager.read_conn.last_query

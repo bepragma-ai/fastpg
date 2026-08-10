@@ -99,7 +99,7 @@ class OrderItem(DatabaseModel):
 class Department(DatabaseModel):
     id:Optional[int] = None
     name:str
-    location:str
+    role:Optional[str] = None
     created_at:Optional[datetime] = None
 
     async def pre_save(self) -> None:
@@ -117,9 +117,31 @@ class Department(DatabaseModel):
         auto_now_add_fields = ["created_at"]
 
 
+class Location(DatabaseModel):
+    id:Optional[int] = None
+    office:str
+    address:Optional[str] = None
+    created_at:Optional[datetime] = None
+
+    async def pre_save(self) -> None:
+        print_yellow('I am inside pre_save()')
+        print_yellow(self.model_dump())
+    
+    async def post_save(self) -> None:
+        print_yellow('I am inside post_save()')
+        print_yellow(self.model_dump())
+
+    class Meta:
+        db_table = 'locations'
+        primary_key = 'id'
+        auto_generated_fields = ['id']
+        auto_now_add_fields = ["created_at"]
+
+
 class Employee(DatabaseModel):
     id:Optional[int] = None
     department_id:Optional[int]
+    location_id:Optional[int]
     name:str
     email:str
     salary:float
@@ -131,6 +153,7 @@ class Employee(DatabaseModel):
         auto_generated_fields = ['id']
         relations = {
             'department': Relation(Department, foreign_field='department_id'),
+            'location': Relation('shop.Location', foreign_field='location_id'),
         }
 
 

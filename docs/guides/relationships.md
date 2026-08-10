@@ -40,17 +40,14 @@ If you omit `related_name`, FastPG derives one from the related model class name
 
 ## `select_related(...)`
 
-`select_related()` performs a `LEFT JOIN` and hydrates one related object per base row.
+`select_related()` performs `LEFT JOIN`s and hydrates related objects on each base row.
 
 ```python
 employee = await Employee.async_queryset.select_related("department").get(id=1)
 ```
 
-Current behavior:
-
-- Only one relation is used.
-- If multiple names are passed, FastPG uses the first one.
-- Missing relation names raise `InvalidRelatedFieldError`.
+Pass multiple relation names to load them in one query. Missing relation names raise
+`InvalidRelatedFieldError`.
 
 ## `filter_related(...)`
 
@@ -68,7 +65,17 @@ rows = await (
 )
 ```
 
-Related-field filters use the relation name as the prefix, for example `department__name=...`.
+Related-field filters use the relation name as the prefix, and conditions for multiple
+selected relations can be combined in one call:
+
+```python
+item = await (
+    OrderItem.async_queryset
+    .select_related("order", "product")
+    .filter_related(order__status="open", product__name="Widget")
+    .get(id=1)
+)
+```
 
 ## `prefetch_related(...)`
 

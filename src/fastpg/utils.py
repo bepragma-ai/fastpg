@@ -71,9 +71,8 @@ class Prefetch:
 class Q:
     """Convenience object for constructing SQL WHERE clauses."""
 
-    def __init__(self, where_clause=None, params=None, relation:Relation=None, **kwargs):
-        self.relation = relation
-        self.relation_key = relation.related_name + '__' if relation else None
+    def __init__(self, where_clause=None, params=None, relation_aliases:Dict[str, str]=None, **kwargs):
+        self.relation_aliases = relation_aliases or {}
 
         if where_clause:
             self.where_clause = where_clause
@@ -84,11 +83,9 @@ class Q:
             field_idx = 0
             for key, value in kwargs.items():
                 field_idx += 1
-                if self.relation:
-                    if self.relation_key in key:
-                        key = key.replace(self.relation_key, 'r.')
-                    else:
-                        key = 't.' + key
+                relation_name, separator, related_key = key.partition('__')
+                if separator and relation_name in self.relation_aliases:
+                    key = f'{self.relation_aliases[relation_name]}.{related_key}'
                 else:
                     key = 't.' + key
 
@@ -153,12 +150,12 @@ class Q:
     def __or__(self, other):
         combined_query = f"({self.where_clause} OR {other.where_clause})"
         combined_params = {**self.params, **other.params}
-        return Q(where_clause=combined_query, params=combined_params, relation=self.relation)
+        return Q(where_clause=combined_query, params=combined_params)
 
     def __and__(self, other):
         combined_query = f"({self.where_clause} AND {other.where_clause})"
         combined_params = {**self.params, **other.params}
-        return Q(where_clause=combined_query, params=combined_params, relation=self.relation)
+        return Q(where_clause=combined_query, params=combined_params)
 
     def __repr__(self):
         return f"{self.where_clause} {self.params}"

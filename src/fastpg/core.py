@@ -90,7 +90,7 @@ class AsyncQuerySet:
         self.records = None
 
         self.run_select_related = False
-        self.relation:Optional[Relation] = None
+        self.relations:List[Relation] = []
         
         self.run_prefetch_related = False
         self.prefetches:List[Prefetch] = []
@@ -112,7 +112,11 @@ class AsyncQuerySet:
     
     def _reduce_related_conditions(self, *args, **kwargs) -> Q:
         if kwargs:
-            self.related_conditions.append(Q(relation=self.relation, **kwargs))
+            relation_aliases = {
+                relation.related_name: 'r' if index == 0 else f'r{index}'
+                for index, relation in enumerate(self.relations)
+            }
+            self.related_conditions.append(Q(relation_aliases=relation_aliases, **kwargs))
         if args:
             self.related_conditions.extend(args)
         return reduce(lambda x, y: x & y, self.related_conditions)
@@ -120,12 +124,14 @@ class AsyncQuerySet:
     def _denormalize_related_data(self) -> list[dict]:
         items = []
         for record in self.records:
-            related_id_field_val = record[f'r_{self.relation.related_id_field}']
-
             item = {f: record[f't_{f}'] for f in self.columns_to_fetch}
-            item[self.relation.related_name] = None
-            if related_id_field_val:
-                item[self.relation.related_name] = {f: record[f'r_{f}'] for f in self.relation.model_fields}
+            for index, relation in enumerate(self.relations):
+                alias = 'r' if index == 0 else f'r{index}'
+                item[relation.related_name] = None
+                if record[f'{alias}_{relation.related_id_field}']:
+                    item[relation.related_name] = {
+                        f: record[f'{alias}_{f}'] for f in relation.model_fields
+                    }
             
             items.append(item)
         return items
@@ -138,10 +144,11 @@ class AsyncQuerySet:
             if self.run_select_related:
                 model_objs = []
                 for record in self.records:
-                    related_record = record[self.relation.related_name]
-                    related_obj = self.relation.RelatedModel(**related_record) if related_record else None
                     model_obj = self.Model(**record)
-                    setattr(model_obj, self.relation.related_name, related_obj)
+                    for relation in self.relations:
+                        related_record = record[relation.related_name]
+                        related_obj = relation.RelatedModel(**related_record) if related_record else None
+                        setattr(model_obj, relation.related_name, related_obj)
                     model_objs.append(model_obj)
                 self.records = model_objs
             else:
@@ -179,12 +186,21 @@ class AsyncQuerySet:
 
     async def _execute_query_with_select_related(self, func) -> None:
         main_table_fields = ','.join(f't.{f} AS t_{f}' for f in self.columns_to_fetch)
-        related_table_fields = ','.join(f'r.{f} AS r_{f}' for f in self.relation.model_fields)
+        related_table_fields = []
+        joins = []
+        for index, relation in enumerate(self.relations):
+            alias = 'r' if index == 0 else f'r{index}'
+            related_table_fields.extend(
+                f'{alias}.{f} AS {alias}_{f}' for f in relation.model_fields
+            )
+            joins.append(
+                f'LEFT JOIN {relation.table} {alias} '
+                f'ON t.{relation.foreign_field} = {alias}.{relation.related_id_field}'
+            )
 
         self.query = f"""
-            SELECT {main_table_fields}, {related_table_fields}
-            FROM {self.table} t LEFT JOIN {self.relation.table} r
-            ON {self.relation.render_on_clause()}
+            SELECT {main_table_fields}, {','.join(related_table_fields)}
+            FROM {self.table} t {' '.join(joins)}
         """
         if self.where_conditions:
             self.query += f'WHERE {self.where_conditions}'
@@ -362,11 +378,11 @@ class AsyncQuerySet:
 
     def select_related(self, *relation_names:List[str]) -> Self:
         self.run_select_related = True
-        relation_name = relation_names[0]
-        try:
-            self.relation = self.ModelMeta.relations[relation_name]
-        except KeyError:
-            raise InvalidRelatedFieldError(self.Model.__name__, relation_name, self.ModelMeta.relations.keys())
+        for relation_name in relation_names:
+            try:
+                self.relations.append(self.ModelMeta.relations[relation_name])
+            except KeyError:
+                raise InvalidRelatedFieldError(self.Model.__name__, relation_name, self.ModelMeta.relations.keys())
         return self
     
     def prefetch_related(self, *prefetches:List[Prefetch]) -> Self:
