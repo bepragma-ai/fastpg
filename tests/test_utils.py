@@ -59,3 +59,29 @@ def test_relation_raises_for_missing_meta():
 
     with pytest.raises(AttributeError):
         Relation(BadModel, foreign_field="profile_id")
+
+
+def test_relation_resolves_model_defined_later():
+    class Employee(DatabaseModel):
+        location_id: int
+
+        class Meta:
+            db_table = "employees"
+            primary_key = "location_id"
+            relations = {
+                "location": Relation(
+                    "test_utils.LocationDefinedLater",
+                    foreign_field="location_id",
+                )
+            }
+
+    class LocationDefinedLater(DatabaseModel):
+        id: int
+
+        class Meta:
+            db_table = "locations"
+            primary_key = "id"
+
+    relation = Employee.Meta.relations["location"]
+    assert relation.RelatedModel is LocationDefinedLater
+    assert relation.table == "locations"

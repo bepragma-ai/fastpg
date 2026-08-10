@@ -117,6 +117,25 @@ class Department(DatabaseModel):
         auto_now_add_fields = ["created_at"]
 
 
+class Employee(DatabaseModel):
+    id:Optional[int] = None
+    department_id:Optional[int]
+    location_id:Optional[int]
+    name:str
+    email:str
+    salary:float
+    hire_date:date
+
+    class Meta:
+        db_table = 'employees'
+        primary_key = 'id'
+        auto_generated_fields = ['id']
+        relations = {
+            'department': Relation(Department, foreign_field='department_id'),
+            'location': Relation('shop.Location', foreign_field='location_id'),
+        }
+
+
 class Location(DatabaseModel):
     id:Optional[int] = None
     office:str
@@ -136,25 +155,6 @@ class Location(DatabaseModel):
         primary_key = 'id'
         auto_generated_fields = ['id']
         auto_now_add_fields = ["created_at"]
-
-
-class Employee(DatabaseModel):
-    id:Optional[int] = None
-    department_id:Optional[int]
-    location_id:Optional[int]
-    name:str
-    email:str
-    salary:float
-    hire_date:date
-
-    class Meta:
-        db_table = 'employees'
-        primary_key = 'id'
-        auto_generated_fields = ['id']
-        relations = {
-            'department': Relation(Department, foreign_field='department_id'),
-            'location': Relation('shop.Location', foreign_field='location_id'),
-        }
 
 
 class Coupon(DatabaseModel):

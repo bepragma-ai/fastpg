@@ -25,24 +25,39 @@ class Relation:
         foreign_field:str,
         related_name:Optional[str] = None,
     ) -> None:
-        from .core import get_database_model_by_uri
-        if isinstance(related_model, str):
-            self.RelatedModel = get_database_model_by_uri(related_model)
-        else:
-            self.RelatedModel = related_model
-
-        try:
-            self.table = self.RelatedModel.Meta.db_table
-        except AttributeError as e:
-            if str(e) == "Meta":
-                raise MalformedMetaError(self.RelatedModel.__name__)
-        self.model_fields = self.RelatedModel.__fields__.keys()
+        self._related_model = related_model
+        if not isinstance(related_model, str):
+            self.table
         self.foreign_field = foreign_field
-        self.related_id_field = self.RelatedModel.Meta.primary_key
         if related_name:
             self.related_name = related_name
         else:
-            self.related_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', self.RelatedModel.__name__).lower()  # Camel case to snake case
+            model_name = related_model.rsplit('.', 1)[-1] if isinstance(related_model, str) else related_model.__name__
+            self.related_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', model_name).lower()  # Camel case to snake case
+
+    @property
+    def RelatedModel(self):
+        if isinstance(self._related_model, str):
+            from .core import get_database_model_by_uri
+            self._related_model = get_database_model_by_uri(self._related_model)
+        return self._related_model
+
+    @property
+    def table(self):
+        try:
+            return self.RelatedModel.Meta.db_table
+        except AttributeError as e:
+            if str(e) == "Meta":
+                raise MalformedMetaError(self.RelatedModel.__name__)
+            raise
+
+    @property
+    def model_fields(self):
+        return self.RelatedModel.model_fields.keys()
+
+    @property
+    def related_id_field(self):
+        return self.RelatedModel.Meta.primary_key
 
     def set_related_data_set_name(self, related_name: str) -> None:
         """Set a custom name for the related data set."""
@@ -71,7 +86,7 @@ class Prefetch:
 class Q:
     """Convenience object for constructing SQL WHERE clauses."""
 
-    def __init__(self, where_clause=None, params=None, relation_aliases:Dict[str, str]=None, **kwargs):
+    def __init__(self, where_clause=None, params=None, relation_aliases:Optional[Dict[str, str]]=None, **kwargs):
         self.relation_aliases = relation_aliases or {}
 
         if where_clause:
