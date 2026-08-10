@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from datetime import date, datetime
 from enum import Enum
 from uuid import UUID
@@ -12,7 +13,7 @@ IST_TZ = pytz.timezone("Asia/Kolkata")
 
 
 class Category(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     name:str
     description:str
 
@@ -27,16 +28,16 @@ class Product(DatabaseModel):
         PERCENTAGE = 'percent'
         FIXED = 'fixed'
 
-    id:int|None = None
+    id:Optional[int] = None
     sku:str
     name:str
-    category_id:int|None = None
+    category_id:Optional[int] = None
     price:float
     stock_quantity:int
     properties:JsonData = {}
     has_offer:bool
-    offer_type:OfferTypes|None = None
-    offer_expires_at:datetime|None = None
+    offer_type:Optional[OfferTypes] = None
+    offer_expires_at:Optional[datetime] = None
 
     class Meta:
         db_table = 'products'
@@ -48,7 +49,7 @@ class Product(DatabaseModel):
 
 
 class Customer(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     name:str
     email:str
     phone:str
@@ -63,7 +64,7 @@ class Customer(DatabaseModel):
 
 
 class Order(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     customer_id:int
     order_date:date
     total_amount:float
@@ -79,7 +80,7 @@ class Order(DatabaseModel):
 
 
 class OrderItem(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     order_id:int
     product_id:int
     quantity:int
@@ -96,10 +97,10 @@ class OrderItem(DatabaseModel):
 
 
 class Department(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     name:str
     location:str
-    created_at:datetime|None = None
+    created_at:Optional[datetime] = None
 
     async def pre_save(self) -> None:
         print_yellow('I am inside pre_save()')
@@ -117,8 +118,8 @@ class Department(DatabaseModel):
 
 
 class Employee(DatabaseModel):
-    id:int|None = None
-    department_id:int|None
+    id:Optional[int] = None
+    department_id:Optional[int]
     name:str
     email:str
     salary:float
