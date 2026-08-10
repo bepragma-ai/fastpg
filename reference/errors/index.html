@@ -1185,6 +1185,7 @@
 <li><code>UnsupportedOperatorError</code></li>
 <li><code>InvalidRelatedFieldError</code></li>
 <li><code>InvalidPrefetchError</code></li>
+<li><code>InvalidDatabaseModelUriError</code></li>
 </ul>
 <h2 id="result-cardinality">Result Cardinality</h2>
 <ul>
@@ -1203,7 +1204,9 @@
 <li><code>DatabaseError</code></li>
 <li><code>DuplicateKeyDatabaseError</code></li>
 </ul>
-<p><code>DatabaseError</code> wraps the driver error details and includes the SQLSTATE when one is available.</p>
+<p><code>DatabaseError</code> wraps the driver error details and includes the SQLSTATE when one is available.
+<code>DuplicateKeyDatabaseError</code> exposes the original database message as <code>.message</code>, which
+can be translated into the calling framework's conflict or validation response.</p>
 
 
 
