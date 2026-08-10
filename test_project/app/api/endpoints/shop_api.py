@@ -1,5 +1,6 @@
-from typing import List, Dict, Any, Optional
+from typing import Optional, List, Dict, Any, Optional
 from datetime import datetime, timedelta
+import uuid
 
 from fastapi import APIRouter, Request, Response, Body, HTTPException
 
@@ -12,6 +13,7 @@ from fastpg import (
     AsyncRawQuery,
     InClauseParam,
     DoesNotExist,
+    DuplicateKeyDatabaseError,
 )
 
 from app.schemas.shop import (
@@ -20,10 +22,10 @@ from app.schemas.shop import (
     Customer,
     Order,
     OrderItem,
+    Location,
     Department,
     Employee,
     Coupon,
-    OfferTypes,
 )
 
 import pytz
@@ -36,15 +38,17 @@ router = APIRouter()
 @router.get('/employees', status_code=200)
 async def get_employees(
     response:Response,
-    department:str|None = None,
-    salary:float|None = None,
+    department:Optional[str] = None,
+    location:Optional[str] = None,
+    salary:Optional[float] = None,
 ):
-    employees = Employee.async_queryset.select_related('department').all()
-    if salary or department:
-        if salary:
-            employees = employees.filter(salary__gte=salary)
-        if department:
-            employees = employees.filter_related(department__name=department)
+    employees = Employee.async_queryset.select_related('department', 'location').all()
+    if salary:
+        employees = employees.filter(salary__gte=salary)
+    if department:
+        employees = employees.filter_related(department__name=department)
+    if location:
+        employees = employees.filter_related(location__office__icontains=location)
     return await employees.order_by(salary=OrderBy.DESCENDING)
 
 
@@ -54,6 +58,51 @@ async def get_employee(
     id:int,
 ):
     return await Employee.async_queryset.select_related('department').get(id=id)
+
+
+@router.post('/employee/create', status_code=200)
+async def create_employee(
+    request:Request,
+    response:Response,
+):
+    data = await request.json()
+    department = data.pop('department')
+    location = data.pop('location')
+    async with Transaction.atomic():
+        department = await Department.async_queryset.create(**department)
+        location = await Location.async_queryset.create(**location)
+        employee = await Employee.async_queryset.create(
+            department_id=department.id,
+            location_id=location.id,
+            **data)
+
+    return await Employee.async_queryset.select_related('department', 'location').get(
+        id=employee.id).return_as(ReturnType.DICT)
+
+
+@router.get('/locations', status_code=200)
+async def get_locations(
+    response:Response,
+):
+    return await Location.async_queryset.prefetch_related(
+        Prefetch('employees', Employee.async_queryset.all())
+    ).all()
+
+
+@router.get('/location', status_code=200)
+async def get_location(
+    response:Response,
+    id:int,
+    salary:Optional[float] = None
+):
+    if salary:
+        employees_query = Employee.async_queryset.filter(salary__gt=salary)
+    else:
+        employees_query = Employee.async_queryset.all()
+    location = await Location.async_queryset.prefetch_related(
+        Prefetch('employees', employees_query)
+    ).get(id=id).return_as(ReturnType.DICT)
+    return location
 
 
 @router.get('/departments', status_code=200)
@@ -209,9 +258,13 @@ async def update_or_create_product(
     del data['id']
     del data['sku']
 
-    product, created = await Product.async_queryset.update_or_create(
-        id=id, sku=sku,
-        defaults=data)
+    try:
+        product, created = await Product.async_queryset.update_or_create(
+            id=id, sku=sku,
+            defaults=data)
+    except DuplicateKeyDatabaseError as e:
+        raise HTTPException(
+            status_code=400, detail=e.message)
     return {
         'product': product,
         'created': created
@@ -275,17 +328,17 @@ async def update_product_offer(
     if action == 'reset':
         updated = await Product.async_queryset.filter(id=product_id).update(
             has_offer=True,
-            offer_type=OfferTypes.PERCENTAGE,
+            offer_type=Product.OfferTypes.PERCENTAGE,
             offer_expires_at=datetime.now().astimezone(IST_TZ) + timedelta(days=value))
     elif action == 'extend':
         updated = await Product.async_queryset.filter(id=product_id, offer_expires_at__isnull=False).update(
             has_offer=True,
-            offer_type=OfferTypes.PERCENTAGE,
+            offer_type=Product.OfferTypes.PERCENTAGE,
             offer_expires_at__add_time=value)
     elif action == 'shorten':
         updated = await Product.async_queryset.filter(id=product_id, offer_expires_at__isnull=False).update(
             has_offer=True,
-            offer_type=OfferTypes.PERCENTAGE,
+            offer_type=Product.OfferTypes.PERCENTAGE,
             offer_expires_at__sub_time=value)
     return {'updated': updated}
 
@@ -384,6 +437,27 @@ async def get_order(
     return order
 
 
+@router.get('/order-item', status_code=200)
+async def get_order_item(
+    response:Response,
+    id:int,
+):
+    try:
+        # order = await OrderItem.async_queryset.select_related('order', 'product').get(id=id)
+        order = await OrderItem.async_queryset.select_related('order', 'product').all().filter_related(order__status='completed', product__price__lte=999)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, detail=f'Order does not exist')
+    return order
+
+
+@router.get('/coupons/all', status_code=200)
+async def get_all_coupons(
+    response:Response,
+):
+    return await Coupon.async_queryset.all()
+
+
 @router.post('/coupons/get_or_create', status_code=200)
 async def get_or_create_coupon(
     coupon:Coupon,
@@ -392,6 +466,7 @@ async def get_or_create_coupon(
     coupon, created = await Coupon.async_queryset.get_or_create(
         code=coupon.code,
         defaults={
+            'unique_id': coupon.unique_id,
             'value': coupon.value,
             'value_type': coupon.value_type
         })
@@ -399,3 +474,23 @@ async def get_or_create_coupon(
         'coupon': coupon,
         'newly_created': created
     }
+
+
+@router.post('/coupons/update', status_code=200)
+async def update_coupon(
+    coupon_code:str,
+    response:Response,
+):
+    try:
+        coupon = await Coupon.async_queryset.get(code=coupon_code)
+    except DoesNotExist:
+        raise HTTPException(
+            status_code=404, detail=f'Coupon does not exist')
+    
+    coupon.unique_id = uuid.uuid4()
+    coupon.value = 250
+    coupon.value_type = Coupon.CouponTypes.FIXED
+    coupon.properties['unique_id'] = coupon.unique_id
+
+    await coupon.save()
+    return coupon

@@ -9,13 +9,22 @@ DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS locations;
 DROP TABLE IF EXISTS coupons;
+
+-- Locations table (added created_at)
+CREATE TABLE locations (
+    id SERIAL PRIMARY KEY,
+    office VARCHAR(100) NOT NULL,
+    address VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 -- Departments table (added created_at)
 CREATE TABLE departments (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    location VARCHAR(100),
+    role VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -25,6 +34,7 @@ CREATE TABLE employees (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE,
     department_id INTEGER REFERENCES departments(id),
+    location_id INTEGER REFERENCES locations(id),
     salary DECIMAL(10, 2),
     hire_date DATE
 );
@@ -88,26 +98,35 @@ CREATE UNIQUE INDEX unique_order_product ON order_items (order_id, product_id);
 -- Sales Reports table
 CREATE TABLE coupons (
     code VARCHAR(100) NOT NULL PRIMARY KEY,
+    unique_id UUID,
     value DECIMAL(10, 2) NOT NULL,
-    value_type VARCHAR(100) NOT NULL
+    value_type VARCHAR(100) NOT NULL,
+    properties JSONB
 );
 
 -- Insert Departments (created_at will auto-populate)
-INSERT INTO departments (name, location) VALUES
-('Engineering', 'San Francisco'),
-('Marketing', 'New York'),
-('Sales', 'Chicago'),
-('HR', 'Boston');
+INSERT INTO departments (name, role) VALUES
+('Engineering', 'Development and research'),
+('Marketing', 'PR and advertisements'),
+('Sales', NULL),
+('HR', NULL);
 -- Note: IT department has no employees (for testing LEFT/RIGHT joins)
 
+-- Insert Locations (created_at will auto-populate)
+INSERT INTO locations (office, address) VALUES
+('Mumbai', 'Somewhere in Mumbai'),
+('Washington', 'Somewhere in Washington'),
+('London', 'Somewhere in London'),
+('Auckland', 'Somewhere in Auckland');
+
 -- Insert Employees (some without departments)
-INSERT INTO employees (name, email, department_id, salary, hire_date) VALUES
-('Alice Johnson', 'alice@example.com', 1, 95000, '2022-01-15'),
-('Bob Smith', 'bob@example.com', 1, 85000, '2022-03-20'),
-('Carol White', 'carol@example.com', 2, 70000, '2021-06-10'),
-('David Brown', 'david@example.com', 3, 65000, '2023-02-01'),
-('Eve Davis', 'eve@example.com', NULL, 60000, '2023-05-15'),
-('Frank Miller', 'frank@example.com', NULL, 55000, '2023-08-20');
+INSERT INTO employees (name, email, department_id, location_id, salary, hire_date) VALUES
+('Alice Johnson', 'alice@example.com', 1, 1, 95000, '2022-01-15'),
+('Bob Smith', 'bob@example.com', 1, 3, 85000, '2022-03-20'),
+('Carol White', 'carol@example.com', 2, 2, 70000, '2021-06-10'),
+('David Brown', 'david@example.com', 3, 4, 65000, '2023-02-01'),
+('Eve Davis', 'eve@example.com', null, 4, 60000, '2023-05-15'),
+('Frank Miller', 'frank@example.com', null, NULL, 55000, '2023-08-20');
 
 -- Insert Categories
 INSERT INTO categories (name, description) VALUES
@@ -165,4 +184,4 @@ INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES
 
 -- Display summary
 SELECT 'Database initialized successfully!' as message;
-SELECT 'Tables created: departments, employees, categories, products, customers, orders, order_items' as info;
+SELECT 'Tables created: departments, locations, employees, categories, products, customers, orders, order_items' as info;

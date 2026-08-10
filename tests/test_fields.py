@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from uuid import uuid4
 
 from fastpg.fields import CustomJsonEncoder, json_str_to_dict, serialize_json_data, validate_json_data
 
@@ -28,3 +29,9 @@ def test_custom_json_encoder_handles_datetime():
     when = datetime(2023, 1, 1, 12, 0, 0)
     encoded = json.dumps({"when": when}, cls=CustomJsonEncoder)
     assert "2023-01-01T12:00:00" in encoded
+
+
+def test_serialize_json_data_handles_uuid_on_db_write():
+    value = uuid4()
+    result = serialize_json_data({"id": value}, info=type("Info", (), {"context": {"db_write": True}})())
+    assert json.loads(result) == {"id": str(value)}
