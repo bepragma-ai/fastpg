@@ -74,7 +74,7 @@ class Order(DatabaseModel):
         primary_key = 'id'
         auto_generated_fields = ['id']
         relations = {
-            'customer': Relation(Customer, foreign_field='customer_id'),
+            'customer': Relation('shop.Customer', foreign_field='customer_id'),
         }
 
 
@@ -90,7 +90,7 @@ class OrderItem(DatabaseModel):
         primary_key = 'id'
         auto_generated_fields = ['id']
         relations = {
-            'order': Relation(Order, foreign_field='order_id'),
+            'order': Relation('shop.Order', foreign_field='order_id'),
             'product': Relation(Product, foreign_field='product_id'),
         }
 

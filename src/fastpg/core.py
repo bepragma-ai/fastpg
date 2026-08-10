@@ -1,5 +1,6 @@
+from __future__ import annotations
 from functools import reduce
-from typing import Any, ClassVar, Dict, List
+from typing import Optional, Any, ClassVar, Dict, List
 from typing_extensions import Self
 import json
 
@@ -37,6 +38,7 @@ from .errors import (
     UnrestrictedDeleteError,
     InvalidRelatedFieldError,
     InvalidPrefetchError,
+    InvalidDatabaseModelUriError,
 )
 
 from .preprocessors import (
@@ -45,6 +47,14 @@ from .preprocessors import (
 )
 
 from .fastpg import get_fastpg
+
+
+_FASTPG_MODELS:Dict[str, type["DatabaseModel"]] = {}
+def get_database_model_by_uri(uri:str) -> type["DatabaseModel"]:
+    try:
+        return _FASTPG_MODELS[uri]
+    except KeyError:
+        raise InvalidDatabaseModelUriError(uri)
 
 
 class AsyncQuerySet:
@@ -80,7 +90,7 @@ class AsyncQuerySet:
         self.records = None
 
         self.run_select_related = False
-        self.relation:Relation = None
+        self.relation:Optional[Relation] = None
         
         self.run_prefetch_related = False
         self.prefetches:List[Prefetch] = []
@@ -762,6 +772,12 @@ class queryset_property:
         
 
 class DatabaseModel(BaseModel):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        parts = cls.__module__.split(".")
+        app_label = parts[-2] if parts[-1] == "models" else parts[-1]
+        _FASTPG_MODELS[f'{app_label}.{cls.__name__}'] = cls
+
     async_queryset:ClassVar[AsyncQuerySet]
     write_connection:ClassVar[AsyncPostgresDBConnection]
 
@@ -778,7 +794,7 @@ class DatabaseModel(BaseModel):
     async def post_save(self) -> None:
         pass
 
-    async def save(self, columns:List[str]=None) -> bool:
+    async def save(self, columns:Optional[List[str]]=None) -> bool:
         await self.pre_save()
 
         PreSaveProcessors.model_obj_populate_auto_now_fields(self)

@@ -22,10 +22,15 @@ class Relation:
     def __init__(
         self,
         related_model,
-        foreign_field: str,
-        related_name: Optional[str] = None,
+        foreign_field:str,
+        related_name:Optional[str] = None,
     ) -> None:
-        self.RelatedModel = related_model
+        from .core import get_database_model_by_uri
+        if isinstance(related_model, str):
+            self.RelatedModel = get_database_model_by_uri(related_model)
+        else:
+            self.RelatedModel = related_model
+
         try:
             self.table = self.RelatedModel.Meta.db_table
         except AttributeError as e:
