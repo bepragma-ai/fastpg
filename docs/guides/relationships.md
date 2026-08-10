@@ -20,6 +20,7 @@ class Department(DatabaseModel):
 class Employee(DatabaseModel):
     id: int
     department_id: int | None = None
+    location_id: int | None = None
     name: str
 
     class Meta:
@@ -27,6 +28,7 @@ class Employee(DatabaseModel):
         primary_key = "id"
         relations = {
             "department": Relation(Department, foreign_field="department_id"),
+            "location": Relation("shop.Location", foreign_field="location_id"),
         }
 ```
 
@@ -36,14 +38,18 @@ class Employee(DatabaseModel):
 t.department_id = r.id
 ```
 
-If you omit `related_name`, FastPG derives one from the related model class name in snake case.
+The related model can be a class or a `"module.Model"` string resolved from FastPG's
+model registry. If you omit `related_name`, FastPG derives one from the related model
+class name in snake case.
 
 ## `select_related(...)`
 
 `select_related()` performs `LEFT JOIN`s and hydrates related objects on each base row.
 
 ```python
-employee = await Employee.async_queryset.select_related("department").get(id=1)
+employee = await Employee.async_queryset.select_related(
+    "department", "location"
+).get(id=1)
 ```
 
 Pass multiple relation names to load them in one query. Missing relation names raise
@@ -58,9 +64,10 @@ from fastpg import OrderBy
 
 rows = await (
     Employee.async_queryset
-    .select_related("department")
+    .select_related("department", "location")
     .filter(salary__gte=50000)
     .filter_related(department__name="Engineering")
+    .filter_related(location__office__icontains="london")
     .order_by(salary=OrderBy.DESCENDING)
 )
 ```
@@ -72,7 +79,7 @@ selected relations can be combined in one call:
 item = await (
     OrderItem.async_queryset
     .select_related("order", "product")
-    .filter_related(order__status="open", product__name="Widget")
+    .filter_related(order__status="open", product__name__icontains="Widget")
     .get(id=1)
 )
 ```
@@ -85,9 +92,14 @@ item = await (
 from fastpg import Prefetch, ReturnType
 
 rows = await (
-    Department.async_queryset
-    .prefetch_related(Prefetch("employees", Employee.async_queryset.all()))
-    .all()
+    Location.async_queryset
+    .prefetch_related(
+        Prefetch(
+            "employees",
+            Employee.async_queryset.filter(salary__gt=50000),
+        )
+    )
+    .get(id=1)
     .return_as(ReturnType.DICT)
 )
 ```

@@ -34,7 +34,7 @@ Used by queryset `return_as(...)`.
 
 Stores join metadata for `select_related(...)`.
 
-- `related_model` is the joined model class.
+- `related_model` is the joined model class or a `"module.Model"` registry reference.
 - `foreign_field` is the foreign-key column on the base model.
 - `related_name` overrides the attribute/key name attached to the result.
 

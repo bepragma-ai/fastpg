@@ -141,6 +141,6 @@ class InvalidPrefetchError(Exception):
 
 class InvalidDatabaseModelUriError(Exception):
 
-    def __init__(self, uri:str) -> None:
-        self.message = f'URI "{uri}" does not have any DatabaseModel class associated with it'
+    def __init__(self, uri:str, options:List[str]) -> None:
+        self.message = f'URI "{uri}" does not have any DatabaseModel class associated with it. Options are: {", ".join(options)}'
         super().__init__(self.message)

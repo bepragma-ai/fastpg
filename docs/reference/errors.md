@@ -17,6 +17,7 @@ FastPG defines explicit exception classes in `fastpg.errors`.
 - `UnsupportedOperatorError`
 - `InvalidRelatedFieldError`
 - `InvalidPrefetchError`
+- `InvalidDatabaseModelUriError`
 
 ## Result Cardinality
 
@@ -36,3 +37,5 @@ FastPG defines explicit exception classes in `fastpg.errors`.
 - `DuplicateKeyDatabaseError`
 
 `DatabaseError` wraps the driver error details and includes the SQLSTATE when one is available.
+`DuplicateKeyDatabaseError` exposes the original database message as `.message`, which
+can be translated into the calling framework's conflict or validation response.

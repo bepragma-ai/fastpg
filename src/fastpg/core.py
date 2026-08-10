@@ -54,7 +54,7 @@ def get_database_model_by_uri(uri:str) -> type["DatabaseModel"]:
     try:
         return _FASTPG_MODELS[uri]
     except KeyError:
-        raise InvalidDatabaseModelUriError(uri)
+        raise InvalidDatabaseModelUriError(uri, list(_FASTPG_MODELS.keys()))
 
 
 class AsyncQuerySet:

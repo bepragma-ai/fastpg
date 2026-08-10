@@ -12,7 +12,7 @@ from fastpg import DatabaseModel
 class Department(DatabaseModel):
     id: int | None = None
     name: str
-    location: str
+    role: str | None = None
     created_at: datetime | None = None
 
     class Meta:

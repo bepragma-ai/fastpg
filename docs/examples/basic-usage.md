@@ -1,8 +1,11 @@
 # Basic Usage
 
-This example follows the same patterns used in `test_project`.
+This example uses the core `Category` and `Product` fields from `test_project`.
 
 ```python
+from datetime import datetime
+from enum import Enum
+
 from fastpg import DatabaseModel, JsonData
 
 
@@ -18,6 +21,10 @@ class Category(DatabaseModel):
 
 
 class Product(DatabaseModel):
+    class OfferTypes(str, Enum):
+        PERCENTAGE = "percent"
+        FIXED = "fixed"
+
     id: int | None = None
     sku: str
     name: str
@@ -25,6 +32,9 @@ class Product(DatabaseModel):
     price: float
     stock_quantity: int
     properties: JsonData = {}
+    has_offer: bool
+    offer_type: OfferTypes | None = None
+    offer_expires_at: datetime | None = None
 
     class Meta:
         db_table = "products"
@@ -42,10 +52,11 @@ product = await Product.async_queryset.create(
     price=15.0,
     stock_quantity=10,
     properties={"color": "black"},
+    has_offer=False,
 )
 
 same_product = await Product.async_queryset.get(id=product.id)
-products = await Product.async_queryset.all()
+products = await Product.async_queryset.using("default").all()
 ```
 
 Bulk upsert:
@@ -61,6 +72,7 @@ payload = [
         "price": 15.0,
         "stock_quantity": 10,
         "properties": {"color": "black"},
+        "has_offer": False,
     },
     {
         "sku": "SKU-2",
@@ -69,14 +81,15 @@ payload = [
         "price": 20.0,
         "stock_quantity": 8,
         "properties": {"size": "L"},
+        "has_offer": False,
     },
 ]
 
 await Product.async_queryset.bulk_create(
-    values=payload,
+    payload,
     on_conflict=OnConflict.UPDATE,
     conflict_target=["sku"],
-    update_fields=["name", "category_id", "price", "stock_quantity", "properties"],
+    update_fields=["name", "category_id", "price", "stock_quantity"],
 )
 ```
 
