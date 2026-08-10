@@ -153,7 +153,7 @@ class Employee(DatabaseModel):
         auto_generated_fields = ['id']
         relations = {
             'department': Relation(Department, foreign_field='department_id'),
-            'location': Relation('shops.Location', foreign_field='location_id'),
+            'location': Relation('shop.Location', foreign_field='location_id'),
         }
 
 
