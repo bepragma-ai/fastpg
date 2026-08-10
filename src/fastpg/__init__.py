@@ -41,11 +41,14 @@ from .errors import (
     MultipleRecordsFound,
 )
 
-from .core import DatabaseModel
-from .core import AsyncQuerySet
-from .core import AsyncRawQuery
-from .core import queryset_property
-from .core import Transaction
+from .core import (
+    get_database_model_by_uri,
+    DatabaseModel,
+    AsyncQuerySet,
+    AsyncRawQuery,
+    queryset_property,
+    Transaction,
+)
 
 from .fastpg import (
     create_fastpg,
@@ -70,6 +73,7 @@ __all__ = [
     "Relation",
     "Q",
     "InClauseParam",
+    "get_database_model_by_uri",
     "DatabaseModel",
     "AsyncQuerySet",
     "AsyncRawQuery",

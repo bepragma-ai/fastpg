@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional
 from datetime import date, datetime
 from enum import Enum
 from uuid import UUID
@@ -12,7 +13,7 @@ IST_TZ = pytz.timezone("Asia/Kolkata")
 
 
 class Category(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     name:str
     description:str
 
@@ -27,16 +28,16 @@ class Product(DatabaseModel):
         PERCENTAGE = 'percent'
         FIXED = 'fixed'
 
-    id:int|None = None
+    id:Optional[int] = None
     sku:str
     name:str
-    category_id:int|None = None
+    category_id:Optional[int] = None
     price:float
     stock_quantity:int
     properties:JsonData = {}
     has_offer:bool
-    offer_type:OfferTypes|None = None
-    offer_expires_at:datetime|None = None
+    offer_type:Optional[OfferTypes] = None
+    offer_expires_at:Optional[datetime] = None
 
     class Meta:
         db_table = 'products'
@@ -48,7 +49,7 @@ class Product(DatabaseModel):
 
 
 class Customer(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     name:str
     email:str
     phone:str
@@ -63,7 +64,7 @@ class Customer(DatabaseModel):
 
 
 class Order(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     customer_id:int
     order_date:date
     total_amount:float
@@ -74,12 +75,12 @@ class Order(DatabaseModel):
         primary_key = 'id'
         auto_generated_fields = ['id']
         relations = {
-            'customer': Relation(Customer, foreign_field='customer_id'),
+            'customer': Relation('shop.Customer', foreign_field='customer_id'),
         }
 
 
 class OrderItem(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     order_id:int
     product_id:int
     quantity:int
@@ -90,16 +91,16 @@ class OrderItem(DatabaseModel):
         primary_key = 'id'
         auto_generated_fields = ['id']
         relations = {
-            'order': Relation(Order, foreign_field='order_id'),
+            'order': Relation('shop.Order', foreign_field='order_id'),
             'product': Relation(Product, foreign_field='product_id'),
         }
 
 
 class Department(DatabaseModel):
-    id:int|None = None
+    id:Optional[int] = None
     name:str
-    location:str
-    created_at:datetime|None = None
+    role:Optional[str] = None
+    created_at:Optional[datetime] = None
 
     async def pre_save(self) -> None:
         print_yellow('I am inside pre_save()')
@@ -116,9 +117,31 @@ class Department(DatabaseModel):
         auto_now_add_fields = ["created_at"]
 
 
+class Location(DatabaseModel):
+    id:Optional[int] = None
+    office:str
+    address:Optional[str] = None
+    created_at:Optional[datetime] = None
+
+    async def pre_save(self) -> None:
+        print_yellow('I am inside pre_save()')
+        print_yellow(self.model_dump())
+    
+    async def post_save(self) -> None:
+        print_yellow('I am inside post_save()')
+        print_yellow(self.model_dump())
+
+    class Meta:
+        db_table = 'locations'
+        primary_key = 'id'
+        auto_generated_fields = ['id']
+        auto_now_add_fields = ["created_at"]
+
+
 class Employee(DatabaseModel):
-    id:int|None = None
-    department_id:int|None
+    id:Optional[int] = None
+    department_id:Optional[int]
+    location_id:Optional[int]
     name:str
     email:str
     salary:float
@@ -130,6 +153,7 @@ class Employee(DatabaseModel):
         auto_generated_fields = ['id']
         relations = {
             'department': Relation(Department, foreign_field='department_id'),
+            'location': Relation('shop.Location', foreign_field='location_id'),
         }
 
 

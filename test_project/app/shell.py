@@ -26,31 +26,38 @@ for path in schemas_path.glob("*.py"):
             schema_classes[name] = obj
 
 
-from fastpg import ConnectionType, CONNECTION_MANAGER
+from fastpg import create_fastpg, ConnectionType
 
 
 # ─────────────────────────────
 # FastPG setup
 # ─────────────────────────────
 
-CONNECTION_MANAGER.set_databases({
-    'default': {
-        'TYPE': ConnectionType.WRITE,
-        'USER': os.environ.get("POSTGRES_WRITE_USER"),
-        'PASSWORD': os.environ.get("POSTGRES_WRITE_PASSWORD"),
-        'DB': os.environ.get("POSTGRES_WRITE_DB"),
-        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
-        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+FAST_PG = create_fastpg(
+    name="shell",
+    databases={
+        'default': {
+            'TYPE': ConnectionType.WRITE,
+            'USER': os.environ.get("POSTGRES_WRITE_USER"),
+            'PASSWORD': os.environ.get("POSTGRES_WRITE_PASSWORD"),
+            'DB': os.environ.get("POSTGRES_WRITE_DB"),
+            'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
+            'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
+        },
+        'replica_1': {
+            'TYPE': ConnectionType.READ,
+            'USER': os.environ.get("POSTGRES_READ_USER"),
+            'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
+            'DB': os.environ.get("POSTGRES_READ_DB"),
+            'HOST': os.environ.get("POSTGRES_READ_HOST"),
+            'PORT': os.environ.get("POSTGRES_READ_PORT"),
+        }
     },
-    'replica_1': {
-        'TYPE': ConnectionType.READ,
-        'USER': os.environ.get("POSTGRES_READ_USER"),
-        'PASSWORD': os.environ.get("POSTGRES_READ_PASSWORD"),
-        'DB': os.environ.get("POSTGRES_WRITE_DB"),
-        'HOST': os.environ.get("POSTGRES_WRITE_HOST"),
-        'PORT': os.environ.get("POSTGRES_WRITE_PORT"),
-    }
-})
+    tz_name='IST',
+    query_logger={
+        'LOG_QUERIES': True,
+        'TITLE': 'TEST_PROJECT'
+    })
 
 
 banner = (
@@ -62,13 +69,13 @@ banner = (
 async def async_on_shell_start():
     print_yellow(banner)
     print_yellow("[entry] Connecting to databases...")
-    await CONNECTION_MANAGER.connect_all()
+    await FAST_PG.db_conn_manager.connect_all()
     print_yellow("[entry] DB connections ready.")
 
 
 async def async_cleanup():
     print_yellow("[cleanup] Closing DB connections...")
-    await CONNECTION_MANAGER.close_all()
+    await FAST_PG.db_conn_manager.close_all()
     print_yellow("[cleanup] DB connections closed.")
 
 

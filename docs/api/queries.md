@@ -23,7 +23,7 @@ Primary query builder for model reads and writes.
 
 | Method | Purpose |
 | --- | --- |
-| `select_related(*relation_names)` | Join one configured relation and hydrate it. |
+| `select_related(*relation_names)` | Join configured relations and hydrate them. |
 | `filter_related(*args, **kwargs)` | Add `WHERE` clauses for the joined related table. |
 | `prefetch_related(*prefetches)` | Fetch child collections in follow-up queries. |
 

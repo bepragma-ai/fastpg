@@ -16,7 +16,7 @@ FastPG is a lightweight async ORM layer for PostgreSQL applications, especially 
 - FastPG requires at least one `READ` connection and exactly one `WRITE` connection.
 - Single-row `create()` only performs `INSERT ... RETURNING`; conflict handling exists on `bulk_create()`, not on `create()`.
 - `update()` and `delete()` should always be chained after `filter(...)`. The safe pattern is required by the current implementation.
-- `select_related()` uses one relation at a time and only the first supplied relation name is used.
+- `select_related()` supports loading multiple relations in one query.
 
 ## Minimal Example
 
