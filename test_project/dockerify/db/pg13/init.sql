@@ -25,6 +25,7 @@ CREATE TABLE departments (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     role VARCHAR(100),
+    code VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -33,6 +34,7 @@ CREATE TABLE employees (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE,
+    secret_token VARCHAR(100),
     department_id INTEGER REFERENCES departments(id),
     location_id INTEGER REFERENCES locations(id),
     salary DECIMAL(10, 2),
@@ -105,11 +107,11 @@ CREATE TABLE coupons (
 );
 
 -- Insert Departments (created_at will auto-populate)
-INSERT INTO departments (name, role) VALUES
-('Engineering', 'Development and research'),
-('Marketing', 'PR and advertisements'),
-('Sales', NULL),
-('HR', NULL);
+INSERT INTO departments (name, role, code) VALUES
+('Engineering', 'Development and research', 'development_and_research'),
+('Marketing', 'PR and advertisements', 'pr_and_advertisements'),
+('Sales', NULL, NULL),
+('HR', NULL, 'hr');
 -- Note: IT department has no employees (for testing LEFT/RIGHT joins)
 
 -- Insert Locations (created_at will auto-populate)
@@ -120,13 +122,13 @@ INSERT INTO locations (office, address) VALUES
 ('Auckland', 'Somewhere in Auckland');
 
 -- Insert Employees (some without departments)
-INSERT INTO employees (name, email, department_id, location_id, salary, hire_date) VALUES
-('Alice Johnson', 'alice@example.com', 1, 1, 95000, '2022-01-15'),
-('Bob Smith', 'bob@example.com', 1, 3, 85000, '2022-03-20'),
-('Carol White', 'carol@example.com', 2, 2, 70000, '2021-06-10'),
-('David Brown', 'david@example.com', 3, 4, 65000, '2023-02-01'),
-('Eve Davis', 'eve@example.com', null, 4, 60000, '2023-05-15'),
-('Frank Miller', 'frank@example.com', null, NULL, 55000, '2023-08-20');
+INSERT INTO employees (name, email, secret_token, department_id, location_id, salary, hire_date) VALUES
+('Alice Johnson', 'alice@example.com', 'tok_2328f81df284df12747f6897d4411b2f', 1, 1, 95000, '2022-01-15'),
+('Bob Smith', 'bob@example.com', NULL, 1, 3, 85000, '2022-03-20'),
+('Carol White', 'carol@example.com', 'tok_40da1b9dadee6497135671e887bf1cfc', 2, 2, 70000, '2021-06-10'),
+('David Brown', 'david@example.com', NULL, 3, 4, 65000, '2023-02-01'),
+('Eve Davis', 'eve@example.com', 'tok_504953c6c3c69d337657646349ba5740', NULL, 4, 60000, '2023-05-15'),
+('Frank Miller', 'frank@example.com', 'tok_dd13e6c3c69d337657646349bb73a', NULL, NULL, 55000, '2023-08-20');
 
 -- Insert Categories
 INSERT INTO categories (name, description) VALUES
