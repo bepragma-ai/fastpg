@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import date, datetime
 from enum import Enum
 from uuid import UUID
+import re
 
 from fastpg import DatabaseModel, Relation, JsonData
 
@@ -100,6 +101,7 @@ class Department(DatabaseModel):
     id:Optional[int] = None
     name:str
     role:Optional[str] = None
+    code:Optional[str] = None
     created_at:Optional[datetime] = None
 
     async def pre_save(self) -> None:
@@ -123,8 +125,17 @@ class Employee(DatabaseModel):
     location_id:Optional[int]
     name:str
     email:str
+    secret_token:Optional[str] = None
     salary:float
     hire_date:date
+
+    def get_censored_secret_token(self) -> Optional[str]:
+        if self.secret_token:
+            return re.sub(
+                r"(tok_[0-9a-fA-F]{4})([0-9a-fA-F]+)([0-9a-fA-F]{4})",
+                lambda m: m[1] + '*' * len(m[2]) + m[3],
+                self.secret_token)
+        return self.secret_token
 
     class Meta:
         db_table = 'employees'

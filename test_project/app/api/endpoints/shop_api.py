@@ -10,6 +10,7 @@ from fastpg import (
     ReturnType,
     OnConflict,
     Transaction,
+    AsyncPaginator,
     AsyncRawQuery,
     InClauseParam,
     DoesNotExist,
@@ -35,12 +36,20 @@ IST_TZ = pytz.timezone("Asia/Kolkata")
 router = APIRouter()
 
 
+def censor_token_serializer(employees:List[Employee]) -> List[Employee]:
+    for employee in employees:
+        employee.secret_token = employee.get_censored_secret_token()
+    return employees
+
+
 @router.get('/employees', status_code=200)
 async def get_employees(
     response:Response,
     department:Optional[str] = None,
     location:Optional[str] = None,
     salary:Optional[float] = None,
+    page:int=1,
+    page_size:int=25,
 ):
     employees = Employee.async_queryset.select_related('department', 'location').all()
     if salary:
@@ -49,7 +58,12 @@ async def get_employees(
         employees = employees.filter_related(department__name=department)
     if location:
         employees = employees.filter_related(location__office__icontains=location)
-    return await employees.order_by(salary=OrderBy.DESCENDING)
+    paginator = AsyncPaginator(
+        queryset=employees.order_by(salary=OrderBy.DESCENDING),
+        page_size=page_size,
+        serializer=censor_token_serializer)
+    return await paginator.get_page(
+        page=page, context={'foo': 'Just some random data to pass to the paginator'})
 
 
 @router.get('/employee', status_code=200)
