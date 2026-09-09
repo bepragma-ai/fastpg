@@ -12,6 +12,7 @@ from .constants import (
     ReturnType,
     OnConflict,
     RENDER_UPDATE_SUFFIXES,
+    QueryAction,
 )
 
 from .utils import (
@@ -71,9 +72,9 @@ class AsyncQuerySet:
         self.model_fields = self.Model.__fields__.keys()
         self.columns_to_fetch = self.model_fields
 
-        self.action = None
-        self.base_query = None
-        self.query = None
+        self.action:QueryAction = QueryAction.NONE
+        self.base_query:str = ''
+        self.query:str = ''
         self.query_executed = False
 
         self.conditions = []
@@ -137,7 +138,7 @@ class AsyncQuerySet:
         return items
 
     def _serialize_data(self) -> None:
-        if self.action == 'count':
+        if self.action == QueryAction.COUNT:
             return
 
         if self.return_type == ReturnType.MODEL_INSTANCE:
@@ -307,7 +308,7 @@ class AsyncQuerySet:
 
     def get(self, *args, **kwargs) -> Self:
         """Fetch a single record matching the given conditions."""
-        self.action = 'get'
+        self.action = QueryAction.GET
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
         self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
@@ -336,7 +337,7 @@ class AsyncQuerySet:
 
     def filter(self, *args, **kwargs) -> Self:
         """Filter records based on provided conditions."""
-        self.action = 'filter'
+        self.action = QueryAction.FILTER
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
         self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
@@ -352,7 +353,7 @@ class AsyncQuerySet:
 
     def all(self) -> Self:
         """Select all records for the model."""
-        self.action = 'all'
+        self.action = QueryAction.ALL
 
         columns_to_fetch = ','.join(list(self.columns_to_fetch))
         self.base_query = f'SELECT {columns_to_fetch} FROM {self.table} t'
@@ -366,7 +367,7 @@ class AsyncQuerySet:
 
     def count(self) -> Self:
         """Count the number of records matching the query."""
-        self.action = 'count'
+        self.action = QueryAction.COUNT
         self.run_select_related = False
         self.base_query = f'SELECT count({self.ModelMeta.primary_key}) FROM {self.table} t'
         return self
@@ -571,7 +572,7 @@ class AsyncQuerySet:
         if self.where_conditions is None:
             raise UnrestrictedUpdateError()
         
-        self.action = 'update'
+        self.action = QueryAction.UPDATE
         self.run_select_related = False
         _update_clause = []
         for key in kwargs.keys():
@@ -635,7 +636,7 @@ class AsyncQuerySet:
         if self.where_conditions is None:
             raise UnrestrictedDeleteError()
 
-        self.action = 'delete'
+        self.action = QueryAction.DELETE
         self.run_select_related = False
         return self
 
@@ -669,17 +670,17 @@ class AsyncQuerySet:
         return self
 
     def __await__(self):
-        if self.action == 'update':
+        if self.action == QueryAction.UPDATE:
             return self._update().__await__()
-        elif self.action == 'delete':
+        elif self.action == QueryAction.DELETE:
             return self._delete().__await__()
-        elif self.action == 'get':
+        elif self.action == QueryAction.GET:
             func = self._get
-        elif self.action == 'filter':
+        elif self.action == QueryAction.FILTER:
             func = self._filter
-        elif self.action == 'all':
+        elif self.action == QueryAction.ALL:
             func = self._all
-        elif self.action == 'count':
+        elif self.action == QueryAction.COUNT:
             func = self._count
         else:
             raise MalformedQuerysetError(self.Model.__name__)

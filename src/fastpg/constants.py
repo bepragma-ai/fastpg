@@ -34,6 +34,16 @@ RENDER_UPDATE_SUFFIXES = {
 }
 
 
+class QueryAction(Enum):
+    NONE = 'NONE'
+    GET = 'GET'
+    FILTER = 'FILTER'
+    ALL = 'ALL'
+    UPDATE = 'UPDATE'
+    DELETE = 'DELETE'
+    COUNT = 'COUNT'
+
+
 class OrderBy:
     DESCENDING = 'DESC'
     ASCENDING = 'ASC'
