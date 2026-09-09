@@ -39,6 +39,8 @@ router = APIRouter()
 def censor_token_serializer(employees:List[Employee]) -> List[Employee]:
     for employee in employees:
         employee.secret_token = employee.get_censored_secret_token()
+        if employee.department and employee.department.code:
+            employee.department.code = '*' * len(employee.department.code)
     return employees
 
 
@@ -71,7 +73,8 @@ async def get_employee(
     response:Response,
     id:int,
 ):
-    return await Employee.async_queryset.select_related('department').get(id=id)
+    employee = await Employee.async_queryset.select_related('department', 'location').get(id=id)
+    return censor_token_serializer([employee])[0]
 
 
 @router.post('/employee/create', status_code=200)
@@ -97,24 +100,31 @@ async def create_employee(
 @router.get('/locations', status_code=200)
 async def get_locations(
     response:Response,
+    id:Optional[int] = None,
+    salary:Optional[float] = None
 ):
-    return await Location.async_queryset.prefetch_related(
-        Prefetch('employees', Employee.async_queryset.all())
-    ).all()
+    if salary:
+        query = Location.async_queryset.columns('id', 'office', 'address').prefetch_related(
+            Prefetch('employees', Employee.async_queryset.filter(salary__gt=salary))
+        )
+    else:
+        query = Location.async_queryset.columns('id', 'office', 'address').prefetch_related(
+            Prefetch('employees', Employee.async_queryset.all())
+        )
+    if id:
+        return await query.filter(id=id).return_as(ReturnType.DICT)
+    else:
+        return await query.all().return_as(ReturnType.DICT)
 
 
 @router.get('/location', status_code=200)
 async def get_location(
     response:Response,
     id:int,
-    salary:Optional[float] = None
 ):
-    if salary:
-        employees_query = Employee.async_queryset.filter(salary__gt=salary)
-    else:
-        employees_query = Employee.async_queryset.all()
+    
     location = await Location.async_queryset.prefetch_related(
-        Prefetch('employees', employees_query)
+        Prefetch('employees', Employee.async_queryset.all())
     ).get(id=id).return_as(ReturnType.DICT)
     return location
 
@@ -413,7 +423,7 @@ async def get_orders(
 ):
     return await Order.async_queryset.prefetch_related(
         Prefetch('line_items', OrderItem.async_queryset.select_related('product').all())
-    ).all()
+    ).all().order_by(id=OrderBy.DESCENDING)
 
 
 @router.post('/orders/by-ids', status_code=200)

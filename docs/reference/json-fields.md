@@ -24,7 +24,7 @@ Behavior:
 
 - Dicts and lists are serialized to JSON strings during DB writes.
 - Normal model usage keeps Python values as dict/list objects.
-- `CustomJsonEncoder` serializes `datetime` values with `isoformat()`.
+- `CustomJsonEncoder` serializes `datetime` values with `isoformat()` and UUIDs as strings.
 
 ## Helper Functions
 
@@ -48,5 +48,15 @@ Example:
 ```python
 await Product.async_queryset.filter(id=1).update(
     properties__jsonb_set__color="blue",
+)
+```
+
+The suffix after `jsonb_set__` is one literal top-level key, not a nested path.
+Keys and values are bound parameters, so keys containing quotes or punctuation
+do not need SQL escaping:
+
+```python
+await Product.async_queryset.filter(id=1).update(
+    **{"properties__jsonb_set__owner's note": "Handle with care"},
 )
 ```

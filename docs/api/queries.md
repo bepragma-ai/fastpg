@@ -9,15 +9,20 @@ Primary query builder for model reads and writes.
 | Method | Purpose |
 | --- | --- |
 | `using(conn_name)` | Override the read connection for this queryset. |
-| `columns(*columns)` | Limit selected columns. |
+| `columns(*columns)` | Select declared model fields; use dict results for partial records. |
 | `get(*args, **kwargs)` | Fetch one matching row. |
 | `filter(*args, **kwargs)` | Fetch many matching rows. |
-| `all()` | Fetch all rows. |
-| `count()` | Count rows, optionally after existing filters were added. |
-| `order_by(**order_by)` | Add `ORDER BY`. |
-| `limit(fetch_limit)` | Add `LIMIT`. |
-| `offset(fetch_offset)` | Add `OFFSET`. |
+| `all()` | Select rows and clear base filters; related filters and other modifiers remain. |
+| `count()` | Count all rows matching base and related filters, ignoring ordering and pagination. |
+| `order_by(**order_by)` | Order declared fields using `OrderBy.ASCENDING` or `OrderBy.DESCENDING`. |
+| `limit(fetch_limit)` | Set a non-negative integer limit; zero returns no rows. |
+| `offset(fetch_offset)` | Set a non-negative integer offset. |
 | `return_as(return_type)` | Return model instances or dicts for read queries. |
+| `lock_for_update()` | Lock filtered base rows on the write connection inside a transaction. |
+
+`lock_for_update()` requires `filter(...)` and returns a list. It supports
+`select_related()` but rejects `get()`, prefetching, ordering, limits, and offsets.
+See [row locks and the contention test](../guides/transactions.md#row-locks).
 
 ### Relationship Helpers
 
@@ -32,7 +37,7 @@ Primary query builder for model reads and writes.
 | Method | Purpose |
 | --- | --- |
 | `create(**kwargs)` | Insert one row and return the model instance. |
-| `bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)` | Batch insert or upsert. |
+| `bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)` | Batch insert or upsert; `on_conflict` is required, and the method returns `None`. |
 | `get_or_create(defaults, **kwargs)` | Fetch one row or create it. |
 | `update_or_create(defaults, **kwargs)` | Update an existing row or create it. |
 | `update(**kwargs)` | Build an update query for the current filtered queryset. |
@@ -45,16 +50,28 @@ Primary query builder for model reads and writes.
 
 ### Await Behavior
 
-Awaiting the queryset executes SQL and returns:
+The first successful await executes SQL and returns:
 
 - `get()` -> one model instance or dict
 - `filter()` / `all()` -> list
 - `count()` -> integer
-- `update()` / `delete()` -> write-query result, typically an affected-row count
+- `update()` / `delete()` -> integer affected-row count
+
+Querysets are mutable. Subsequent awaits return the cached result until a query
+modifier is called. This also prevents an unchanged write from executing twice.
+Create a fresh queryset for an independent query or a new locking transaction.
+
+`create()`, `bulk_create()`, `get_or_create()`, `update_or_create()`, and
+`execute_raw_query()` are async methods that execute when their own coroutine is
+awaited; they do not use the queryset's result cache to skip their work.
 
 ## `AsyncRawQuery(query, using=None)`
 
 Wrapper for hand-written SQL with FastPG error handling.
+
+`using` overrides only the read connection used by `fetch()`. `execute()` and
+`execute_many()` use the configured write connection. Supply values through bind
+parameters; the SQL text itself is application-controlled.
 
 ### Methods
 
@@ -83,14 +100,19 @@ rows = await AsyncRawQuery(
 )
 ```
 
-## `AsyncPaginator(page_size, queryset, using=None)`
+Use a fresh `AsyncRawQuery` for each execution with `InClauseParam`: expansion
+modifies the stored SQL. Values must be non-empty lists.
+
+## `AsyncPaginator(page_size, queryset, using=None, serializer=None)`
 
 Paginator for `AsyncQuerySet`.
+
+`serializer`, when supplied, is a synchronous callable applied to fetched records.
 
 - `get_page(page=1, context=None)`
 - `get_next_page()`
 - `get_previous_page()`
 
-## `RawQueryAsyncPaginator(...)`
+## `RawQueryAsyncPaginator(page_size, query, values, serializer=None, auto_offset_and_limit=True, using=None)`
 
 Paginator for raw SQL with optional serializer and optional automatic `LIMIT` / `OFFSET` handling.

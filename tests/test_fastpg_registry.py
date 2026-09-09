@@ -33,7 +33,7 @@ def _config():
 
 
 def test_fastpg_timezone_defaults_to_utc_on_invalid_name():
-    instance = FastPG(databases=_config(), fastpg_tz="Invalid/TZ")
+    instance = FastPG(databases=_config(), tz_name="Invalid/TZ")
     assert str(instance.TZ) == "UTC"
 
 

@@ -90,7 +90,7 @@ async def test_connect_sets_transaction_for_write(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_execute_commits_on_success(monkeypatch):
+async def test_execute_delegates_without_committing_callers_transaction(monkeypatch):
     fake_db = FakeDatabase()
     monkeypatch.setattr("fastpg.db.Database", lambda *args, **kwargs: fake_db)
     conn = AsyncPostgresDBConnection(
@@ -101,12 +101,13 @@ async def test_execute_commits_on_success(monkeypatch):
     await conn.connect()
     result = await conn.execute("SELECT 1", values={"id": 1})
     assert result == 1
-    assert fake_db.transaction_obj.committed is True
+    assert fake_db.executed == [('execute', 'SELECT 1', {'id': 1})]
+    assert fake_db.transaction_obj.committed is False
     assert fake_db.transaction_obj.rolled_back is False
 
 
 @pytest.mark.asyncio
-async def test_execute_rolls_back_on_failure(monkeypatch):
+async def test_execute_propagates_failure_to_callers_transaction(monkeypatch):
     class FailingDatabase(FakeDatabase):
         async def execute(self, query, values=None):
             raise RuntimeError("boom")
@@ -121,11 +122,11 @@ async def test_execute_rolls_back_on_failure(monkeypatch):
     await conn.connect()
     with pytest.raises(RuntimeError):
         await conn.execute("SELECT 1", values={"id": 1})
-    assert fake_db.transaction_obj.rolled_back is True
+    assert fake_db.transaction_obj.rolled_back is False
 
 
 @pytest.mark.asyncio
-async def test_execute_many_commits(monkeypatch):
+async def test_execute_many_delegates_without_committing_callers_transaction(monkeypatch):
     fake_db = FakeDatabase()
     monkeypatch.setattr("fastpg.db.Database", lambda *args, **kwargs: fake_db)
     conn = AsyncPostgresDBConnection(
@@ -135,4 +136,5 @@ async def test_execute_many_commits(monkeypatch):
     )
     await conn.connect()
     await conn.execute_many("INSERT", list_of_values=[{"id": 1}])
-    assert fake_db.transaction_obj.committed is True
+    assert fake_db.executed == [('execute_many', 'INSERT', [{'id': 1}])]
+    assert fake_db.transaction_obj.committed is False

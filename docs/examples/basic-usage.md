@@ -1,6 +1,8 @@
 # Basic Usage
 
 This example uses the core `Category` and `Product` fields from `test_project`.
+Configure FastPG and create the matching database tables first. Run the async
+snippets in an async function or the [test-project shell](../getting-started.md#8-run-the-tests).
 
 ```python
 from datetime import datetime
@@ -45,21 +47,27 @@ class Product(DatabaseModel):
 Create and fetch:
 
 ```python
+category = await Category.async_queryset.create(
+    name="Accessories",
+    description="Clothing and accessories",
+)
 product = await Product.async_queryset.create(
     sku="SKU-1",
     name="Cap",
-    category_id=1,
+    category_id=category.id,
     price=15.0,
     stock_quantity=10,
     properties={"color": "black"},
     has_offer=False,
 )
 
-same_product = await Product.async_queryset.get(id=product.id)
+same_product = await Product.async_queryset.using("default").get(id=product.id)
 products = await Product.async_queryset.using("default").all()
 ```
 
 Bulk upsert:
+
+The database must have a unique constraint or index on `sku`, as the test project does.
 
 ```python
 from fastpg import OnConflict
@@ -68,7 +76,7 @@ payload = [
     {
         "sku": "SKU-1",
         "name": "Cap",
-        "category_id": 1,
+        "category_id": category.id,
         "price": 15.0,
         "stock_quantity": 10,
         "properties": {"color": "black"},
@@ -77,7 +85,7 @@ payload = [
     {
         "sku": "SKU-2",
         "name": "Tee",
-        "category_id": 1,
+        "category_id": category.id,
         "price": 20.0,
         "stock_quantity": 8,
         "properties": {"size": "L"},
@@ -96,6 +104,6 @@ await Product.async_queryset.bulk_create(
 Update fields in place:
 
 ```python
-await Product.async_queryset.filter(id=1).update(stock_quantity__add=5)
-await Product.async_queryset.filter(id=1).update(properties__jsonb_set__color="blue")
+await Product.async_queryset.filter(id=product.id).update(stock_quantity__add=5)
+await Product.async_queryset.filter(id=product.id).update(properties__jsonb_set__color="blue")
 ```

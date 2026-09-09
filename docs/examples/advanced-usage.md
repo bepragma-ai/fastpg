@@ -1,6 +1,14 @@
 # Advanced Usage
 
-These patterns come directly from `test_project/app/api/endpoints/shop_api.py`.
+These patterns use the test project's models and a configured FastPG instance.
+Run them in the [test-project shell](../getting-started.md#8-run-the-tests) or an
+async application function. IDs in lookup examples must refer to existing rows.
+
+```python
+from app.schemas.shop import (
+    Coupon, Department, Employee, Location, Order, OrderItem, Product,
+)
+```
 
 ## Load and Filter Multiple Relations
 
@@ -15,7 +23,8 @@ rows = await employees.order_by(salary=OrderBy.DESCENDING)
 ```
 
 `select_related()` accepts multiple relation names. Each related filter is prefixed by
-the relation name used in the model's `Meta.relations` mapping.
+the configured `Relation.related_name`, which matches its `Meta.relations` key
+in these models.
 
 ## Create Related Rows Atomically
 
@@ -36,11 +45,14 @@ async with Transaction.atomic():
 
 employee = await (
     Employee.async_queryset
+    .using("default")
     .select_related("department", "location")
     .get(id=employee.id)
     .return_as(ReturnType.DICT)
 )
 ```
+
+The post-insert read uses the primary to avoid replica lag.
 
 ## Prefetch a Filtered Child Collection
 
@@ -59,6 +71,10 @@ location = await (
 The attached `employees` collection contains only rows above the salary threshold.
 
 ## Bulk Upsert Order Items
+
+Here `order` is an existing order instance, and `order_items` is a list of input
+dicts containing `product_id`, `quantity`, and `unit_price`. The database needs a
+unique constraint or index on `(order_id, product_id)`; the test project supplies one.
 
 ```python
 from fastpg import OnConflict
@@ -106,8 +122,7 @@ rows = await AsyncRawQuery(
 from fastpg import DuplicateKeyDatabaseError
 
 try:
-    product, created = await Product.async_queryset.update_or_create(
-        id=1,
+    product, created = await Product.async_queryset.using("default").update_or_create(
         sku="SKU-1",
         defaults={
             "name": "Renamed",
@@ -120,6 +135,10 @@ except DuplicateKeyDatabaseError as exc:
     # Translate this to the error response used by your web framework.
     raise ValueError(exc.message) from exc
 ```
+
+The lookup uses the unique `sku` on the primary. This helper performs separate
+read and write operations; for a database-level upsert, use `bulk_create()` with
+`OnConflict.UPDATE` and a matching uniqueness constraint.
 
 ## Arithmetic, JSONB, and Time Updates
 
@@ -145,7 +164,7 @@ await Product.async_queryset.filter(
 ```python
 from fastpg import Prefetch
 
-orders = await Order.async_queryset.prefetch_related(
+orders = await Order.async_queryset.select_related("customer").prefetch_related(
     Prefetch(
         "line_items",
         OrderItem.async_queryset.select_related("product").all(),
@@ -153,12 +172,14 @@ orders = await Order.async_queryset.prefetch_related(
 ).all()
 ```
 
+Each order includes its customer and line items; each line item includes its product.
+
 ## Create or Update a Model Instance
 
 ```python
 import uuid
 
-coupon, created = await Coupon.async_queryset.get_or_create(
+coupon, created = await Coupon.async_queryset.using("default").get_or_create(
     code="WELCOME",
     defaults={
         "unique_id": uuid.uuid4(),

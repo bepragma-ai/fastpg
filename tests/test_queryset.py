@@ -9,6 +9,8 @@ from fastpg.errors import (
     MultipleRecordsFound,
     NothingToCreateError,
     UnsupportedOperatorError,
+    UnrestrictedUpdateError,
+    UnrestrictedDeleteError,
 )
 from fastpg.utils import Relation
 
@@ -162,14 +164,19 @@ async def test_count_returns_value():
 @pytest.mark.asyncio
 async def test_update_requires_where_clause():
     _make_fastpg()
-    queryset = User.async_queryset.update(name="Bob")
-    assert queryset.where_conditions == ""
+    with pytest.raises(UnrestrictedUpdateError):
+        User.async_queryset.update(name="Bob")
 
 
 @pytest.mark.asyncio
 async def test_update_renders_jsonb_and_arithmetic_ops():
+    class UpdateModel(User):
+        score: int = 0
+        data: dict = {}
+        info: dict = {}
+
     instance = _make_fastpg()
-    queryset = User.async_queryset.filter(id=1).update(
+    queryset = UpdateModel.async_queryset.filter(id=1).update(
         score__add=1,
         data__jsonb={"a": 1},
         info__jsonb_set__key="value",
@@ -178,11 +185,13 @@ async def test_update_renders_jsonb_and_arithmetic_ops():
     assert updated == 1
     query = instance.db_conn_manager.write_conn.last_query
     values = instance.db_conn_manager.write_conn.last_values
-    assert "score=score + 1" in query
-    assert "data=:set_data" in query
-    assert "info=jsonb_set(info, '{key}', :set_key, true)" in query
-    assert "set_data" in values
-    assert "set_key" in values
+    assert "score=(score) + :set_score_0" in query
+    assert "data=:set_data_1" in query
+    assert "info=jsonb_set(info, CAST(:path_info_2 AS text[]), :set_info_2, true)" in query
+    assert values['set_score_0'] == 1
+    assert values['set_data_1'] == '{"a": 1}'
+    assert values['set_info_2'] == '"value"'
+    assert values['path_info_2'] == ['key']
 
 
 @pytest.mark.asyncio
@@ -195,15 +204,15 @@ async def test_update_rejects_invalid_operator():
 @pytest.mark.asyncio
 async def test_delete_requires_where_clause():
     _make_fastpg()
-    queryset = User.async_queryset.delete()
-    assert queryset.where_conditions == ""
+    with pytest.raises(UnrestrictedDeleteError):
+        User.async_queryset.delete()
 
 
 @pytest.mark.asyncio
 async def test_bulk_create_requires_values():
     _make_fastpg()
     with pytest.raises(NothingToCreateError):
-        await User.async_queryset.bulk_create(values=[])
+        await User.async_queryset.bulk_create(values=[], on_conflict=None)
 
 
 @pytest.mark.asyncio

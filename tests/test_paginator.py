@@ -56,7 +56,7 @@ async def test_async_paginator_invalid_page():
 @pytest.mark.asyncio
 async def test_raw_query_paginator_serializer(monkeypatch):
     class FakeRawQuery:
-        def __init__(self, query):
+        def __init__(self, query, using=None):
             self.query = query
 
         async def fetch(self, values):

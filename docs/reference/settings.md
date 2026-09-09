@@ -2,19 +2,9 @@
 
 ## `create_fastpg(...)`
 
-Primary entry point:
-
-```python
-from fastpg import create_fastpg
-
-create_fastpg(
-    name="default",
-    databases={...},
-    tz_name="UTC",
-    query_logger={"LOG_QUERIES": True, "TITLE": "MY_APP"},
-    db_conn_manager_class=None,
-)
-```
+Primary entry point for configuring, registering, and selecting a FastPG instance.
+It does not open database connections; call `await FAST_PG.db_conn_manager.connect_all()`
+before running queries.
 
 FastPG does not load environment variables by itself. Your application is responsible for building the `databases` config dict.
 
@@ -32,7 +22,7 @@ Each configured connection uses:
 Example:
 
 ```python
-from fastpg import ConnectionType
+from fastpg import ConnectionType, create_fastpg
 
 databases = {
     "default": {
@@ -52,12 +42,25 @@ databases = {
         "PORT": 5433,
     },
 }
+
+FAST_PG = create_fastpg(
+    name="default",
+    databases=databases,
+    tz_name="UTC",
+    query_logger={"LOG_QUERIES": True, "TITLE": "MY_APP"},
+    db_conn_manager_class=None,
+)
 ```
 
 Validation behavior:
 
 - At least one read connection is required.
 - More than one write connection raises `MultipleWriteConnectionsError`.
+- Configure exactly one write connection; omitting it fails when connections
+  are opened or a write connection is requested.
+
+Read and write entries may point to the same server. The example connection
+name `default` identifies the primary; it is not a reserved name in FastPG.
 
 ## Timezone
 
@@ -87,6 +90,9 @@ FastPG supports multiple named instances:
 - `set_current_fastpg(name)`
 
 `get_fastpg()` without a name uses the current context-bound instance.
+`create_fastpg()` selects the new instance in the current context;
+`register_fastpg()` only stores it. Select the intended instance before building
+querysets. Already-fetched objects retain their originating write connection.
 
 ## `DBConnectionManager`
 
@@ -102,3 +108,5 @@ Routing behavior:
 
 - `db_for_read()` randomly selects one configured read connection.
 - `db_for_write()` always returns the single configured write connection.
+- Querysets capture these connections when constructed. `.using(conn_name)`
+  changes their read connection only; `lock_for_update()` always reads on their writer.

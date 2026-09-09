@@ -41,14 +41,14 @@ def _config():
 
 
 def test_precreate_populates_auto_now_add():
-    create_fastpg(databases=_config(), fastpg_tz="UTC")
+    create_fastpg(databases=_config(), tz_name="UTC")
     obj = AuditModel(id=1)
     PreCreateProcessors.model_obj_populate_auto_now_add_fields(obj)
     assert obj.created_at is not None
 
 
 def test_presave_populates_auto_now():
-    create_fastpg(databases=_config(), fastpg_tz="UTC")
+    create_fastpg(databases=_config(), tz_name="UTC")
     obj = AuditModel(id=1)
     PreSaveProcessors.model_obj_populate_auto_now_fields(obj)
     assert obj.updated_at is not None

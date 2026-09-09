@@ -1,6 +1,6 @@
 import re
 import time
-import random
+from itertools import count
 import functools
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -86,6 +86,8 @@ class Prefetch:
 class Q:
     """Convenience object for constructing SQL WHERE clauses."""
 
+    _param_ids = count()
+
     def __init__(self, where_clause=None, params=None, relation_aliases:Optional[Dict[str, str]]=None, **kwargs):
         self.relation_aliases = relation_aliases or {}
 
@@ -93,7 +95,7 @@ class Q:
             self.where_clause = where_clause
             self.params = params or {}
         else:
-            self.secret = random.randint(0, 9999)
+            self.secret = next(self._param_ids)
             conditions, self.params = [], {}
             field_idx = 0
             for key, value in kwargs.items():
@@ -103,6 +105,10 @@ class Q:
                     key = f'{self.relation_aliases[relation_name]}.{related_key}'
                 else:
                     key = 't.' + key
+
+                field = key.split('__', 1)[0]
+                if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*', field):
+                    raise ValueError(f'Invalid filter field: {field}')
 
                 if "__" in key:
                     field, op = key.split("__", 1)

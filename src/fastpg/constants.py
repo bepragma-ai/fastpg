@@ -24,13 +24,13 @@ OPERATORS = {
 
 
 RENDER_UPDATE_SUFFIXES = {
-    'jsonb_remove': lambda field, value: f"{field}={field} - '{value}'",
-    'add': lambda field, value: f'{field}={field} + {value}',
-    'sub': lambda field, value: f'{field}={field} - {value}',
-    'mul': lambda field, value: f'{field}={field} * {value}',
-    'div': lambda field, value: f'{field}={field} / {value}',
-    'add_time': lambda field, value: f"{field}={field} + interval '{value}'",
-    'sub_time': lambda field, value: f"{field}={field} - interval '{value}'",
+    'jsonb_remove': lambda field, param: f'{field} - CAST({param} AS text)',
+    'add': lambda field, param: f'{field} + {param}',
+    'sub': lambda field, param: f'{field} - {param}',
+    'mul': lambda field, param: f'{field} * {param}',
+    'div': lambda field, param: f'{field} / {param}',
+    'add_time': lambda field, param: f'{field} + CAST(CAST({param} AS text) AS interval)',
+    'sub_time': lambda field, param: f'{field} - CAST(CAST({param} AS text) AS interval)',
 }
 
 

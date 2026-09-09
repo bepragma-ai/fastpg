@@ -67,7 +67,7 @@ class Department(DatabaseModel):
 Updates the row identified by `Meta.primary_key`.
 
 - Returns `True` when at least one row is updated.
-- If `columns` is omitted, FastPG includes every field from `model_dump(...)` in the `SET` clause.
+- If `columns` is omitted, FastPG writes declared model fields, excluding loaded relationships and extra attributes.
 - `auto_now_fields` are only filled when the current field value is `None`.
 
 ### `delete() -> bool`

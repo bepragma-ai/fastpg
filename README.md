@@ -13,7 +13,8 @@ FastPG is a lightweight async ORM layer for PostgreSQL applications, especially 
 
 ## Installation
 
-FastPG requires Python `>=3.8`.
+Use Python **3.10 or newer** for this checkout. Package metadata still declares
+`>=3.8`, but the current runtime annotations require Python 3.10.
 
 From a local checkout:
 
@@ -105,7 +106,8 @@ Important implementation notes:
 
 - `create()` performs a plain `INSERT ... RETURNING`.
 - `bulk_create()` is where `OnConflict.DO_NOTHING` and `OnConflict.UPDATE` apply.
-- `update()` and `delete()` should be chained after `filter(...)`.
+- `update()` and `delete()` require base or related filters.
+- Unchanged querysets return cached results; modifiers invalidate the cache.
 
 ## Documentation
 

@@ -1,4 +1,4 @@
-from typing import List
+from typing import Optional, List
 
 
 class ReadConnectionNotAvailableError(Exception):
@@ -40,8 +40,8 @@ class MalformedMetaError(Exception):
 
 class MalformedQuerysetError(Exception):
 
-    def __init__(self, model_name:str) -> None:
-        self.message = f'"{model_name}" queryset is invalid: one among get, filter, all, count must be called'
+    def __init__(self, model_name:str, message:Optional[str]=None) -> None:
+        self.message = message or f'"{model_name}" queryset is invalid: one among get, filter, all, count must be called'
         super().__init__(self.message)
 
 

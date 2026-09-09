@@ -14,7 +14,12 @@ From GitHub:
 pip install git+https://github.com/bepragma-ai/fastpg.git
 ```
 
-FastPG targets Python `>=3.8`.
+Use Python **3.10 or newer** for this checkout. The package metadata currently
+declares `>=3.8`, but runtime annotations such as `str | Dict` require Python 3.10.
+The examples below also use Python 3.10 syntax.
+
+The FastAPI example requires FastAPI to be installed separately; it is not a
+FastPG dependency.
 
 ## 2. Configure FastPG
 
@@ -59,8 +64,13 @@ Connection rules:
 
 - At least one `ConnectionType.READ` connection is required.
 - Exactly one `ConnectionType.WRITE` connection is expected.
-- Reads go through a randomly chosen read connection.
-- Writes always use the configured write connection.
+- A queryset captures a randomly chosen read connection when it is constructed.
+- Writes use the queryset's configured write connection. Fetched and created
+  objects retain that connection for later `save()` and `delete()` calls.
+
+Both connection entries can point to the same PostgreSQL server when you do
+not have a replica. `.using("default")` explicitly reads from the write server
+in this configuration, which is useful for reading data you just inserted.
 
 If you register more than one FastPG instance, switch the active one with `set_current_fastpg(name)`.
 
@@ -99,6 +109,10 @@ class Customer(DatabaseModel):
 
 ## 5. Run CRUD Queries
 
+Create the matching PostgreSQL tables first; model definitions do not create or
+migrate tables. Run query examples inside an async function or an async-enabled
+shell.
+
 ```python
 # Create
 new_customer = await Customer.async_queryset.create(
@@ -107,7 +121,7 @@ new_customer = await Customer.async_queryset.create(
 )
 
 # Read one
-customer = await Customer.async_queryset.get(id=new_customer.id)
+customer = await Customer.async_queryset.using("default").get(id=new_customer.id)
 
 # Read many
 customers = await Customer.async_queryset.filter(name__icontains="ada")
@@ -139,3 +153,37 @@ records = await AsyncRawQuery(
     query="SELECT id, email FROM customers WHERE id > :min_id"
 ).fetch(values={"min_id": 10})
 ```
+
+## 8. Run the Tests
+
+From the repository root, install the test dependencies and run all pytest tests:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+.venv/bin/python -m pytest -q
+```
+
+If the virtual environment is already configured, only the last command is needed.
+
+With the Docker test project running, run the PostgreSQL regression checks
+separately, also from the repository root:
+
+```bash
+(cd test_project && bash docker.sh exec app python < check_queryset_regressions.py)
+```
+
+These checks use the app container's database configuration, create session-local
+temporary tables, and roll back their transactions. Pytest does not automatically
+run this standalone script.
+
+For interactive examples, start the configured shell:
+
+```bash
+cd test_project
+bash docker.sh shell
+```
+
+The shell imports the test project's models and connects to its databases. See
+[the locking test](guides/transactions.md#verify-lock-contention) for a test that
+uses an existing employee without changing its data.

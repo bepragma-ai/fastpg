@@ -19,18 +19,16 @@ def test_relation_default_related_name():
     assert relation.render_on_clause() == "t.profile_id = r.id"
 
 
-def test_q_builds_where_clause_with_ops(monkeypatch):
-    monkeypatch.setattr("fastpg.utils.random.randint", lambda *_: 123)
+def test_q_builds_where_clause_with_ops():
     q = Q(name__contains="bob", age__gte=18, active__isnull=False)
-    assert "t.name LIKE :t_name_1_123" in q.where_clause
-    assert "t.age >= :t_age_2_123" in q.where_clause
+    assert f"t.name LIKE :t_name_1_{q.secret}" in q.where_clause
+    assert f"t.age >= :t_age_2_{q.secret}" in q.where_clause
     assert "t.active IS NOT NULL" in q.where_clause
-    assert q.params["t_name_1_123"] == "%bob%"
-    assert q.params["t_age_2_123"] == 18
+    assert q.params[f"t_name_1_{q.secret}"] == "%bob%"
+    assert q.params[f"t_age_2_{q.secret}"] == 18
 
 
-def test_q_in_clause_requires_list(monkeypatch):
-    monkeypatch.setattr("fastpg.utils.random.randint", lambda *_: 1)
+def test_q_in_clause_requires_list():
     with pytest.raises(InvalidINClauseValueError):
         Q(id__in="not-a-list")
     with pytest.raises(InvalidINClauseValueError):
@@ -42,8 +40,7 @@ def test_q_invalid_operator_raises():
         Q(name__bogus="nope")
 
 
-def test_q_and_or_merge(monkeypatch):
-    monkeypatch.setattr("fastpg.utils.random.randint", lambda *_: 5)
+def test_q_and_or_merge():
     q1 = Q(name="alice")
     q2 = Q(age__gt=30)
     combined_or = q1 | q2

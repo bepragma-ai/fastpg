@@ -15,10 +15,15 @@ FastPG is a lightweight async ORM layer for PostgreSQL applications, especially 
 
 - FastPG requires at least one `READ` connection and exactly one `WRITE` connection.
 - Single-row `create()` only performs `INSERT ... RETURNING`; conflict handling exists on `bulk_create()`, not on `create()`.
-- `update()` and `delete()` should always be chained after `filter(...)`. The safe pattern is required by the current implementation.
-- `select_related()` supports loading multiple relations in one query.
+- `update()` and `delete()` require base or related filters and return affected-row counts.
+- Unchanged querysets cache their results; query modifiers invalidate that cache.
+- `select_related()` supports multiple relations and can be combined with `prefetch_related()`.
+- `lock_for_update()` uses the write connection inside a transaction; see [Transactions](guides/transactions.md).
 
 ## Minimal Example
+
+Configure FastPG, open its connections, and create the database table before
+running this example. FastPG does not create tables or manage migrations.
 
 ```python
 from fastpg import DatabaseModel
@@ -40,9 +45,10 @@ async def list_users():
 
 ## Read Next
 
-- `getting-started.md`
-- `guides/models.md`
-- `guides/querysets.md`
-- `guides/relationships.md`
-- `guides/pagination.md`
-- `guides/transactions.md`
+- [Getting started](getting-started.md)
+- [Models](guides/models.md)
+- [Querysets](guides/querysets.md)
+- [Relationships](guides/relationships.md)
+- [Pagination](guides/pagination.md)
+- [Transactions and row locks](guides/transactions.md)
+- [Running tests](getting-started.md#8-run-the-tests)

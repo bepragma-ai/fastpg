@@ -8,8 +8,14 @@ Base class for all FastPG models.
 
 - `async_queryset`
   Returns a fresh `AsyncQuerySet(model=cls)` bound to the current FastPG instance.
+
+### Instance Attributes
+
 - `write_connection`
-  Set from `get_fastpg().db_conn_manager.db_for_write()` when `async_queryset` is accessed.
+  Fetched and created objects retain their queryset's write connection, including
+  objects hydrated through joins. Switching the current FastPG instance does not
+  redirect their `save()` or `delete()` calls. Manually constructed objects bind
+  to the current write connection when this property is first accessed.
 
 ### Hooks
 
@@ -25,6 +31,7 @@ Both are no-op by default and can be overridden on the model class.
 Updates the current row by primary key.
 
 - Calls `pre_save()` before the update query.
+- Defaults to declared model fields, excluding loaded relationships and other extra attributes.
 - Applies `auto_now_fields` when the current field value is `None`.
 - Calls `post_save()` only when at least one row is updated.
 
