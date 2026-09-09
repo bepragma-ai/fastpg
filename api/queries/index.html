@@ -1077,10 +1077,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#asyncpaginatorpage_size-queryset-usingnone" class="md-nav__link">
+  <a href="#asyncpaginatorpage_size-queryset-usingnone-serializernone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        AsyncPaginator(page_size, queryset, using=None)
+        AsyncPaginator(page_size, queryset, using=None, serializer=None)
       
     </span>
   </a>
@@ -1088,10 +1088,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#rawqueryasyncpaginator" class="md-nav__link">
+  <a href="#rawqueryasyncpaginatorpage_size-query-values-serializernone-auto_offset_and_limittrue-usingnone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        RawQueryAsyncPaginator(...)
+        RawQueryAsyncPaginator(page_size, query, values, serializer=None, auto_offset_and_limit=True, using=None)
       
     </span>
   </a>
@@ -1264,7 +1264,7 @@
 </tr>
 <tr>
 <td><code>columns(*columns)</code></td>
-<td>Limit selected columns.</td>
+<td>Select declared model fields; use dict results for partial records.</td>
 </tr>
 <tr>
 <td><code>get(*args, **kwargs)</code></td>
@@ -1276,30 +1276,37 @@
 </tr>
 <tr>
 <td><code>all()</code></td>
-<td>Fetch all rows.</td>
+<td>Select rows and clear base filters; related filters and other modifiers remain.</td>
 </tr>
 <tr>
 <td><code>count()</code></td>
-<td>Count rows, optionally after existing filters were added.</td>
+<td>Count all rows matching base and related filters, ignoring ordering and pagination.</td>
 </tr>
 <tr>
 <td><code>order_by(**order_by)</code></td>
-<td>Add <code>ORDER BY</code>.</td>
+<td>Order declared fields using <code>OrderBy.ASCENDING</code> or <code>OrderBy.DESCENDING</code>.</td>
 </tr>
 <tr>
 <td><code>limit(fetch_limit)</code></td>
-<td>Add <code>LIMIT</code>.</td>
+<td>Set a non-negative integer limit; zero returns no rows.</td>
 </tr>
 <tr>
 <td><code>offset(fetch_offset)</code></td>
-<td>Add <code>OFFSET</code>.</td>
+<td>Set a non-negative integer offset.</td>
 </tr>
 <tr>
 <td><code>return_as(return_type)</code></td>
 <td>Return model instances or dicts for read queries.</td>
 </tr>
+<tr>
+<td><code>lock_for_update()</code></td>
+<td>Lock filtered base rows on the write connection inside a transaction.</td>
+</tr>
 </tbody>
 </table>
+<p><code>lock_for_update()</code> requires <code>filter(...)</code> and returns a list. It supports
+<code>select_related()</code> but rejects <code>get()</code>, prefetching, ordering, limits, and offsets.
+See <a href="../../guides/transactions/#row-locks">row locks and the contention test</a>.</p>
 <h3 id="relationship-helpers">Relationship Helpers</h3>
 <table>
 <thead>
@@ -1338,7 +1345,7 @@
 </tr>
 <tr>
 <td><code>bulk_create(values, on_conflict, conflict_target=None, update_fields=None, skip_validations=False)</code></td>
-<td>Batch insert or upsert.</td>
+<td>Batch insert or upsert; <code>on_conflict</code> is required, and the method returns <code>None</code>.</td>
 </tr>
 <tr>
 <td><code>get_or_create(defaults, **kwargs)</code></td>
@@ -1364,15 +1371,24 @@
   Runs a raw read query through the queryset's current read connection and returns serialized results.</li>
 </ul>
 <h3 id="await-behavior">Await Behavior</h3>
-<p>Awaiting the queryset executes SQL and returns:</p>
+<p>The first successful await executes SQL and returns:</p>
 <ul>
 <li><code>get()</code> -&gt; one model instance or dict</li>
 <li><code>filter()</code> / <code>all()</code> -&gt; list</li>
 <li><code>count()</code> -&gt; integer</li>
-<li><code>update()</code> / <code>delete()</code> -&gt; write-query result, typically an affected-row count</li>
+<li><code>update()</code> / <code>delete()</code> -&gt; integer affected-row count</li>
 </ul>
+<p>Querysets are mutable. Subsequent awaits return the cached result until a query
+modifier is called. This also prevents an unchanged write from executing twice.
+Create a fresh queryset for an independent query or a new locking transaction.</p>
+<p><code>create()</code>, <code>bulk_create()</code>, <code>get_or_create()</code>, <code>update_or_create()</code>, and
+<code>execute_raw_query()</code> are async methods that execute when their own coroutine is
+awaited; they do not use the queryset's result cache to skip their work.</p>
 <h2 id="asyncrawqueryquery-usingnone"><code>AsyncRawQuery(query, using=None)</code></h2>
 <p>Wrapper for hand-written SQL with FastPG error handling.</p>
+<p><code>using</code> overrides only the read connection used by <code>fetch()</code>. <code>execute()</code> and
+<code>execute_many()</code> use the configured write connection. Supply values through bind
+parameters; the SQL text itself is application-controlled.</p>
 <h3 id="methods">Methods</h3>
 <ul>
 <li><code>fetch(values)</code> -&gt; list of dict records using a read connection</li>
@@ -1384,26 +1400,29 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncRawQuery</span><span class="p">,</span> <span class="n">InClauseParam</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">rows</span> <span class="o">=</span> <span class="k">await</span> <span class="n">AsyncRawQuery</span><span class="p">(</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">query</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">query</span><span class="o">=</span><span class="s2">"""</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="s2">        SELECT * FROM orders</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s2">        WHERE id IN (:order_ids)</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s2">          AND customer_id IN (:customer_ids)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s2">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s2">    """</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span><span class="o">.</span><span class="n">fetch</span><span class="p">(</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">values</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="s2">&quot;order_ids&quot;</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="s2">&quot;customer_ids&quot;</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">]),</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="s2">"order_ids"</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="s2">"customer_ids"</span><span class="p">:</span> <span class="n">InClauseParam</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">]),</span>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="p">}</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
 </code></pre></div>
-<h2 id="asyncpaginatorpage_size-queryset-usingnone"><code>AsyncPaginator(page_size, queryset, using=None)</code></h2>
+<p>Use a fresh <code>AsyncRawQuery</code> for each execution with <code>InClauseParam</code>: expansion
+modifies the stored SQL. Values must be non-empty lists.</p>
+<h2 id="asyncpaginatorpage_size-queryset-usingnone-serializernone"><code>AsyncPaginator(page_size, queryset, using=None, serializer=None)</code></h2>
 <p>Paginator for <code>AsyncQuerySet</code>.</p>
+<p><code>serializer</code>, when supplied, is a synchronous callable applied to fetched records.</p>
 <ul>
 <li><code>get_page(page=1, context=None)</code></li>
 <li><code>get_next_page()</code></li>
 <li><code>get_previous_page()</code></li>
 </ul>
-<h2 id="rawqueryasyncpaginator"><code>RawQueryAsyncPaginator(...)</code></h2>
+<h2 id="rawqueryasyncpaginatorpage_size-query-values-serializernone-auto_offset_and_limittrue-usingnone"><code>RawQueryAsyncPaginator(page_size, query, values, serializer=None, auto_offset_and_limit=True, using=None)</code></h2>
 <p>Paginator for raw SQL with optional serializer and optional automatic <code>LIMIT</code> / <code>OFFSET</code> handling.</p>
 
 
@@ -1442,7 +1461,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+      &copy; 2025 <a href="https://bepragma.ai/"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
 
     </div>
   

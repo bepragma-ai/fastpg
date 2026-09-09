@@ -1221,10 +1221,10 @@
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;departments&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">auto_now_add_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">"departments"</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">"id"</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="n">auto_now_add_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"created_at"</span><span class="p">]</span>
 </code></pre></div>
 <h2 id="meta-options"><code>Meta</code> Options</h2>
 <table>
@@ -1290,7 +1290,7 @@
 <p>Updates the row identified by <code>Meta.primary_key</code>.</p>
 <ul>
 <li>Returns <code>True</code> when at least one row is updated.</li>
-<li>If <code>columns</code> is omitted, FastPG includes every field from <code>model_dump(...)</code> in the <code>SET</code> clause.</li>
+<li>If <code>columns</code> is omitted, FastPG writes declared model fields, excluding loaded relationships and extra attributes.</li>
 <li><code>auto_now_fields</code> are only filled when the current field value is <code>None</code>.</li>
 </ul>
 <h3 id="delete-bool"><code>delete() -&gt; bool</code></h3>
@@ -1306,9 +1306,9 @@
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">properties</span><span class="p">:</span> <span class="n">JsonData</span> <span class="o">=</span> <span class="p">{}</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;products&quot;</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">"products"</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">"id"</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
 </code></pre></div>
 <p><code>JsonData</code> keeps Python dict/list values in normal model use and serializes them when FastPG prepares DB writes.</p>
 
@@ -1348,7 +1348,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+      &copy; 2025 <a href="https://bepragma.ai/"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
 
     </div>
   

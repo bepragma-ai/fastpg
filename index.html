@@ -1165,10 +1165,14 @@
 <ul>
 <li>FastPG requires at least one <code>READ</code> connection and exactly one <code>WRITE</code> connection.</li>
 <li>Single-row <code>create()</code> only performs <code>INSERT ... RETURNING</code>; conflict handling exists on <code>bulk_create()</code>, not on <code>create()</code>.</li>
-<li><code>update()</code> and <code>delete()</code> should always be chained after <code>filter(...)</code>. The safe pattern is required by the current implementation.</li>
-<li><code>select_related()</code> supports loading multiple relations in one query.</li>
+<li><code>update()</code> and <code>delete()</code> require base or related filters and return affected-row counts.</li>
+<li>Unchanged querysets cache their results; query modifiers invalidate that cache.</li>
+<li><code>select_related()</code> supports multiple relations and can be combined with <code>prefetch_related()</code>.</li>
+<li><code>lock_for_update()</code> uses the write connection inside a transaction; see <a href="guides/transactions/">Transactions</a>.</li>
 </ul>
 <h2 id="minimal-example">Minimal Example</h2>
+<p>Configure FastPG, open its connections, and create the database table before
+running this example. FastPG does not create tables or manage migrations.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">fastpg</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseModel</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -1177,9 +1181,9 @@
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">class</span><span class="w"> </span><span class="nc">Meta</span><span class="p">:</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">&quot;users&quot;</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">&quot;id&quot;</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">db_table</span> <span class="o">=</span> <span class="s2">"users"</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="n">primary_key</span> <span class="o">=</span> <span class="s2">"id"</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">auto_generated_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"id"</span><span class="p">]</span>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_users</span><span class="p">():</span>
@@ -1187,12 +1191,13 @@
 </code></pre></div>
 <h2 id="read-next">Read Next</h2>
 <ul>
-<li><code>getting-started.md</code></li>
-<li><code>guides/models.md</code></li>
-<li><code>guides/querysets.md</code></li>
-<li><code>guides/relationships.md</code></li>
-<li><code>guides/pagination.md</code></li>
-<li><code>guides/transactions.md</code></li>
+<li><a href="getting-started/">Getting started</a></li>
+<li><a href="guides/models/">Models</a></li>
+<li><a href="guides/querysets/">Querysets</a></li>
+<li><a href="guides/relationships/">Relationships</a></li>
+<li><a href="guides/pagination/">Pagination</a></li>
+<li><a href="guides/transactions/">Transactions and row locks</a></li>
+<li><a href="getting-started/#8-run-the-tests">Running tests</a></li>
 </ul>
 
 
@@ -1231,7 +1236,7 @@
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+      &copy; 2025 <a href="https://bepragma.ai/"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
 
     </div>
   

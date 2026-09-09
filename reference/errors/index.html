@@ -1187,6 +1187,11 @@
 <li><code>InvalidPrefetchError</code></li>
 <li><code>InvalidDatabaseModelUriError</code></li>
 </ul>
+<p><code>MalformedQuerysetError</code> also covers unsupported <code>lock_for_update()</code> combinations.
+Query modifiers raise <code>ValueError</code> for unknown selected/updated/ordered fields,
+invalid ordering directions, invalid limits or offsets, and empty <code>update()</code> calls.
+Missing required arguments and incomplete <code>OnConflict.UPDATE</code> options raise <code>TypeError</code>.
+Pydantic validation errors can occur while creating or hydrating models.</p>
 <h2 id="result-cardinality">Result Cardinality</h2>
 <ul>
 <li><code>DoesNotExist</code></li>
@@ -1204,9 +1209,12 @@
 <li><code>DatabaseError</code></li>
 <li><code>DuplicateKeyDatabaseError</code></li>
 </ul>
-<p><code>DatabaseError</code> wraps the driver error details and includes the SQLSTATE when one is available.
-<code>DuplicateKeyDatabaseError</code> exposes the original database message as <code>.message</code>, which
-can be translated into the calling framework's conflict or validation response.</p>
+<p>Driver errors with a SQLSTATE are wrapped in <code>DatabaseError</code>, exposing <code>.sqlstate</code>,
+<code>.name</code>, and a formatted <code>.message</code>. Errors without a SQLSTATE propagate unchanged.</p>
+<p><code>DuplicateKeyDatabaseError</code> specializes unique-constraint failures (<code>23505</code>) from
+<code>create()</code>, <code>bulk_create()</code>, and raw writes. Its <code>.message</code> includes the driver
+message and table context when available. Ordinary queryset updates and model
+saves wrap these failures as <code>DatabaseError</code>; inspect <code>.sqlstate</code> to distinguish them.</p>
 
 
 
@@ -1244,7 +1252,7 @@ can be translated into the calling framework's conflict or validation response.<
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      &copy; 2025 <a href="bepragma.ai"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
+      &copy; 2025 <a href="https://bepragma.ai/"  target="_blank" rel="noopener">Traceroot Software Solutions Private Limited</a>
 
     </div>
   
