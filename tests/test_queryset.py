@@ -261,3 +261,23 @@ async def test_select_related_hydrates_multiple_related_objects():
     assert "LEFT JOIN teams r1" in instance.db_conn_manager.read_conn.last_query
     assert "r.bio =" in instance.db_conn_manager.read_conn.last_query
     assert "r1.name =" in instance.db_conn_manager.read_conn.last_query
+
+
+@pytest.mark.asyncio
+async def test_queryset_descriptor_preserves_subclasses_and_stays_out_of_fields():
+    from fastpg import AsyncQuerySet
+
+    class Admin(User):
+        role: str = "admin"
+
+    _make_fastpg(read_records=[{"id": 1, "name": "Ada"}])
+    first = Admin.async_queryset
+    assert first is not Admin.async_queryset
+    assert first.Model is Admin
+    assert User.async_queryset.Model is User
+    assert "async_queryset" not in Admin.model_fields
+    assert "Meta" not in Admin.model_fields
+    admin = await first.get(id=1)
+    assert isinstance(admin, Admin)
+    assert admin.async_queryset.Model is Admin
+    assert AsyncQuerySet[Admin](Admin).Model is Admin

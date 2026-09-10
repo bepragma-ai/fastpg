@@ -14,7 +14,7 @@ authors = [
 requires-python = ">=3.8"
 dependencies = [
     "pydantic>=2",
-    "typing_extensions>=4",
+    "typing_extensions>=4.12",
     "pytz",
     "databases[postgresql]>=0.7.0",
 ]
@@ -28,6 +28,8 @@ Issues = "https://github.com/bepragma-ai/fastpg/issues"
 dev = [
     "pytest>=7.4",
     "pytest-asyncio>=0.23",
+    "pyright>=1.1.400",
+    "build",
 ]
 
 [tool.pytest.ini_options]

@@ -28,6 +28,7 @@ from .fields import (
     validate_json_data,
 )
 
+from .paginator import Page, PaginationMetadata
 from .paginator import AsyncPaginator
 from .paginator import RawQueryAsyncPaginator
 
@@ -56,6 +57,8 @@ from .fastpg import (
     get_fastpg,
     set_current_fastpg,
     DBConnectionManager,
+    DatabaseConfig,
+    QueryLoggerConfig,
 )
 
 
@@ -65,6 +68,10 @@ __all__ = [
     "get_fastpg",
     "set_current_fastpg",
     "DBConnectionManager",
+    "DatabaseConfig",
+    "QueryLoggerConfig",
+    "Page",
+    "PaginationMetadata",
     "ConnectionType",
     "OrderBy",
     "OnConflict",

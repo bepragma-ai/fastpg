@@ -115,3 +115,55 @@ Important implementation notes:
 - Guides: [docs/guides](docs/guides)
 - API reference: [docs/api](docs/api)
 - Reference: [docs/reference](docs/reference)
+
+## Type hints in VS Code
+
+FastPG ships inline type hints and a `py.typed` marker. Install the Python and
+Pylance extensions and select the interpreter where FastPG is installed. No
+separate stubs package or editor plugin is required.
+
+Using the `User` model above, Pylance infers these types inside an async function:
+
+```python
+from fastpg import AsyncPaginator, ReturnType
+
+user = await User.async_queryset.get(id=1)                    # User
+users = await User.async_queryset.filter(name="Ada").limit(5) # list[User]
+count = await User.async_queryset.count()                     # int
+created = await User.async_queryset.create(name="Ada")        # User
+row = await User.async_queryset.get(id=1).return_as(ReturnType.DICT)  # dict[str, Any]
+page = await AsyncPaginator(10, User.async_queryset.all()).get_page()
+page["results"]  # list[User]; serializer output is inferred when supplied
+```
+
+`get()` raises `DoesNotExist` for a missing row, so its result is a model rather
+than an optional model. Model fields keep their declared types: an `id: int |
+None` remains optional even after fetching or creating a row.
+
+Querysets mutate in place. Keep the returned chain when changing its result
+shape (`get`, `filter`, `count`, `update`, `delete`, or `return_as`); type checkers
+cannot track those changes through another reference to the same queryset.
+
+Dynamic lookup keywords such as `name__icontains` accept arbitrary values and
+are validated at runtime; they do not get model-specific keyword completion.
+Relationships attached by `select_related` or `prefetch_related` need explicit
+model declarations for attribute completion. Raw SQL/dictionary values and
+`JsonData` remain `Any` where their shape is unknown. Pagination `context` can
+replace response keys, so supplying it returns a general `dict[str, Any]` type.
+
+For reusable configuration dictionaries, import `DatabaseConfig` and
+`QueryLoggerConfig` from `fastpg` to annotate them. `Page[T]` and
+`PaginationMetadata` are also exported for pagination response annotations.
+
+To run runtime tests and check the actual wheel in a clean consumer environment:
+
+```bash
+python -m pip install -e '.[dev]'
+python -m pytest -q
+python tests/check_typing.py
+```
+
+The typing check builds both distribution formats, verifies their marker files,
+and runs strict consumer inference checks plus `pyright --verifytypes fastpg
+--ignoreexternal` against the installed wheel. Pyright and build tools are only
+development dependencies.

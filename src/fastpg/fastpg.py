@@ -1,5 +1,9 @@
+from __future__ import annotations
 from contextvars import ContextVar
-from typing import Dict, Any, Optional
+from datetime import tzinfo
+from typing import Dict, Any, Optional, Type, Callable, List
+from databases.core import Transaction
+from typing_extensions import TypedDict
 from urllib.parse import quote_plus
 import random
 import pytz
@@ -20,18 +24,32 @@ from .errors import (
 from .print import print_green
 
 
+class DatabaseConfig(TypedDict):
+    TYPE: ConnectionType
+    USER: str
+    PASSWORD: str
+    DB: str
+    HOST: str
+    PORT: int | str
+
+
+class QueryLoggerConfig(TypedDict):
+    TITLE: str
+    LOG_QUERIES: bool
+
+
 class DBConnectionManager:
 
     def __init__(
             self,
-            databases_config:Dict[str, Dict[str, str]]=None,
-        ):
-        self.databases_config = databases_config or {}
-        self.databases = {}
-        self.connections = {}
-        self.read_conn_names = []
-        self.write_conn_name = None
-        self.transaction = None
+            databases_config:Optional[Dict[str, DatabaseConfig]]=None,
+        ) -> None:
+        self.databases_config: Dict[str, DatabaseConfig] = databases_config or {}
+        self.databases: Dict[str, Any] = {}
+        self.connections: Dict[str, AsyncPostgresDBConnection] = {}
+        self.read_conn_names: List[str] = []
+        self.write_conn_name: Optional[str] = None
+        self.transaction: Optional[Callable[..., Transaction]] = None
 
         self.__create_connections()
 
@@ -100,16 +118,16 @@ class FastPG:
 
     def __init__(
             self,
-            databases:Dict[str, Dict[str, str]]=None,
+            databases:Optional[Dict[str, DatabaseConfig]]=None,
             tz_name:str='UTC',
-            query_logger:Dict[str, Any]=None,
-            db_conn_manager_class:DBConnectionManager=None,
-        ):
+            query_logger:Optional[QueryLoggerConfig]=None,
+            db_conn_manager_class:Optional[Type[DBConnectionManager]]=None,
+        ) -> None:
         self.tz_name = tz_name
-        self.TZ = None
-        self.log_title = ''
-        self.log_db_queries = False
-        self.db_conn_manager:DBConnectionManager = None
+        self.TZ: Optional[tzinfo] = None
+        self.log_title: str = ''
+        self.log_db_queries: bool = False
+        self.db_conn_manager:DBConnectionManager
 
         if query_logger:
             self.log_title = query_logger['TITLE']
@@ -138,10 +156,10 @@ def register_fastpg(name:str, instance:"FastPG") -> None:
 
 def create_fastpg(
         name:str="default",
-        databases:Dict[str, Dict[str, str]]=None,
+        databases:Optional[Dict[str, DatabaseConfig]]=None,
         tz_name:str='UTC',
-        query_logger:Dict[str, Any]=None,
-        db_conn_manager_class:DBConnectionManager=None,
+        query_logger:Optional[QueryLoggerConfig]=None,
+        db_conn_manager_class:Optional[Type[DBConnectionManager]]=None,
     ) -> "FastPG":
     instance = FastPG(
         databases=databases,

@@ -1,8 +1,16 @@
+from __future__ import annotations
 import re
 import time
 from itertools import count
 import functools
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Tuple, Type, Union, KeysView, TYPE_CHECKING, Callable, Coroutine
+from typing_extensions import ParamSpec, TypeVar
+
+if TYPE_CHECKING:
+    from .core import AsyncQuerySet, DatabaseModel
+
+_P = ParamSpec("_P")
+_T = TypeVar("_T")
 
 from .constants import OPERATORS
 from .errors import (
@@ -13,7 +21,7 @@ from .errors import (
 
 
 import logging
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class Relation:
@@ -21,7 +29,7 @@ class Relation:
 
     def __init__(
         self,
-        related_model,
+        related_model: Union[Type[DatabaseModel], str],
         foreign_field:str,
         related_name:Optional[str] = None,
     ) -> None:
@@ -30,20 +38,20 @@ class Relation:
             self.table
         self.foreign_field = foreign_field
         if related_name:
-            self.related_name = related_name
+            self.related_name: str = related_name
         else:
             model_name = related_model.rsplit('.', 1)[-1] if isinstance(related_model, str) else related_model.__name__
             self.related_name = re.sub(r'([a-z])([A-Z])', r'\1_\2', model_name).lower()  # Camel case to snake case
 
     @property
-    def RelatedModel(self):
+    def RelatedModel(self) -> Type[DatabaseModel]:
         if isinstance(self._related_model, str):
             from .core import get_database_model_by_uri
             self._related_model = get_database_model_by_uri(self._related_model)
         return self._related_model
 
     @property
-    def table(self):
+    def table(self) -> str:
         try:
             return self.RelatedModel.Meta.db_table
         except AttributeError as e:
@@ -52,11 +60,11 @@ class Relation:
             raise
 
     @property
-    def model_fields(self):
+    def model_fields(self) -> KeysView[str]:
         return self.RelatedModel.model_fields.keys()
 
     @property
-    def related_id_field(self):
+    def related_id_field(self) -> str:
         return self.RelatedModel.Meta.primary_key
 
     def set_related_data_set_name(self, related_name: str) -> None:
@@ -70,11 +78,11 @@ class Relation:
 
 class Prefetch:
     
-    def __init__(self, dataset_name:str, queryset) -> None:
+    def __init__(self, dataset_name:str, queryset: AsyncQuerySet[Any, Any, Any]) -> None:
         self.dataset_name = dataset_name
         self.queryset = queryset
-        self.foreign_field = None  # Foreign key from the base model
-        self.id_field = None  # Foreign key from the base model
+        self.foreign_field: Optional[str] = None  # Foreign key from the base model
+        self.id_field: Optional[str] = None  # Foreign key from the base model
     
     def set_foreign_field(self, foreign_field:str) -> None:
         self.foreign_field = foreign_field
@@ -88,14 +96,14 @@ class Q:
 
     _param_ids = count()
 
-    def __init__(self, where_clause=None, params=None, relation_aliases:Optional[Dict[str, str]]=None, **kwargs):
-        self.relation_aliases = relation_aliases or {}
+    def __init__(self, where_clause: Optional[str]=None, params: Optional[Dict[str, Any]]=None, relation_aliases:Optional[Dict[str, str]]=None, **kwargs: Any) -> None:
+        self.relation_aliases: Dict[str, str] = relation_aliases or {}
 
         if where_clause:
-            self.where_clause = where_clause
-            self.params = params or {}
+            self.where_clause: str = where_clause
+            self.params: Dict[str, Any] = params or {}
         else:
-            self.secret = next(self._param_ids)
+            self.secret: int = next(self._param_ids)
             conditions, self.params = [], {}
             field_idx = 0
             for key, value in kwargs.items():
@@ -168,17 +176,17 @@ class Q:
 
             self.where_clause = " AND ".join(conditions)
 
-    def __or__(self, other):
+    def __or__(self, other: Q) -> Q:
         combined_query = f"({self.where_clause} OR {other.where_clause})"
         combined_params = {**self.params, **other.params}
         return Q(where_clause=combined_query, params=combined_params)
 
-    def __and__(self, other):
+    def __and__(self, other: Q) -> Q:
         combined_query = f"({self.where_clause} AND {other.where_clause})"
         combined_params = {**self.params, **other.params}
         return Q(where_clause=combined_query, params=combined_params)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.where_clause} {self.params}"
 
 
@@ -195,11 +203,11 @@ class InClauseParam:
         raise InvalidINClauseValueError(f'A valid list of values is required for param "{name}"')
 
 
-def async_sql_logger(func):
+def async_sql_logger(func: Callable[_P, Coroutine[Any, Any, _T]]) -> Callable[_P, Coroutine[Any, Any, _T]]:
     """Log execution time of SQL queries when enabled."""
 
     @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _T:
         from .fastpg import get_fastpg  # Imported here to avoid circular import
 
         fastpg = get_fastpg()
