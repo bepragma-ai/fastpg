@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Final, Dict, Callable
 
 
 class ConnectionType(Enum):
@@ -23,7 +24,7 @@ OPERATORS = {
 }
 
 
-RENDER_UPDATE_SUFFIXES = {
+RENDER_UPDATE_SUFFIXES: Dict[str, Callable[[str, str], str]] = {
     'jsonb_remove': lambda field, param: f'{field} - CAST({param} AS text)',
     'add': lambda field, param: f'{field} + {param}',
     'sub': lambda field, param: f'{field} - {param}',
@@ -45,15 +46,15 @@ class QueryAction(Enum):
 
 
 class OrderBy:
-    DESCENDING = 'DESC'
-    ASCENDING = 'ASC'
+    DESCENDING: Final = 'DESC'
+    ASCENDING: Final = 'ASC'
 
 
 class OnConflict:
-    DO_NOTHING = 'DO_NOTHING'
-    UPDATE = 'UPDATE'
+    DO_NOTHING: Final = 'DO_NOTHING'
+    UPDATE: Final = 'UPDATE'
 
 
 class ReturnType:
-    MODEL_INSTANCE = 'MODEL_INSTANCE'
-    DICT = 'DICT'
+    MODEL_INSTANCE: Final = 'MODEL_INSTANCE'
+    DICT: Final = 'DICT'

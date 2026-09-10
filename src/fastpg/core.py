@@ -1,13 +1,16 @@
 from __future__ import annotations
 from functools import reduce
 from copy import copy
-from typing import Optional, Any, ClassVar, Dict, List
-from typing_extensions import Self
+from typing import (
+    Optional, Any, ClassVar, Dict, List, Type, Generic, Generator,
+    Callable, Coroutine, Iterable, KeysView, Literal, Union, overload, cast,
+)
+from typing_extensions import Self, TypeVar, ParamSpec
 import json
 
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
-from databases.backends.common.records import Record
+from databases.core import Transaction as DatabaseTransaction
 
 from .constants import (
     ReturnType,
@@ -60,37 +63,45 @@ def get_database_model_by_uri(uri:str) -> type["DatabaseModel"]:
         raise InvalidDatabaseModelUriError(uri, list(_FASTPG_MODELS.keys()))
 
 
-class AsyncQuerySet:
+_ModelT = TypeVar("_ModelT", bound="DatabaseModel", default="DatabaseModel")
+_RowT = TypeVar("_RowT", bound="Union[DatabaseModel, Dict[str, Any]]", default=_ModelT)
+_ResultT = TypeVar("_ResultT", default=None)
+_ScalarT = TypeVar("_ScalarT", int, None)
+_P = ParamSpec("_P")
+_T = TypeVar("_T")
+
+
+class AsyncQuerySet(Generic[_ModelT, _RowT, _ResultT]):
     """Build and execute database queries for a model."""
 
-    def __init__(self, model) -> None:
-        self.Model = model
-        self.ModelMeta = self.Model.Meta
+    def __init__(self, model: Type[_ModelT]) -> None:
+        self.Model: Type[_ModelT] = model
+        self.ModelMeta: Any = self.Model.Meta
         try:
-            self.table = self.ModelMeta.db_table
+            self.table: str = self.ModelMeta.db_table
         except AttributeError as e:
             if str(e) == 'Meta':
                 raise MalformedMetaError(self.Model.__name__)
-        self.model_fields = self.Model.model_fields.keys()
-        self.columns_to_fetch:List[str] = self.model_fields
+        self.model_fields: KeysView[str] = self.Model.model_fields.keys()
+        self.columns_to_fetch:Iterable[str] = self.model_fields
 
         self.action:QueryAction = QueryAction.NONE
         self.base_query:str = ''
         self.query:str = ''
-        self.query_executed = False
+        self.query_executed: bool = False
 
-        self.conditions = []
+        self.conditions: List[Q] = []
         self.where_conditions:str = ''
-        self.query_param_values = {}
-        self.related_conditions = []
+        self.query_param_values: Dict[str, Any] = {}
+        self.related_conditions: List[Q] = []
         self.related_where_conditions:str = ''
-        self.related_query_param_values = {}
+        self.related_query_param_values: Dict[str, Any] = {}
 
         self.fetch_limit:Optional[int] = None
         self.fetch_offset:Optional[int] = None
-        self.order_by_fields:Optional[Dict[str, OrderBy]] = None
+        self.order_by_fields:Optional[Dict[str, Literal["ASC", "DESC"]]] = None
 
-        self.records = None
+        self.records: Any = None
 
         self.run_select_related:bool = False
         self.relations:List[Relation] = []
@@ -101,24 +112,30 @@ class AsyncQuerySet:
         self.run_lock_for_update:bool = False
 
         self.update_clause:Optional[str] = None
-        self.update_param_values = {}
+        self.update_param_values: Dict[str, Any] = {}
 
-        self.return_type = ReturnType.MODEL_INSTANCE
+        self.return_type: str = ReturnType.MODEL_INSTANCE
 
         fastpg = get_fastpg()
-        self.read_connection = fastpg.db_conn_manager.db_for_read()
-        self.write_connection = fastpg.db_conn_manager.db_for_write()
+        self.read_connection: AsyncPostgresDBConnection = fastpg.db_conn_manager.db_for_read()
+        self.write_connection: AsyncPostgresDBConnection = fastpg.db_conn_manager.db_for_write()
 
     def _invalidate(self) -> None:
         self.query_executed = False
         self.records = None
 
-    def _validate_columns(self, columns) -> None:
+    def _validate_columns(self, columns: Iterable[str]) -> None:
         for column in columns:
             if column not in self.model_fields:
                 raise ValueError(f'Unknown field on {self.Model.__name__}: {column}')
 
-    def _model_instance(self, record, model=None):
+    @overload
+    def _model_instance(self, record: Any, model: None = None) -> _ModelT: ...
+
+    @overload
+    def _model_instance(self, record: Any, model: Type[_T]) -> _T: ...
+
+    def _model_instance(self, record: Any, model: Any = None) -> Any:
         obj = (model or self.Model)(**record)
         obj._write_connection = self.write_connection
         return obj
@@ -133,7 +150,7 @@ class AsyncQuerySet:
             )
         return ' '.join(joins)
 
-    def _query_conditions(self):
+    def _query_conditions(self) -> tuple[str, Dict[str, Any]]:
         where = self.where_conditions
         if self.related_where_conditions:
             # Keep related predicates when the outer operation does not load joins.
@@ -145,14 +162,14 @@ class AsyncQuerySet:
             where = f'({where}) AND ({related})' if where else related
         return where, {**self.query_param_values, **self.related_query_param_values}
 
-    def _reduce_conditions(self, *args, **kwargs) -> Q:
+    def _reduce_conditions(self, *args: Q, **kwargs: Any) -> Q:
         if kwargs:
             self.conditions.append(Q(**kwargs))
         if args:
             self.conditions.extend(args)
         return reduce(lambda x, y: x & y, self.conditions) if self.conditions else Q()
     
-    def _reduce_related_conditions(self, *args, **kwargs) -> Q:
+    def _reduce_related_conditions(self, *args: Q, **kwargs: Any) -> Q:
         if kwargs:
             relation_aliases = {
                 relation.related_name: 'r' if index == 0 else f'r{index}'
@@ -199,7 +216,7 @@ class AsyncQuerySet:
             # Return as list of dict
             self.records = [{**record} for record in self.records]
 
-    async def _execute_query(self, func) -> None:
+    async def _execute_query(self, func: Callable[[], Any]) -> Any:
         where, values = self._query_conditions()
         if self.action != QueryAction.COUNT:
             self.base_query = f'SELECT {",".join(self.columns_to_fetch)} FROM {self.table} t'
@@ -233,7 +250,7 @@ class AsyncQuerySet:
         self._serialize_data()
         return func()
 
-    async def _execute_query_with_select_related(self, func) -> None:
+    async def _execute_query_with_select_related(self, func: Callable[[], Any]) -> Any:
         main_table_fields = ','.join(f't.{f} AS t_{f}' for f in self.columns_to_fetch)
         related_table_fields = []
         for index, relation in enumerate(self.relations):
@@ -286,7 +303,7 @@ class AsyncQuerySet:
         self._serialize_data()
         return func()
     
-    async def _execute_query_with_prefetch_related(self, func) -> None:
+    async def _execute_query_with_prefetch_related(self, func: Callable[[], Any]) -> Any:
         if self.run_lock_for_update:
             model_name = self.Model.__name__
             raise MalformedQuerysetError(
@@ -324,7 +341,7 @@ class AsyncQuerySet:
 
         return func()
 
-    async def execute_raw_query(self, query:str, values:Dict[str, Any]):
+    async def execute_raw_query(self, query:str, values:Dict[str, Any]) -> List[_RowT]:
         self.query = query
         self.query_param_values = values
 
@@ -350,13 +367,13 @@ class AsyncQuerySet:
         self.read_connection = get_fastpg().db_conn_manager.get_db_conn(conn_name)
         return self
 
-    def columns(self, *columns:set[str]) -> Self:
+    def columns(self, *columns:str) -> Self:
         self._validate_columns(columns)
         self._invalidate()
         self.columns_to_fetch = list(columns)
         return self
 
-    def get(self, *args, **kwargs) -> Self:
+    def get(self, *args: Q, **kwargs: Any) -> AsyncQuerySet[_ModelT, _RowT, _RowT]:
         """Fetch a single record matching the given conditions."""
         self._invalidate()
         self.action = QueryAction.GET
@@ -368,9 +385,9 @@ class AsyncQuerySet:
         self.where_conditions = all_conditions.where_clause
         self.query_param_values = all_conditions.params
 
-        return self
+        return cast("AsyncQuerySet[_ModelT, _RowT, _RowT]", self)
 
-    def _get(self):
+    def _get(self) -> _RowT:
         record_count = len(self.records)
         if record_count == 1:
             return self.records[0]
@@ -379,7 +396,7 @@ class AsyncQuerySet:
         else:
             raise MultipleRecordsFound(model_name=self.Model.__name__, query=self.query)
 
-    def filter_related(self, *args, **kwargs) -> Self:
+    def filter_related(self, *args: Q, **kwargs: Any) -> Self:
         self._invalidate()
         all_conditions = self._reduce_related_conditions(*args, **kwargs)
         self.related_where_conditions = all_conditions.where_clause
@@ -387,7 +404,7 @@ class AsyncQuerySet:
 
         return self
 
-    def filter(self, *args, **kwargs) -> Self:
+    def filter(self, *args: Q, **kwargs: Any) -> AsyncQuerySet[_ModelT, _RowT, List[_RowT]]:
         """Filter records based on provided conditions."""
         self._invalidate()
         self.action = QueryAction.FILTER
@@ -399,18 +416,18 @@ class AsyncQuerySet:
         self.where_conditions = all_conditions.where_clause
         self.query_param_values = all_conditions.params
 
-        return self
+        return cast("AsyncQuerySet[_ModelT, _RowT, List[_RowT]]", self)
 
-    def _filter(self):
+    def _filter(self) -> List[_RowT]:
         return self.records
 
-    def lock_for_update(self, *args, **kwargs) -> Self:
+    def lock_for_update(self, *args: Q, **kwargs: Any) -> Self:
         """Lock rows for update based on provided conditions."""
         self._invalidate()
         self.run_lock_for_update = True
         return self
 
-    def all(self) -> Self:
+    def all(self) -> AsyncQuerySet[_ModelT, _RowT, List[_RowT]]:
         """Select all records for the model."""
         self._invalidate()
         self.action = QueryAction.ALL
@@ -421,24 +438,24 @@ class AsyncQuerySet:
         self.where_conditions = ''
         self.query_param_values = {}
         self.conditions = []
-        return self
+        return cast("AsyncQuerySet[_ModelT, _RowT, List[_RowT]]", self)
 
-    def _all(self):
+    def _all(self) -> List[_RowT]:
         return self.records
 
-    def count(self) -> Self:
+    def count(self) -> AsyncQuerySet[_ModelT, _RowT, int]:
         """Count the number of records matching the query."""
         self._invalidate()
         self.action = QueryAction.COUNT
         self.base_query = f'SELECT count({self.ModelMeta.primary_key}) FROM {self.table} t'
-        return self
+        return cast("AsyncQuerySet[_ModelT, _RowT, int]", self)
 
     def _count(self) -> int:
         record_count = len(self.records)
         if record_count == 1:
             return self.records[0]['count']
 
-    def select_related(self, *relation_names:List[str]) -> Self:
+    def select_related(self, *relation_names:str) -> Self:
         self._invalidate()
         self.run_select_related = True
         for relation_name in relation_names:
@@ -450,10 +467,10 @@ class AsyncQuerySet:
                 raise InvalidRelatedFieldError(self.Model.__name__, relation_name, self.ModelMeta.relations.keys())
         return self
     
-    def prefetch_related(self, *prefetches:List[Prefetch]) -> Self:
+    def prefetch_related(self, *prefetches:Prefetch) -> Self:
         self._invalidate()
         self.run_prefetch_related = True
-        self.prefetches = prefetches
+        self.prefetches = list(prefetches)
         for prefetch in self.prefetches:
             relation_found = False
             for relation in prefetch.queryset.Model.Meta.relations.values():
@@ -479,7 +496,7 @@ class AsyncQuerySet:
         self.fetch_offset = fetch_offset
         return self
 
-    def order_by(self, **order_by) -> Self:
+    def order_by(self, **order_by: Literal["ASC", "DESC"]) -> Self:
         self._validate_columns(order_by)
         if any(direction not in (OrderBy.ASCENDING, OrderBy.DESCENDING) for direction in order_by.values()):
             raise ValueError('order_by directions must be ASC or DESC')
@@ -489,8 +506,8 @@ class AsyncQuerySet:
 
     async def create(
         self,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> _ModelT:
         """
         await db.create(..., on_conflict=OnConflict.DO_NOTHING)
         await db.create(
@@ -541,12 +558,12 @@ class AsyncQuerySet:
 
     async def bulk_create(
         self,
-        values:list[dict],
+        values:list[dict[str, Any]],
         on_conflict:str,
         conflict_target:list[str]|None=None,  # Required for "update"
         update_fields:list[str]|None=None,     # Required for "update"
         skip_validations:bool=False,
-    ):
+    ) -> None:
         """
         Usage
         await db.bulk_create(values=payload, on_conflict=OnConflict.DO_NOTHING)
@@ -618,7 +635,7 @@ class AsyncQuerySet:
                 sqlstate=sqlstate,
                 message=str(e))
 
-    async def get_or_create(self, defaults:dict[str, Any], **kwargs):
+    async def get_or_create(self, defaults:dict[str, Any], **kwargs: Any) -> tuple[Union[_RowT, _ModelT], bool]:
         self.run_select_related = False
         created = False
         try:
@@ -629,7 +646,7 @@ class AsyncQuerySet:
             created = True
         return obj, created
 
-    async def update_or_create(self, defaults:dict[str, Any], **kwargs):
+    async def update_or_create(self: AsyncQuerySet[_ModelT, _ModelT, _ResultT], defaults:dict[str, Any], **kwargs: Any) -> tuple[_ModelT, bool]:
         self.run_select_related = False
         created = False
         try:
@@ -645,7 +662,7 @@ class AsyncQuerySet:
             created = True
         return obj, created
 
-    def update(self, **kwargs) -> Self:
+    def update(self, **kwargs: Any) -> AsyncQuerySet[_ModelT, _RowT, int]:
         """Update records matching the query with provided values."""
         if not (self.where_conditions or self.related_where_conditions):
             raise UnrestrictedUpdateError()
@@ -684,7 +701,7 @@ class AsyncQuerySet:
         self.update_clause = ', '.join(f'{field}={expression}' for field, expression in assignments.items())
         self.update_param_values = {key: value for params in field_params.values() for key, value in params.items()}
 
-        return self
+        return cast("AsyncQuerySet[_ModelT, _RowT, int]", self)
 
     async def _update(self) -> int:
         if not self.query_executed:
@@ -713,13 +730,13 @@ class AsyncQuerySet:
 
         return self.records
 
-    def delete(self) -> Self:
+    def delete(self) -> AsyncQuerySet[_ModelT, _RowT, int]:
         """Delete records matching the query."""
         if not (self.where_conditions or self.related_where_conditions):
             raise UnrestrictedDeleteError()
         self._invalidate()
         self.action = QueryAction.DELETE
-        return self
+        return cast("AsyncQuerySet[_ModelT, _RowT, int]", self)
 
     async def _delete(self) -> int:
         if not self.query_executed:
@@ -747,15 +764,60 @@ class AsyncQuerySet:
 
         return self.records
 
-    def return_as(self, return_type:str) -> Self:
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, List[_RowT]], return_type: Literal["DICT"],
+    ) -> AsyncQuerySet[_ModelT, Dict[str, Any], List[Dict[str, Any]]]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, _RowT], return_type: Literal["DICT"],
+    ) -> AsyncQuerySet[_ModelT, Dict[str, Any], Dict[str, Any]]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, _ScalarT], return_type: Literal["DICT"],
+    ) -> AsyncQuerySet[_ModelT, Dict[str, Any], _ScalarT]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, List[_RowT]], return_type: Literal["MODEL_INSTANCE"],
+    ) -> AsyncQuerySet[_ModelT, _ModelT, List[_ModelT]]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, _RowT], return_type: Literal["MODEL_INSTANCE"],
+    ) -> AsyncQuerySet[_ModelT, _ModelT, _ModelT]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, _ScalarT], return_type: Literal["MODEL_INSTANCE"],
+    ) -> AsyncQuerySet[_ModelT, _ModelT, _ScalarT]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, List[_RowT]], return_type: str,
+    ) -> Union[AsyncQuerySet[_ModelT, _ModelT, List[_ModelT]], AsyncQuerySet[_ModelT, Dict[str, Any], List[Dict[str, Any]]]]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, _RowT], return_type: str,
+    ) -> Union[AsyncQuerySet[_ModelT, _ModelT, _ModelT], AsyncQuerySet[_ModelT, Dict[str, Any], Dict[str, Any]]]: ...
+
+    @overload
+    def return_as(
+        self: AsyncQuerySet[_ModelT, _RowT, _ScalarT], return_type: str,
+    ) -> Union[AsyncQuerySet[_ModelT, _ModelT, _ScalarT], AsyncQuerySet[_ModelT, Dict[str, Any], _ScalarT]]: ...
+
+    def return_as(self, return_type:str) -> AsyncQuerySet[Any, Any, Any]:
         self._invalidate()
         self.return_type = return_type
         return self
 
-    def __await__(self):
+    def __await__(self) -> Generator[Any, None, _ResultT]:
         return self._execute().__await__()
 
-    async def _execute(self):
+    async def _execute(self) -> Any:
         if self.run_lock_for_update:
             if self.action != QueryAction.FILTER or not (self.where_conditions or self.related_where_conditions):
                 raise MalformedQuerysetError(self.Model.__name__, 'lock_for_update requires filter() conditions')
@@ -792,15 +854,15 @@ class AsyncQuerySet:
 
 class AsyncRawQuery:
 
-    def __init__(self, query:str, using:str|None=None):
-        self.query = query
-        self.values = None
+    def __init__(self, query:str, using:str|None=None) -> None:
+        self.query: str = query
+        self.values: Any = None
         fastpg = get_fastpg()
         if using:
-            self.read_connection = fastpg.db_conn_manager.get_db_conn(using)
+            self.read_connection: AsyncPostgresDBConnection = fastpg.db_conn_manager.get_db_conn(using)
         else:
-            self.read_connection = fastpg.db_conn_manager.db_for_read()
-        self.write_connection = fastpg.db_conn_manager.db_for_write()
+            self.read_connection: AsyncPostgresDBConnection = fastpg.db_conn_manager.db_for_read()
+        self.write_connection: AsyncPostgresDBConnection = fastpg.db_conn_manager.db_for_write()
     
     def render_in_clauses(self, values:Dict[str, Any]) -> Dict[str, Any]:
         _values = {**values}
@@ -828,7 +890,7 @@ class AsyncRawQuery:
                 message=str(e))
         return [dict(record) for record in records]
     
-    async def execute(self, values:Dict[str, Any]) -> List[Record]:
+    async def execute(self, values:Dict[str, Any]) -> Any:
         self.values = self.render_in_clauses(values)
         try:
             return await self.write_connection.execute(
@@ -850,7 +912,7 @@ class AsyncRawQuery:
                 sqlstate=sqlstate,
                 message=str(e))
     
-    async def execute_many(self, list_of_values: List[Dict[str, Any]]) -> List[Record]:
+    async def execute_many(self, list_of_values: List[Dict[str, Any]]) -> None:
         self.values = []
         for v in list_of_values:
             self.values.append(self.render_in_clauses(v))
@@ -877,31 +939,28 @@ class AsyncRawQuery:
 
 class queryset_property:
     """Descriptor that works like @property but for classes."""
-    def __init__(self, func):
+    def __init__(self, func: Callable[[Type[Any]], AsyncQuerySet[Any, Any, Any]]) -> None:
         self.func = func
 
-    def __get__(self, obj, owner_cls):
+    def __get__(self, obj: Optional[_ModelT], owner_cls: Type[_ModelT]) -> AsyncQuerySet[_ModelT, _ModelT, None]:
         return self.func(owner_cls)
         
 
 class DatabaseModel(BaseModel):
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         parts = cls.__module__.split(".")
         app_label = parts[-2] if parts[-1] == "models" else parts[-1]
         _FASTPG_MODELS[f'{app_label}.{cls.__name__}'] = cls
 
-    async_queryset:ClassVar[AsyncQuerySet]
+    Meta: ClassVar[Any]
+    async_queryset: ClassVar[queryset_property] = queryset_property(AsyncQuerySet)
     _write_connection:Optional[AsyncPostgresDBConnection] = PrivateAttr(default=None)
 
-    model_config = ConfigDict(extra='allow')
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra='allow')
     
-    @queryset_property
-    def async_queryset(cls):
-        return AsyncQuerySet(model=cls)
-
     @property
-    def write_connection(self):
+    def write_connection(self) -> AsyncPostgresDBConnection:
         if self._write_connection is None:
             self._write_connection = get_fastpg().db_conn_manager.db_for_write()
         return self._write_connection
@@ -991,19 +1050,19 @@ class DatabaseModel(BaseModel):
 class Transaction:
 
     @staticmethod
-    def atomic():
+    def atomic() -> DatabaseTransaction:
         fastpg = get_fastpg()
         return fastpg.db_conn_manager.transaction()
     
     @staticmethod
-    async def start():
+    async def start() -> DatabaseTransaction:
         fastpg = get_fastpg()
         return await fastpg.db_conn_manager.transaction()
     
     @staticmethod
-    def decorator():
-        def _decorator(fn):
-            async def _wrapped(*args, **kwargs):
+    def decorator() -> Callable[[Callable[_P, Coroutine[Any, Any, _T]]], Callable[_P, Coroutine[Any, Any, _T]]]:
+        def _decorator(fn: Callable[_P, Coroutine[Any, Any, _T]]) -> Callable[_P, Coroutine[Any, Any, _T]]:
+            async def _wrapped(*args: _P.args, **kwargs: _P.kwargs) -> _T:
                 async with Transaction.atomic():
                     return await fn(*args, **kwargs)
             return _wrapped

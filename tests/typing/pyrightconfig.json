@@ -1,0 +1,9 @@
+{
+    "include": [
+        "queries.py"
+    ],
+    "typeCheckingMode": "strict",
+    "useLibraryCodeForTypes": false,
+    "pythonVersion": "3.10",
+    "reportUnnecessaryTypeIgnoreComment": true
+}

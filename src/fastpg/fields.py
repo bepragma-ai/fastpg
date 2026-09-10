@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 from uuid import UUID
 from datetime import datetime
@@ -11,7 +12,7 @@ from pydantic import (
 )
 
 
-def json_str_to_dict(value:Any) -> Dict:
+def json_str_to_dict(value:Any) -> Any:
     """
     Converts JSON string (typically read from DB) to dictionary
     """
@@ -21,25 +22,25 @@ def json_str_to_dict(value:Any) -> Dict:
 
 
 class CustomJsonEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, datetime):
             return obj.isoformat()
         if isinstance(obj, UUID):
             return str(obj)
         return json.JSONEncoder.default(self, obj)
 
-def validate_json_data(data:Any) -> str|Dict:
+def validate_json_data(data:Any) -> Any:
     if isinstance(data, (dict, list)):
         return json.dumps(data, cls=CustomJsonEncoder)
     return data
 
-def serialize_json_data(data, info:SerializationInfo) -> str|Dict:
+def serialize_json_data(data: Any, info:SerializationInfo) -> Any:
     if info.context and info.context.get('db_write'):
         return json.dumps(data, cls=CustomJsonEncoder)
     return data
 
 JsonData = Annotated[
-    Json,
+    Json[Any],
     BeforeValidator(validate_json_data),
     PlainSerializer(serialize_json_data, return_type=str|Dict),
 ]

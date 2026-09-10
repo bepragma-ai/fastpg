@@ -1,5 +1,7 @@
 import asyncio
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any, Callable
+from databases.interfaces import Record
+from databases.core import Transaction
 from databases import Database
 
 from .constants import ConnectionType
@@ -28,7 +30,7 @@ class AsyncPostgresDBConnection:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.database: Optional[Database] = None
-        self.transaction = None
+        self.transaction: Optional[Callable[..., Transaction]] = None
 
     async def connect(self) -> None:
         """Establish a connection to the database with retry logic."""
@@ -55,21 +57,21 @@ class AsyncPostgresDBConnection:
         raise Exception("Failed to connect to the database after multiple retries.")
     
     @async_sql_logger
-    async def fetch_one(self, query: str, values: Optional[Dict] = None):
+    async def fetch_one(self, query: str, values: Optional[Dict[str, Any]] = None) -> Optional[Record]:
         """Fetch a single record from the database."""
 
         values = values or {}
         return await self.database.fetch_one(query=query, values=values)
     
     @async_sql_logger
-    async def fetch_all(self, query: str, values: Optional[Dict] = None):
+    async def fetch_all(self, query: str, values: Optional[Dict[str, Any]] = None) -> List[Record]:
         """Fetch multiple records from the database."""
 
         values = values or {}
         return await self.database.fetch_all(query=query, values=values)
 
     @async_sql_logger
-    async def execute(self, query: str, values: Optional[Dict] = None):
+    async def execute(self, query: str, values: Optional[Dict[str, Any]] = None) -> Any:
         """Execute a query with optional values."""
         values = values or {}
         try:
@@ -79,7 +81,7 @@ class AsyncPostgresDBConnection:
         return result
 
     @async_sql_logger
-    async def execute_many(self, query: str, list_of_values: List[Dict]):
+    async def execute_many(self, query: str, list_of_values: List[Dict[str, Any]]) -> None:
         """Execute a query for multiple sets of values."""
         try:
             result = await self.database.execute_many(query=query, values=list_of_values)
@@ -93,5 +95,5 @@ class AsyncPostgresDBConnection:
         if self.database:
             await self.database.disconnect()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'Connection {self.conn_name} [{self.conn_type.value}]'
